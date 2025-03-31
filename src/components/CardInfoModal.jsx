@@ -5,46 +5,46 @@ import ImageUpload from './ImageUpload';
 import ConfirmationModal from './ConfirmationModal';
 import { useSupabase,handleImageUpload } from './SupaBaseProvider';
 
-const CardInfoModal = ({ isOpen, onClose, card,updateIdea}) => {
+const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
     const supabase = useSupabase();
     const [tagInput, setTagInput] = useState('');
     const [confirmationModal, setConfirmationModal] = useState(false);
     
     const [originalData, setOriginalData] = useState({
-        id: card.id,
-        title: card.title,
-        description: card.description,
-        tags: JSON.parse(card.tags),
-        images: JSON.parse(card.images),
-        status: card.status,
-        comments: card.comments,
-        created_at: card.created_at,  
+        id: idea.id,
+        title: idea.title,
+        description: idea.description,
+        tags: JSON.parse(idea.tags),
+        images: JSON.parse(idea.images),
+        status: idea.status,
+        comments: idea.comments,
+        created_at: idea.created_at,  
       });
       const [formData, setFormData] = useState({ ...originalData });
     
       useEffect(() => {
         setOriginalData({
-            id: card.id,
-            title: card.title,
-            description: card.description,
-            tags: JSON.parse(card.tags),
-            images: JSON.parse(card.images),
-            status: card.status,
-            comments: card.comments,
-            created_at: card.created_at,  
+            id: idea.id,
+            title: idea.title,
+            description: idea.description,
+            tags: JSON.parse(idea.tags),
+            images: JSON.parse(idea.images),
+            status: idea.status,
+            comments: idea.comments,
+            created_at: idea.created_at,  
         });
         setFormData({
-            id: card.id,
-            title: card.title,
-            description: card.description,
-            tags: JSON.parse(card.tags),
-            images: JSON.parse(card.images),
-            status: card.status,
-            comments: card.comments,
-            created_at: card.created_at,  
+            id: idea.id,
+            title: idea.title,
+            description: idea.description,
+            tags: JSON.parse(idea.tags),
+            images: JSON.parse(idea.images),
+            status: idea.status,
+            comments: idea.comments,
+            created_at: idea.created_at,  
 
         });
-      }, [card]);
+      }, [idea]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -97,7 +97,9 @@ const CardInfoModal = ({ isOpen, onClose, card,updateIdea}) => {
     if (formData.status!==originalData.status) updates.status = formData.status;
     if (formData.comments !== originalData.comments) updates.comments = formData.comments;
     const removedImages = getRemovedImages(originalData.images, formData.images);
-
+    
+    // need to remove any photos that are deleted from an edited idea
+    // ^ This is the function that will get the image urls that are removed 
 
     if (Object.keys(updates).length > 0) {
         console.log(updates, "updates");

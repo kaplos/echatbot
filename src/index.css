@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+    .input {
+      @apply w-full border block shadow-sm border-gray-300 rounded-lg p-2 text-left focus:ring-chabot-gold focus:border-chabot-gold;
+    }
+  }

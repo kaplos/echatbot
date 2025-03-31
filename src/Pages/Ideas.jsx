@@ -4,6 +4,7 @@ import AddIdeaModal from '../components/Ideas/AddIdeaModal'
 import { useState,useEffect } from 'react';
 import { useSupabase } from '../components/SupaBaseProvider';
 import CardInfoModal from '../components/CardInfoModal';
+import Loading from '../components/Loading';
 // const ideas =[
 //     {
 //         id: 1,
@@ -25,6 +26,7 @@ export default function Ideas() {
     const [ideas, setIdeas] = useState([]);
     const [idea, setIdea] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    
     const handleClick = async (id) => {
       // console.log(id,'idea card');
       const { data, error } = await supabase
@@ -71,7 +73,7 @@ export default function Ideas() {
     };
 
     if(isLoading){
-      return <div>Loading...</div>
+      return <Loading />
     }
       return (
         <div className="p-6 w-full">
@@ -89,13 +91,14 @@ export default function Ideas() {
           <IdeaBoard ideas={ideas} handleClick={handleClick}/>
           <AddIdeaModal
             isOpen={isAddModalOpen}
-            onClose={handleAddIdea}
+            onClose={() => setIsAddModalOpen(false)}
+            onSave={handleAddIdea}
           />
           {idea &&
             <CardInfoModal 
             isOpen={cardModalOpen}
             onClose={() => setCardModalOpen(false)}
-            card={idea}
+            idea={idea}
             updateIdea={updateIdea}
           />
           }

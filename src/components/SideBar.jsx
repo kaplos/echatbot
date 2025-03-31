@@ -9,20 +9,24 @@ import {
   MessageSquare,
   Calculator,
   DollarSign,
-  Lightbulb
+  Lightbulb,
+  Hammer,
+  ReceiptText,
+  Pen
 } from 'lucide-react';
 
 export default function Sidebar  ()  {
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', to: '/' },
     { icon: Lightbulb, label: 'Ideas', to: '/ideas' },
-    { icon: Package, label: 'Products', to: '/products' },
-    { icon: Calculator, label: 'Metal Calculator', to: '/calculator' },
+    {icon: Pen, label: 'Design' , to: '/designs'},
+    {icon: Hammer, label: 'Samples' , to: '/samples'},
+    {icon: ReceiptText  , label: 'Quotes' , to: '/quotes'},
     { icon: DollarSign, label: 'Metal Prices', to: '/prices' },
     { icon: Users, label: 'Vendors', to: '/vendors' },
-    { icon: MessageSquare, label: 'Communications', to: '/communications' },
-    { icon: FileText, label: 'Documents', to: '/documents' },
-    { icon: Settings, label: 'Settings', to: '/settings' },
+    // { icon: MessageSquare, label: 'Communications', to: '/communications' },
+    // { icon: FileText, label: 'Documents', to: '/documents' },
+    // { icon: Settings, label: 'Settings', to: '/settings' },
   ];
 
   return (

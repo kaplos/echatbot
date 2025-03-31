@@ -4,7 +4,7 @@ import {formatDate} from '../../utils/dateUtils'
 
 export default function IdeaCard ({idea,handleClick}){
   
-  console.log(idea)
+  console.log(idea,'idea in ideacard')
       
   const parseArray = (input) => {
     if (typeof input === 'string') {
@@ -27,9 +27,9 @@ export default function IdeaCard ({idea,handleClick}){
             {idea.images.length > 0 && (
         <div className="aspect-video w-full overflow-hidden">
           <img
-            src={idea.images[0]}
+            src={parseArray(idea.images)[0]}
             alt={idea.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
         </div>
       )}
@@ -66,7 +66,7 @@ export default function IdeaCard ({idea,handleClick}){
         <div className="flex items-center justify-between text-sm text-gray-500">
           <div className="flex items-center">
             <MessageSquare className="w-4 h-4 mr-1" />
-            {/* <span>{idea.comments.length}</span> */}
+            <span>{idea.comments.length}</span>
           </div>
           <div className="flex items-center">
             <Calendar className="w-4 h-4 mr-1" />

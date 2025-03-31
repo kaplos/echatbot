@@ -4,7 +4,7 @@ import { X , Tag as TagIcon} from 'lucide-react';
 import ImageUpload from '../ImageUpload';
 import { useSupabase,handleImageUpload } from '../SupaBaseProvider';
 
-const AddIdeaModal = ({ isOpen, onClose }) => {
+const AddIdeaModal = ({ isOpen, onClose,onSave }) => {
   const supabase = useSupabase();
   const [formData, setFormData] = useState({
     title: '',
@@ -42,31 +42,44 @@ const AddIdeaModal = ({ isOpen, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    let imageUrls = [];
-    if (formData.images.length > 0) {
-      imageUrls = await handleImageUpload(formData.images);
-    }
-
+    
     let newIdea = {
       title: formData.title,
       description: formData.description,
       tags: JSON.stringify(formData.tags),
-      images: JSON.stringify(imageUrls),
+      images: JSON.stringify(formData.images),
+      comments: formData.comments,
     };
-      // comments: formData.comments,
+
     const { data, error } = await supabase
     .from('Ideas')
     .insert([newIdea])
     .select();
+
     if (error) {
       console.error('Error inserting idea:', error);
     } else {
       console.log('Idea inserted:', data[0]);
     }
+
+    // const imageRows = formData.images.map((imageUrl) => ({
+    //   foreign_id: data[0].id, // Associate the image with the idea
+    //   foreign_type: 'Idea', // Specify the module type
+    //   image_url: imageUrl,
+    // }));
+    // // Handle image upload
+    // const {error: imageError } = await supabase
+    //   .from('ImageStorage')
+    //   .insert(imageRows);
+      
+    //   if (imageError) {
+    //     console.error('Error inserting images:', imageError);
+    //     return;
+    //   }
     // Handle form submission (e.g., save to database)
     newIdea={...newIdea,id:data[0].id , created_at:data[0].created_at}
     console.log(newIdea);
-    onClose(data[0]);
+    onSave(data[0]);
   };
 
 

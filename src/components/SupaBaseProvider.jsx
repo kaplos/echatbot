@@ -42,10 +42,10 @@ export const handleImageUpload = async (files) => {
       .from('echatbot') // Replace with your bucket name
       .upload(`public/${file.name}`, file)
       
-      const  data2  = supabase.storage
-    .from('echatbot') // Replace with your bucket name
-    .getPublicUrl(`public/${file.name}`);
-    console.log(data2?.data.publicUrl,'publicURL');
+    const {data: publicURL} = supabase.storage
+      .from('echatbot') // Replace with your bucket name
+      .getPublicUrl(`public/${file.name}`);
+    console.log(publicURL,'publicURL');
 
 
     if (error) {
@@ -53,9 +53,10 @@ export const handleImageUpload = async (files) => {
       continue;
     }
     console.log(data,'data from upload'); 
-    // const imageUrl = `${process.env.SUPABASE_URL}/storage/v1/object/${data.fullPath}`;
-    imageUrls.push(data2.data.publicUrl);
+    imageUrls.push(publicURL.publicURL);
     console.log(imageUrls,'imageUrls');
   }
   return imageUrls;
 };
+
+
