@@ -20,11 +20,12 @@ export default function newQuote(){
             const quote = new URLSearchParams(location.search).get('quote') || null
             const [formData, setFormData] = useState(
                     { agent:'',buyer:'' ,tags:'',status:'',gold:2300,silver:32,items:[]})
+            const [productInfo,setProductInfo]=useState()
                 const [isOpen,setIsOpen] = useState(false)
                 const [isLoading,setIsLoading] = useState(false)
                 const [selectedProducts,setSelectedProducts] = useState([])
                 const [editingCell, setEditingCell] = useState(null);
-                
+                const [filter,setFilters] =useState();
 
 
 
@@ -35,16 +36,28 @@ export default function newQuote(){
                         console.log(quote,'quote from params')
                         const fetchQuote = async () => {
                             setIsLoading(true);
+                            
                             const { data, error } = await supabase.from('quotes')
                             .select('*')
                             .eq('quoteNumber', quote)
                             .single();
+                            console.log(data)
+                            const productsToGet = data.items.map(item=> item.productId)
+                            console.log(productsToGet,'get prodict info')
+
+                            const {data:productData,error:productError} = 
+                            await supabase.from('samples')
+                            .select('*')
+                            .in('id',productsToGet)
                             
+                            console.log(productData)
+
                             if (error) {
                               console.error('Error fetching samples:', error);
                               return;
                             }
                             setFormData(data);
+                            setProductInfo(productData)
                             // console.log(data);
                             setIsLoading(false);
 
@@ -77,6 +90,19 @@ export default function newQuote(){
                 setFormData({ agent:'',buyer:'' ,tags:'',status:'',gold:2300,silver:32,items:[]})
                 navigate('/quotes')
             }
+            const fetchQuotesByCustomer = async (customerName) => {
+                const { data, error } = await supabase
+                  .from('quotes')
+                  .select('*')
+                  .eq('customerName', customerName);
+              
+                if (error) {
+                  console.error('Error fetching quotes:', error);
+                  return [];
+                }
+              
+                return data;
+              };
 
             const handleChange = (rowIndex, field, value) => {
                 console.log(rowIndex, field, value, 'rowIndex, field, value')
@@ -140,16 +166,25 @@ export default function newQuote(){
 
                     <div className="p-6   flex-1 flex flex-col">
                         <div className="flex flex-row">
-                            <h1 className="text-2xl font-bold text-gray-900">View Quote</h1>
+                            <div className="flex flex-col">
+                                <h1 className="text-2xl font-bold text-gray-900">View Quote</h1>
+                                <select name="status" id="" value={formData.status} className='p-2' onChange={(e)=>setFormData({...formData,status: e.target.value})}>
+                                            <option value="created">Created</option>
+                                            <option value="sent">Sent</option>
+                                            <option value="viewed">Viewed</option>
+                                            <option value="paid">Paid</option>
+                                </select>
+                            </div>
                             <div className="flex space-x-3 justify-self-end flex-col w-48 ml-auto">
-                            <button
+                            {/* <button
                                 className="bg-chabot-gold text-white px-4 py-2 rounded-lg flex items-center hover:bg-opacity-90 transition-colors"
                                 onClick={() => setIsOpen(true)}
                             >
                                 <Plus className="w-5 h-5 mr-2" />
                                 Add Items
-                            </button>
-                            <CustomSelectWithSelections version={'samples'} selected={formData.items} close={()=> setIsOpen(false)} onSelect={handleCustomSelect} isOpen={isOpen} />
+                            </button> */}
+                            
+                            {/* <CustomSelectWithSelections version={'samples'} selected={formData.items} close={()=> setIsOpen(false)} onSelect={handleCustomSelect} isOpen={isOpen} /> */}
                             </div>
                         </div>
                         <div className="flex flex-col justify-between  items-center mb-6 flex-1 h-full">
@@ -175,12 +210,13 @@ export default function newQuote(){
                                                     <th className="border border-gray-300 p-2 w-20">Description</th>
                                                     <th className="border border-gray-300 p-2 w-20">Sales Weight</th>
                                                     <th className="border border-gray-300 p-2 w-20">Price</th>
-                                                    <th className="border border-gray-300 p-2 w-20">Buyer Remark</th>
                                                     <th className="border border-gray-300 p-2 w-20">Internal Note</th>
+                                                    <th className="border border-gray-300 p-2 w-20">Buyer Remark</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {formData.items.map((product,index)=>{
+                                                {formData.items.map((lineItem,index)=>{
+                                                    let product = productInfo.find(product => product.id === lineItem.productId)
                                                     console.log(product,'product')
                                                         return(
 
@@ -193,16 +229,16 @@ export default function newQuote(){
                                                             <td className="border border-gray-300 p-2 text-center"><img src={product.images[0]} alt={product.styleNumber} /></td>
                                                             <td className="border border-gray-300 p-2 text-center">{product.description}</td>
                                                             <td className="border border-gray-300 p-2 text-center">{product.salesWeight}</td>
-                                                            <td className="border border-gray-300 p-2 text-center">{product.price}</td>
-                                                            <td className="border border-gray-300 p-2 text-center"></td>
+                                                            <td className="border border-gray-300 p-2 text-center">{lineItem.salesPrice}</td>
                                                                 <EditableCellWithGenerics 
                                                                     handleChange={handleChange} 
                                                                     setEditingCell={setEditingCell}
                                                                     editingCell={editingCell}
                                                                     row={index}
                                                                     cellType={'internalNote'}
-                                                                    data={product.internalNote} // Placeholder for actual data
+                                                                    data={lineItem.internalNote} // Placeholder for actual data
                                                                 />
+                                                            <td className="border border-gray-300 p-2 text-center">{formData.buyerComments}</td>
                                                         </tr>
                                                     )
                                                     
@@ -226,6 +262,7 @@ export default function newQuote(){
                                     </div>
                                     
                                     <div className="mt-6 flex justify-self-end space-x-3">
+                                    
                                         <button
                                             type="button"
                                             className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-md"

@@ -5,22 +5,24 @@ export default function EditableCellWithGeneric({
     setEditingCell, 
     editingCell, 
     cellType, 
-    styleNumber, 
+    id, 
     data
 }) {
+    // console.log(id,'in editable cell')
+
     const [customValue, setCustomValue] = useState(data);
     useEffect(() => {
         setCustomValue(data);
     }, [data]);
     useEffect(() => {
-        console.log('cell type',cellType,editingCell)
+        // console.log('cell type',cellType,editingCell)
     }, [editingCell]);
     return (
         <td
             className=" border border-gray-300 p-2 text-center cursor-pointer"
-            onClick={() => setEditingCell({ styleNumber ,field: cellType })}
+            onClick={() => setEditingCell({ id, field: cellType })}
         >
-            {editingCell?.field === cellType && editingCell?.styleNumber === styleNumber? (
+            {editingCell?.field === cellType && editingCell?.id === id ? (
                     
                     <input
                         type="text"
@@ -28,7 +30,7 @@ export default function EditableCellWithGeneric({
                         onChange={(e) => setCustomValue(e.target.value)}
                         onBlur={() => {
                             // console.log(row,cellType, customValue);
-                            handleChange(styleNumber,cellType,customValue);
+                            handleChange(id,cellType,customValue);
                             setEditingCell(null)
                             // setCustomValue('');
                         }}
@@ -38,7 +40,7 @@ export default function EditableCellWithGeneric({
                     />
                 
             ) : (
-                customValue !== undefined ? customValue : "Click to edit"
+                customValue !== undefined || customValue !=='' ? customValue : "Click to edit"
             )}
         </td>
     );

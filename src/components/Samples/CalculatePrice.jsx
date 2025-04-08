@@ -51,16 +51,16 @@ export default function CalculateMetalCost({ type: originalType, weight, karat, 
     const { prices } = useMetalPriceStore();
     let type = originalType?.toLowerCase() || "";
     let buyingFee = 1.01;
+    const lossPercentFormated =( lossPercent >1 ? (lossPercent/100):lossPercent)+1
 
+    console.log(parseFloat(prices[type].price) * weight)
     // Compute metal price dynamically
     const metalCost = useMemo(() => {
-        if (prices[type]?.price && weight && purity[karat] && lossPercent) {
-            return parseFloat(((weight * prices[type].price * purity[karat] * buyingFee) / 31.1035) * lossPercent).toFixed(2);
-        }
+        if (prices[type].price && weight && purity[karat] && lossPercent) {
+            return parseFloat(((weight * parseFloat(prices[type].price) * buyingFee) / 31.1035) *lossPercentFormated).toFixed(2);        }
         return 0.00;
     }, [prices, type, weight, karat, lossPercent]);
-
-    // Update `PricingContext` when metal cost changes
+    // Update PricingContext when metal cost changes
     useEffect(() => {
         onMetalCostChange(parseFloat(metalCost)); // Send to parent
     }, [metalCost, onMetalCostChange]);
@@ -74,15 +74,19 @@ export default function CalculateMetalCost({ type: originalType, weight, karat, 
         </div>
     );
 }
-const getMetalCost =( metalPrice,  weight, karat, lossPercent, onMetalCostChange )=>{
+const getMetalCost = (metalPrice, weight, karat, lossPercent) => {
+    console.log(metalPrice, weight, purity[karat], lossPercent);
+
     let buyingFee = 1.01;
-    console.log(weight)
-        if (metalPrice && weight && purity[karat] && lossPercent) {
-            return parseFloat(((weight * metalPrice * purity[karat] * buyingFee) / 31.1035) * lossPercent).toFixed(2);
-        }else{
-            return 0.00;
-        }
-    // return metalCost
-}
+    const lossPercentFormatted = (lossPercent > 1 ? lossPercent / 100 : lossPercent) + 1;
+
+    console.log(metalPrice, weight, lossPercentFormatted);
+
+    if (metalPrice && weight && lossPercent) {
+        return Number((((weight * metalPrice * buyingFee) / 31.1035) * lossPercentFormatted).toFixed(2));
+    }
+    return 0.00;
+};
+
 
 export {getMetalCost} 

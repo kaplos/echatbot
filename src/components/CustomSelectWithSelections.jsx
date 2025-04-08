@@ -9,40 +9,46 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
 
   const [searchQuery, setSearchQuery] = useState("");
   const [options, setOptions] = useState([]);
-  const [selectedOptions, setSelectedOptions] = useState(selected || []);
-
-  const filteredCollections = options.filter((option) =>
-    option.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [selectedOptions, setSelectedOptions] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       const data = await getFromDatabase();
-      console.log(data, 'data from model');
       setOptions(data);
-      console.log(data, version);
     };
 
     fetchData();
   }, []);
 
+  // Reset new selection each time modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedOptions([] )
+    }
+  }, [selected,isOpen]);
+
   useEffect(() => {
     const handleOutsideClick = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target) && !inputRef.current.contains(event.target)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        !inputRef.current.contains(event.target)
+      ) {
         close();
       }
     };
 
-    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener("mousedown", handleOutsideClick);
     return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener("mousedown", handleOutsideClick);
     };
   }, []);
 
   const handleCheckboxChange = (option) => {
     setSelectedOptions(prev => {
-      if (prev.some(selected => selected.id === option.id)) {
-        return prev.filter(selected => selected.id !== option.id);
+      if (prev.some(selected => selected.productId === option.id)) {
+        // console.log(selected.productId,option.id)
+        return prev.filter(selected => selected.productId !== option.id);
       } else {
         return [...prev, option];
       }
@@ -51,25 +57,24 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
 
   const handleApplySelection = () => {
     onSelect(selectedOptions);
-    setSelectedOptions([]);
     close();
   };
 
   const getFromDatabase = async () => {
     const { data, error } = await supabase
-      .from(`${version === 'collection' ? 'Ideas' : version}`)
-      .select('*');
+      .from(version === "collection" ? "Ideas" : version)
+      .select("*");
 
     if (error) {
       console.error(`Error fetching ${version}:`, error);
     }
 
-    return data;
+    return data || [];
   };
 
   return (
     <Transition appear show={isOpen} as={React.Fragment}>
-      <Dialog as="div" className="relative z-10 " onClose={close}>
+      <Dialog as="div" className="relative z-10" onClose={close}>
         <Transition.Child
           as={React.Fragment}
           enter="ease-out duration-300"
@@ -93,7 +98,7 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-lg  transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex justify-between items-center">
                   <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
                     Select {version}
@@ -102,6 +107,7 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
                     X
                   </button>
                 </div>
+
                 <div className="mt-2">
                   <input
                     type="text"
@@ -112,36 +118,53 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
                   />
                 </div>
 
-                <ul className="max-h-40 overflow-y-auto gap-1  flex flex-col mt-2">
-                  {filteredCollections.map((collection, index) => {
-                    const isSelected = selected.some(selected => selected.name === collection.name);
-                    return (
-                      <li
-                        key={index}
-                        onClick={() => {
-                          console.log(`Selected: ${collection.name}`);
-                          handleCheckboxChange(collection);
-                        }}
-                        className={`p-2 flex flex-row hover:bg-gray-100 rounded-sm ${isSelected ? 'bg-gray-100 cursor-not-allowed' : 'cursor-pointer'}`}
-                      >
-                        <input
-                          type="checkbox"
-                          disabled={isSelected}
-                          checked={isSelected || selectedOptions.some(selected => selected.name === collection.name)}
-                          onChange={() => handleCheckboxChange(collection)}
-                          className="mr-2"
-                        />
-                        <span className="flex flex-col">
-                          {collection.name}
-                          {isSelected && <p>This item has already been added</p>}
-                        </span>
-                      </li>
-                    );
-                  })}
-                  {filteredCollections.length === 0 && (
+                <ul className="max-h-40 overflow-y-auto gap-1 flex flex-col mt-2">
+                  {options
+                    .filter((option) =>
+                      option.name.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .map((option, index) => {
+                      const wasPreviouslySelected = selected?.some((s) => s.productId === option.id);  
+                      const isCurrentlySelected = selectedOptions.some((s) => s.id === option.id);
+                      // console.log(wasPreviouslySelected, isCurrentlySelected, option.styleNumber, selectedOptions);
+
+                      return (
+                        <li
+                          key={index}
+                          onClick={() => {
+                            if (!wasPreviouslySelected) {
+                              handleCheckboxChange(option);
+                            }
+                          }}
+                          className={`p-2 flex flex-row items-start gap-2 hover:bg-gray-100 rounded-sm cursor-pointer ${
+                            wasPreviouslySelected ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            disabled={wasPreviouslySelected}
+                            checked={wasPreviouslySelected || isCurrentlySelected}
+                            onChange={() => {
+                              if (!wasPreviouslySelected) {
+                                handleCheckboxChange(option);
+                              }
+                            }}
+                            className="mt-1"
+                          />
+                          <span className="flex flex-col">
+                            {option.name}
+                            {wasPreviouslySelected && (
+                              <p className="text-sm text-gray-500">Already added</p>
+                            )}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  {options.length === 0 && (
                     <li className="p-2 text-gray-500">{`No ${version} Found`}</li>
                   )}
                 </ul>
+
                 <div className="mt-4">
                   <button
                     type="button"
