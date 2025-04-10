@@ -14,7 +14,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
         const supabase = useSupabase();
         const vendorLossRef = useRef()
         const [lossPercent,setLossPercent] = useState(0)
-        const [metalCost,setMetalCost] = useState()
+        const [metalCost,setMetalCost] = useState(0)
         
         const [vendors,setVendors]= useState([])
         // const [formData, setFormData] = useState({
@@ -40,64 +40,29 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
         //         status: 'working_on_it',
         //     })
         const [formData, setFormData] = useState({
-               
-          cad:[],
-          category
-          : 
-          "",
-          collection
-          : 
-          "",
-          color
-          : 
-          "Yellow",
-          cost
-          : 
-          0,
-          description
-          : 
-          "",
-          height
-          : 
-          0,
-          images: [],
-          karat
-          : 
-          "10K",
-          length
-          : 
-          0,
-          manufacturerCode
-          : 
-          "iugugiugiu",
-          metalType
-          : 
-          "Gold",
-          notes
-          : 
-          "",
-          platingCharge
-          : 
-          0,
-          name
-          : 
-          "iugguiugi",
-          stones
-          : 
-          null,
-          styleNumber
-          : 
-          "iyfiyy",
-          vendor
-          : 
-          3,
-          width
-          : 
-          0,
-          plating:1,
-          weight:0,
-          salesWeight:0,
-                status: 'working_on_it',
+              cad:[],
+              images: [],
+              category: "",
+              collection: "",
+              color: "Yellow",
+              cost: 0,
+              description: "",
+              height: 0,
+              karat: "10K",
+              length: 0,
+              manufacturerCode: "",
+              metalType: "Gold",
+              notes: "",
+              platingCharge: 0,
+              name: "",
+              stones: [],
+              styleNumber: "",
+              vendor: null,
+              width: 0,
+              plating: 0,
+              weight:0,
+              salesWeight:0,
+              status: 'working_on_it',
             })
             
 
@@ -119,7 +84,6 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
         
                     fetchVendors()
                 },[isOpen])
-        
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 console.log(formData);

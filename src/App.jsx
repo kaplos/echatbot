@@ -11,6 +11,7 @@ import Quote from './Pages/Quote';
 import NewQuote from './Pages/NewQuote';                   
 import ViewQuote from './Pages/ViewQuote';                   
 import MetalPrices from './Pages/MetalPrices';
+
 import './App.css';
 import SupaBaseProvider  from './components/SupaBaseProvider';
 import { MessageProvider } from './components/Messages/MessageContext';

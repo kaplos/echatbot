@@ -1,16 +1,34 @@
-import React, { useState } from "react";
+import React, { useState ,useEffect} from "react";
 import {Link } from 'lucide-react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFilePdf,faFileExcel } from '@fortawesome/free-solid-svg-icons'
 import EditableCell from "./EditableCell";
 import { useNavigate } from "react-router-dom";
+import { useSupabase } from "../SupaBaseProvider";
 
 const EditableGrid = ({ quotes, setQuotes }) => {
   const navigate = useNavigate();
+  const supabase = useSupabase();
   const [editingCell, setEditingCell] = useState(null);
-  const [formData,setFormData] =useState();
+  const [page, setPage] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+
+    useEffect(() => {
+        fetchQuotes(0);
+      }, []);
+      
   // Handle cell value change
   const handleChange = (rowId, field, value) => {
+    const { data, error } = supabase
+      .from('quotes')
+      .update({ [field]: value })
+      .eq('id', rowId);
+
+      if (error) {
+        console.error('Error updating quote:', error);
+      }
+    // console.log(rowId,field,value,'rowId,field,value')
     const updatedData = [...quotes];
     const index = updatedData.findIndex((item) => item.id === rowId);
     // console.log(updatedData,'updated data')
@@ -25,10 +43,46 @@ const EditableGrid = ({ quotes, setQuotes }) => {
   const handleViewQuote = (quoteNumber) => {
     navigate(`/viewQuote?quote=${quoteNumber}`);
   };
+  const PAGE_SIZE = 20;
+
+const fetchQuotes = async (pageNumber) => {
+  setLoading(true);
+  const from = pageNumber * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data, error } = await supabase
+    .from('quotes')
+    .select('*')
+    .order('created_at', { ascending: true }) // or by ID
+    .range(from, to);
+
+  if (error) {
+    console.error('Error fetching quotes:', error);
+    setLoading(false);
+    return;
+  }
+
+  if (data.length < PAGE_SIZE) setHasMore(false);
+
+  setQuotes([...quotes, ...data]);
+  setPage(pageNumber + 1);
+  setLoading(false);
+};
+
   const ascendingQuotesByDate = [...quotes].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   const ascendingQuotesById = [...quotes].sort((a, b) => a.id<b.id ? -1 : 1);
+
   return (
-    <div className="overflow-auto max-h-[600px] border border-gray-300">
+    <div className="overflow-auto max-h-[600px] border border-gray-300"
+    onScroll={(e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+        const nearBottom = scrollHeight - scrollTop <= clientHeight + 50;
+    
+        if (nearBottom && !loading && hasMore) {
+          fetchQuotes(page);
+        }
+      }}
+    >
         <table className="w-full border-collapse border border-gray-300 table-fixed">
         <thead className="bg-gray-200 sticky top-0 z-10">
             <tr className="bg-gray-200">
@@ -51,34 +105,15 @@ const EditableGrid = ({ quotes, setQuotes }) => {
                                 <span className="flex flex-col">
                                 {new Date(row.created_at).toLocaleDateString()}
                                 <div className="flex flex-row  gap-2">
-                                    <button onClick={()=> handleEditQuote(row.quoteNumber)} className="flex-1 bg-orange-500 text-white px-2 py-1 rounded-md text-sm">Edit </button>
-                                    <button onClick={()=> handleViewQuote(row.quoteNumber)} className="flex-1 bg-green-500 text-white px-2 py-1 rounded-md text-sm">View </button>
+                                    <button onClick={()=> handleEditQuote(row.quoteNumber)} className="flex-1 bg-green-500 text-white px-2 py-1 rounded-md text-sm">Edit/View </button>
+                                    {/* <button onClick={()=> handleViewQuote(row.quoteNumber)} className="flex-1 bg-green-500 text-white px-2 py-1 rounded-md text-sm">View </button> */}
                                 </div>
                                 </span>
                             </td>
                             <td className="border border-gray-300 p-2 text-center">{row.id}</td>
-                            <td className="border border-gray-300 p-2 text-center">{row.total}</td>
+                            <td className="border border-gray-300 p-2 text-center">${row.quoteTotal}</td>
                             <td className="border border-gray-300 p-2 text-center">{row.agent}</td>
                             <td className="border border-gray-300 p-2 text-center">{row.buyer}</td>
-                            {/* <td className="border border-gray-300 p-2 text-center">{row.tags}</td> */}
-                            {/* <td
-                                className="border border-gray-300 p-2 text-center cursor-pointer"
-                                onClick={() => setEditingCell({ index, field: "tags" })}
-                            >
-                                {editingCell?.index === index && editingCell.field === "tags" ? (
-                                    <input
-                                    type="text"
-                                    value={row.tags}
-                                    onChange={(e) => handleChange(index, "tags", e.target.value)}
-                                    onBlur={() => setEditingCell(null)}
-                                    onKeyDown={(e) => e.key === "Enter" && setEditingCell(null)}
-                                    className="border border-gray-300 p-1 w-full text-center"
-                                    autoFocus
-                                    />
-                                ) : (
-                                    row.tags || "Click to edit"
-                                )}
-                            </td> */}
                             <EditableCell
                                 handleChange={handleChange}
                                 setEditingCell={setEditingCell}
@@ -95,27 +130,6 @@ const EditableGrid = ({ quotes, setQuotes }) => {
                                 index={index}
                                 cellType={'status'}
                             />
-                        {/* <td
-                            className="border border-gray-300 p-2 text-center cursor-pointer"
-                            onClick={() => setEditingCell({ index, field: "status" })}
-                        >
-                            {editingCell?.index === index && editingCell.field === "status" ? (
-                                <select
-                                value={row.status}
-                                onChange={(e) => handleChange(index, "status", e.target.value)}
-                                onBlur={() => setEditingCell(null)}
-                                className="border border-gray-300 p-1 w-full text-center"
-                                autoFocus
-                                >
-                                <option value="Sent">Sent</option>
-                                <option value="Pending">Pending</option>
-                                <option value="Approved">Approved</option>
-                                <option value="Rejected">Rejected</option>
-                                </select>
-                            ) : (
-                                row.status || "Click to edit"
-                            )}
-                        </td> */}
                         <td className="border border-gray-300 p-2 text-center">
                             <div className="flex w-full h-full justify-around">
                                 <div onClick={()=> ''} className="cursor-pointer">

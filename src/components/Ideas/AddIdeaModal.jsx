@@ -1,236 +1,189 @@
-import React, { useState, Fragment } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import { X , Tag as TagIcon} from 'lucide-react';
-import ImageUpload from '../ImageUpload';
-import { useSupabase,handleImageUpload } from '../SupaBaseProvider';
+import React, { useState, useRef, useCallback } from 'react';
+import { useSupabase } from '../SupaBaseProvider';
+import SlideEditorWrapper from './SlideEditor';
+import { v4 as uuidv4 } from 'uuid';
+import { X } from 'lucide-react';
 
-const AddIdeaModal = ({ isOpen, onClose,onSave }) => {
+export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [status, setStatus] = useState('Active');
+  const [loading, setLoading] = useState(false);
+  const [slideData, setSlideData] = useState(null);
   const supabase = useSupabase();
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    images: [],
-    tags: [],
-    // comments: [],
-  });
-  const [tagInput, setTagInput] = useState('');
+  const modalRef = useRef(null);
 
-
-  const handleAddTag = (e) => {
-    console.log(e,'e.target.value');
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault();
-      if (!formData.tags?.includes(tagInput.trim())) {
-        setFormData({
-          ...formData,
-          tags: [...(formData.tags || []), tagInput.trim()],
-        });
-      }
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tag) => {
-    setFormData({ ...formData, tags: formData.tags.filter((t) => t !== tag) });
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!title.trim()) return;
 
-    
-    let newIdea = {
-      title: formData.title,
-      description: formData.description,
-      tags: JSON.stringify(formData.tags),
-      images: JSON.stringify(formData.images),
-      comments: formData.comments,
-    };
+    setLoading(true);
+    try {
+      // Add the idea with slides data included
+      const newIdea = {
+        id: uuidv4(),
+        title,
+        description,
+        status,
+        slides: slideData ? slideData.slides : [],
+        created_at: new Date().toISOString()
+      };
 
-    const { data, error } = await supabase
-    .from('Ideas')
-    .insert([newIdea])
-    .select();
-
-    if (error) {
-      console.error('Error inserting idea:', error);
-    } else {
-      console.log('Idea inserted:', data[0]);
-    }
-
-    // const imageRows = formData.images.map((imageUrl) => ({
-    //   foreign_id: data[0].id, // Associate the image with the idea
-    //   foreign_type: 'Idea', // Specify the module type
-    //   image_url: imageUrl,
-    // }));
-    // // Handle image upload
-    // const {error: imageError } = await supabase
-    //   .from('ImageStorage')
-    //   .insert(imageRows);
+      const { error } = await supabase.from('ideas').insert(newIdea);
       
-    //   if (imageError) {
-    //     console.error('Error inserting images:', imageError);
-    //     return;
-    //   }
-    // Handle form submission (e.g., save to database)
-    newIdea={...newIdea,id:data[0].id , created_at:data[0].created_at}
-    console.log(newIdea);
-    onSave(data[0]);
+      if (error) throw error;
+      
+      // Reset form and close modal
+      setTitle('');
+      setDescription('');
+      setStatus('Active');
+      setSlideData(null);
+      onClose();
+      
+      // Refresh ideas list
+      if (fetchIdeas) {
+        fetchIdeas();
+      }
+    } catch (error) {
+      console.error('Error adding idea:', error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Handle slide changes without saving to database
+  const handleSlideChange = useCallback((slide, allSlides) => {
+    // Only update if the data has actually changed
+    setSlideData(prevData => {
+      const newSlides = allSlides.map(s => ({
+        ...s,
+        elements: s.elements || []
+      }));
+      
+      // Check if the data has actually changed
+      if (prevData && 
+          JSON.stringify(prevData.slides) === JSON.stringify(newSlides)) {
+        return prevData;
+      }
+      
+      return {
+        slides: newSlides,
+        lastUpdated: new Date().toISOString()
+      };
+    });
+  }, []);
+
+  // Handle design export when the design is saved
+  const handleDesignExport = useCallback((designData) => {
+    setSlideData(designData);
+  }, []);
+
+  // Close modal when clicking outside
+  const handleClickOutside = (e) => {
+    if (modalRef.current && !modalRef.current.contains(e.target)) {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
 
   return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4 z-50"
+      onClick={handleClickOutside}
+    >
+      <div 
+        ref={modalRef}
+        className="bg-white rounded-2xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-auto relative"
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
         >
-          <div className="fixed inset-0 bg-black/30" />
-        </Transition.Child>
+          <X className="w-5 h-5 text-gray-500" />
+        </button>
+        
+        <div className="p-6">
+          <h2 className="text-2xl font-bold mb-4">Add New Idea</h2>
+          
+          <form onSubmit={handleSubmit}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Design Your Idea
+              </label>
+              <div className="border border-gray-300 rounded-lg h-[500px] overflow-hidden">
+                <SlideEditorWrapper 
+                  onSlideChange={handleSlideChange}
+                  onExport={handleDesignExport}
+                />
+              </div>
+            </div>
+            
+            <div className="mb-4">
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                Title
+              </label>
+              <input
+                type="text"
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+                required
+              />
+            </div>
+            
+            <div className="mb-4">
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+                rows="3"
+              />
+            </div>
 
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white shadow-xl">
-                <div className="flex justify-between items-center p-6 border-b">
-                  <Dialog.Title className="text-xl font-semibold text-gray-900">
-                    Add New Idea
-                  </Dialog.Title>
-                  <button
-                    onClick={onClose}
-                    className="text-gray-400 hover:text-gray-500"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="p-6">
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Title
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-chabot-gold focus:ring-chabot-gold"
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Description
-                      </label>
-                      <textarea
-                        rows={4}
-                        required
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-chabot-gold focus:ring-chabot-gold"
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Tags
-                      </label>
-                      <div className="mt-1">
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {formData.tags?.map((tag) => (
-                            <span
-                              key={tag}
-                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
-                            >
-                              <TagIcon className="w-3 h-3 mr-1" />
-                              {tag}
-                              <button
-                                type="button"
-                                onClick={() => removeTag(tag)}
-                                className="ml-1 text-gray-400 hover:text-gray-600"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                        <input
-                          type="text"
-                          value={tagInput}
-                          onChange={(e) => setTagInput(e.target.value)}
-                          onKeyDown={handleAddTag}
-                          // onSubmit={handleAddTag}
-                          placeholder="Type a tag and press Enter"
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-chabot-gold focus:ring-chabot-gold"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Images
-                      </label>
-                      <ImageUpload
-                        images={formData.images || []}
-                        onChange={(images) => setFormData({ ...formData, images })}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                          Comments 
-                      </label>
-                      <textarea
-                          name="comments"
-                          rows={4}
-                          value={formData.comments}
-                          onChange={handleInputChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                      />
-                    </div>
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-md"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 text-sm font-medium text-white bg-chabot-gold hover:bg-opacity-90 rounded-md"
-                    >
-                      Add Idea
-                    </button>
-                  </div>
-                </form>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
+            <div className="mb-4">
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                id="status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-lg"
+              >
+                <option value="Active">Active</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="On Hold">On Hold</option>
+              </select>
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-chabot-gold text-white rounded-lg hover:bg-opacity-90"
+                disabled={loading}
+              >
+                {loading ? 'Adding...' : 'Add Idea'}
+              </button>
+            </div>
+          </form>
         </div>
-      </Dialog>
-    </Transition>
+      </div>
+    </div>
   );
-};
-
-export default AddIdeaModal;
+}

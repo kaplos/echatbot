@@ -64,6 +64,7 @@ export default function EditableCell({handleChange,setEditingCell,editingCell,ro
                                         className={`border border-gray-300 p-1 w-full text-center `}
                                         autoFocus
                                         >
+                                            <option value="Created">Created</option>
                                             <option value="Sent">Sent</option>
                                             <option value="Pending">Pending</option>
                                             <option value="Approved">Approved</option>

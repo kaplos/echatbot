@@ -10,28 +10,25 @@ export default function Quote (){
     const supabase = useSupabase();
     const [isLoading, setIsLoading] = useState(true);
     const [isAddModalOpen,setIsAddModalOpen]= useState(false)
-    const [quotes,setQuotes ]=useState([
-        // { date: 'may 5th 2000', quoteNumber: '624-0000102', agent:'Brian Shabot',buyer:'Maria Leon' ,tags:'test hello',status:'sent'},
-        // { date: 'may 5th 2000', quoteNumber: '624-0000102', agent:'Brian Shabot',buyer:'Maria Leon' ,tags:'test hello',status:'sent'},{ date: 'may 5th 2000', quoteNumber: '624-0000102', agent:'Brian Shabot',buyer:'Maria Leon' ,tags:'test hello',status:'sent'},{ date: 'may 5th 2000', quoteNumber: '624-0000102', agent:'Brian Shabot',buyer:'Maria Leon' ,tags:'test hello',status:'sent'},{ date: 'may 5th 2000', quoteNumber: '624-0000102', agent:'Brian Shabot',buyer:'Maria Leon' ,tags:'test hello',status:'sent'},{ date: 'may 5th 2000', quoteNumber: '624-0000102', agent:'Brian Shabot',buyer:'Maria Leon' ,tags:'test hello',status:'sent'},{ date: 'may 5th 2000', quoteNumber: '624-0000102', agent:'Brian Shabot',buyer:'Maria Leon' ,tags:'test hello',status:'sent'},{ date: 'may 5th 2000', quoteNumber: '624-0000102', agent:'Brian Shabot',buyer:'Maria Leon' ,tags:'test hello',status:'sent'},{ date: 'may 5th 2000', quoteNumber: '624-0000102', agent:'Brian Shabot',buyer:'Maria Leon' ,tags:'test hello',status:'sent'},{ date: 'may 5th 2000', quoteNumber: '624-0000102', agent:'Brian Shabot',buyer:'Maria Leon' ,tags:'test hello',status:'sent'},
-    ])
-    useEffect(()=>{
-    const fetchSamples = async () => {
-        setIsLoading(true);
-        const { data, error } = await supabase.from('quotes')
-        .select('*')
-        .order('created_at', { ascending: false }) // Replace 'created_at' with your timestamp column
-        .limit(12);
+    const [quotes,setQuotes ]=useState([])
+//     useEffect(()=>{
+//     const fetchSamples = async () => {
+//         setIsLoading(true);
+//         const { data, error } = await supabase.from('quotes')
+//         .select('*')
+//         .order('created_at', { ascending: false }) // Replace 'created_at' with your timestamp column
+//         .limit(12);
         
-        if (error) {
-          console.error('Error fetching samples:', error);
-          return;
-        }
-        setQuotes(data);
-        // console.log(data);
-        setIsLoading(false);
-      };
-       fetchSamples(); 
-},[])
+//         if (error) {
+//           console.error('Error fetching samples:', error);
+//           return;
+//         }
+//         setQuotes(data);
+//         // console.log(data);
+//         setIsLoading(false);
+//       };
+//        fetchSamples(); 
+//       },[])
 
    return(
     <div className="p-6">

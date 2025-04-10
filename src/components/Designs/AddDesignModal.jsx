@@ -9,7 +9,7 @@ import { useSupabase } from '../SupaBaseProvider';
 
 
 
-const AddDesignModal = ({ isOpen, onClose }) => {
+const AddDesignModal = ({ isOpen, onClose,onSave }) => {
     const supabase = useSupabase();
     const [formData, setFormData] = useState({
         title: '',
@@ -42,7 +42,7 @@ const AddDesignModal = ({ isOpen, onClose }) => {
     console.log(data, 'data from insert designs ');
 
     
-    onClose(data);
+    onSave(data);
     setFormData({
         title: '',
         description: '',

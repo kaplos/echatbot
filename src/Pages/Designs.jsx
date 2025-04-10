@@ -96,10 +96,11 @@ const Designs = () =>{
 
                 <AddDesignModal
                     isOpen={isAddModalOpen}
-                    onClose={(design) => {
+                    onSave={(design) => {
                         setIsAddModalOpen(false)
                         setDesigns((prev)=> [...prev, design])
                     }}
+                    onClose={() => setIsAddModalOpen(false)}
                 />
                 {design &&
                     <DesignInfoModal 

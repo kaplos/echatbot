@@ -10,7 +10,6 @@ import { useMetalPriceStore } from '../store/MetalPrices';
 import { getTotalCost } from '../components/Samples/TotalCost';
 import { useLocation } from 'react-router-dom';
 import EditableCellWithGenerics from '../components/Qoutes/EditableCellWithGenerics';
-import { use } from 'react';
 
 export default function NewQuote() {
   const navigate = useNavigate();
@@ -21,6 +20,7 @@ export default function NewQuote() {
   const { showMessage } = useMessage();
   const [productInfo, setProductInfo] = useState([]);
   const [lineItems, setlineItems] = useState([]);
+  const [lineItemsToDelete, setlineItemsToDelete] = useState([]);
   // const {formData: lineItems, updateFormField: updateLineItem, resetForm: resetLineItems} =  useFormUpdater([]
   //   {
   //     productId:" ",
@@ -37,10 +37,10 @@ export default function NewQuote() {
     agent: '',
     buyer: '',
     tags: '',
-    status: '',
+    status: "Created",
     gold: parseFloat(prices.gold.price),
     silver: parseFloat(prices.silver.price),
-    items: []
+    quoteTotal: 0
   });
     
   const [isLoading,setIsLoading] = useState(false)
@@ -48,6 +48,7 @@ export default function NewQuote() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [vendors, setVendors] = useState([]);
+
    useEffect(() => {   
                       
         if(quote){
@@ -110,22 +111,28 @@ export default function NewQuote() {
     }
     // const submitData = formData.items.map(({ product, ...rest }) => rest);
     const quoteTotal = lineItems.reduce((acc, item) => acc + item.totalCost, 0);
-
+    const {lineItems: dontUse,...rest} = formData
     const submitForm = {
-      ...formData,
+      ...rest,
       quoteTotal: quoteTotal,
     };
     if(quote){
-      updateIfChanged(submitForm)
+      await updateIfChanged(submitForm)
+      await updateIfLineItemsChanged()
+      await handleLineItemsToDelete()
+      showMessage('Quote Updated', 'success');
+      navigate('/quotes')
+      return
     }
-    const { data, error } = await supabase.from('quotes')
+    const { data, error } = await supabase
+      .from('quotes')
       .insert([submitForm])
       .select();
     if (error) {
       console.error(error);
     }
     showMessage('Quote Created', 'success');
-    const {data: lineItemData,error:lineItemError} = 
+    const {error:lineItemError} = 
     await supabase
       .from('lineItems')
       .insert(
@@ -133,12 +140,14 @@ export default function NewQuote() {
         ...item,
         quoteNumber: data[0].quoteNumber,
       })))
-      // .select();
+    if(lineItemError){
+      console.error(lineItemError)
+    }
     resetForm({
       agent: '',
       buyer: '',
       tags: '',
-      status: '',
+      status: "Created",
       gold: parseFloat(prices.gold.price),
       silver: parseFloat(prices.silver.price),
       items: []
@@ -157,7 +166,10 @@ export default function NewQuote() {
       return;
     }
   
+
+  
     // Find only the changed fields
+
     const changedFields = Object.keys(submitForm).reduce((acc, key) => {
       if (submitForm[key] !== currentData[key]) { // Updated reference to formData
         acc[key] = submitForm[key]; // Only keep changed fields
@@ -187,6 +199,36 @@ export default function NewQuote() {
   //   console.log(id,field,value)
   //   updateLineItem(id,field,value)
   // }
+  const updateIfLineItemsChanged = async () => {
+      let newLineItems = lineItems.filter(lineItem => !lineItem.id )
+      console.log(newLineItems,'new line items')
+
+      const {  error } = await supabase
+        .from('lineItems')
+        .insert(newLineItems.map(item => ({
+              ...item,
+              quoteNumber: quote,
+            })))
+
+        if(error){
+          console.error(error)
+        }
+
+  }
+  const handleLineItemsToDelete = async () => {
+    if(lineItemsToDelete.length > 0){
+      const { error } = await supabase
+      .from('lineItems')
+      .delete()
+      .in('id', lineItemsToDelete);
+
+      if (error) {
+        console.error('Error deleting line items:', error);
+      }
+
+    }
+  }
+
     const handleLineChange = (productId, field, value) => {
       setlineItems((prevItems) =>
         prevItems.map((item) => {
@@ -225,7 +267,14 @@ export default function NewQuote() {
     // resetLineItems([...lineItems,...itemData]);
     // updateFormField('items', [...formData.items, ...itemData]);
   };
-
+  const deleteLineItem = (event,product) => {
+    console.log(product?.id?? "no id")
+    event.preventDefault()
+    product?.id ?
+      setlineItemsToDelete((prevItems) => [...prevItems, product?.id])
+    : ""
+    setlineItems((prevItems) => prevItems.filter(item => item.productId !== product.productId));
+  }
   const totalCost = (product, lossPercentage) => {
     const metalPrice = product.metalType === 'Gold' ? formData.gold : formData.silver;
     if (!metalPrice) {
@@ -243,7 +292,7 @@ export default function NewQuote() {
     <div className="flex flex-col min-h-[80vh]">
       <div className="p-6 flex-1 flex flex-col">
         <div className="flex flex-row">
-          <h1 className="text-2xl font-bold text-gray-900">New Quote</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{quote ? 'Update Quote' : 'Create Quote'}</h1>
           <div className="flex space-x-3 justify-self-end flex-col w-48 ml-auto">
             <button
               className="bg-chabot-gold text-white px-4 py-2 rounded-lg flex items-center hover:bg-opacity-90 transition-colors"
@@ -306,6 +355,8 @@ export default function NewQuote() {
                       <th className="border border-gray-300 p-2 w-20">Sales Price</th>
                       <th className="border border-gray-300 p-2 w-20">Retail Price</th>
                       <th className="border border-gray-300 p-2 w-20">Internal Note</th>
+                      <th className="border border-gray-300 p-2 w-20">Buyer Comment</th>
+                      <th className="border border-gray-300 p-2 w-20">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -369,6 +420,10 @@ export default function NewQuote() {
                             cellType={'internalNote'}
                             data={product.internalNote} // Placeholder for actual data
                         />
+                        <td className="border border-gray-300 p-2 text-center">{lineItems.buyerComment}</td>
+                          <button  onClick={(event)=> deleteLineItem(event,product)} className="border border-gray-300 p-2 text-center">
+                            Delete
+                          </button>
                       </tr>
                     )
                     })}
