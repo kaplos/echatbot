@@ -1,10 +1,11 @@
 import React from 'react';
 import { MessageSquare, Calendar, Tag } from 'lucide-react';
 import {formatDate} from '../../utils/dateUtils'
+import SlideEditorWrapper from './SlideEditor';
 
 export default function IdeaCard ({idea,handleClick}){
   
-  console.log(idea,'idea in ideacard')
+  // console.log(idea,'idea in ideacard')
       
   const parseArray = (input) => {
     if (typeof input === 'string') {
@@ -33,6 +34,10 @@ export default function IdeaCard ({idea,handleClick}){
           />
         </div>
       )} */}
+
+        <div className="h-64 w-full overflow-hidden relative">
+          <SlideEditorWrapper initialData={idea.slides} readOnly={true}/> 
+        </div>
 
         <div className="p-4">
           <div className="flex justify-between items-start mb-2">

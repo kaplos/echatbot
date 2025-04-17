@@ -69,10 +69,29 @@ const EditableText = ({ elementId, content, currentSlide, currentSlideId, setSli
 };
 
 // Create a wrapper component that provides the DndProvider
-function SlideEditorWrapper({ onSave, initialData ,ideaForm,setIdeaForm,saveSlide }) {
+function SlideEditorWrapper({ onSave, initialData, setIdeaForm, readOnly=false }) {
+  const [slides, setSlides] = useState([]);
+
+  useEffect(() =>{
+    if(setIdeaForm){
+      setIdeaForm(slides)
+    }
+  },[slides])
+
+  useEffect(() =>{
+    console.log('Initial Data:', initialData);
+    if(readOnly){
+      setSlides(initialData);
+      console.log('Setting slides for readOnly mode:', initialData.length > 0 ? initialData[0] : []);
+      return
+    }
+    setSlides(initialData || [])
+  },[initialData])
+
+  
   return (
     <DndProvider backend={HTML5Backend}>
-      <SlideEditor onSave={onSave} initialData={initialData} slides={ideaForm} setSlides={setIdeaForm} saveSlide={saveSlide} />
+      <SlideEditor onSave={onSave} initialData={initialData} slides={slides} setSlides={setSlides} readOnly={readOnly} />
     </DndProvider>
   );
 }
@@ -84,7 +103,7 @@ const ItemTypes = {
 
 // DraggableElement as a separate component outside SlideEditor
 function DraggableElement(props) {
-  const { id, left, top, type, content, src, onDelete, currentSlide, currentSlideId, setSlides } = props;
+  const { id, left, top, type, content, src, onDelete, currentSlide, currentSlideId, setSlides, readOnly } = props;
   const ref = useRef(null);
 
   const [{ isDragging }, drag] = useDrag({
@@ -93,9 +112,13 @@ function DraggableElement(props) {
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
+    canDrag: !readOnly,
   });
-
-  drag(ref);
+  useEffect(() => {
+    if (!readOnly) {
+      drag(ref);
+    }
+  }, [readOnly, drag]);
 
   const style = {
     position: 'absolute',
@@ -115,21 +138,33 @@ function DraggableElement(props) {
   return (
     <div ref={ref} style={style} className="group">
       {/* Delete button - show on hover */}
-      <button 
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onDelete(id);
-        }}
-        className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-30"
-        style={{ fontSize: '12px' }}
-      >
-        ×
-      </button>
+      {
+        !readOnly ? null :
+        <button 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDelete(id);
+          }}
+          className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-30"
+          style={{ fontSize: '12px' }}
+        >
+          ×
+        </button>
+      }
 
       {type === 'image' ? (
-        <img src={src} alt={content || 'Draggable Image'} style={{ maxWidth: '150px', display: 'block' }} />
-      ) : (
+        <img
+          src={src}
+          alt={content || 'Draggable Image'}
+          style={{
+            width: '250px', // Set a fixed width
+            height: '250px', // Set a fixed height
+            objectFit: 'contain', // Ensure the image fits within the container
+            display: 'block',
+          }}
+        />
+      ): (
         <EditableText 
           elementId={id} 
           content={content} 
@@ -143,33 +178,33 @@ function DraggableElement(props) {
 }
 
 // Main SlideEditor component
-function SlideEditor({ onSave, initialData, saveSlide , slides, setSlides }) {
+function SlideEditor({ onSave, slides, setSlides,readOnly }) {
+  // console.log(readOnly)
   
   // const [slides, setSlides] = useState([]);
   const [currentSlideId, setCurrentSlideId] = useState(null);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [slideToRemove, setSlideToRemove] = useState(null);
+
   const supabase = useSupabase();
   const fileInputRef = useRef(null);
   const slideContainerRef = useRef(null);
   const isInitialMount = useRef(true);
 
+  useEffect(() => {
+    if (currentSlideId===null) {
+      isInitialMount.current = false;
+      setCurrentSlideId(slides.length > 0 ? slides[0].id : null);
+      console.log('Initial slides set:', slides);
+    } else {
+      console.log('Slides updated:', slides);
+    }
+  }, [slides]);
   // Find current slide
-  const currentSlide = slides.find(slide => slide.id === currentSlideId) || null;
+  console.log(slides, 'slides in slide editor');
+  const currentSlide = slides ? slides.find(slide => slide.id === currentSlideId)  : null;
 
-  // Initialize slides from initialData only once
-  // useEffect(() => {
-  //   if (isInitialMount.current && initialData && initialData.slides && initialData.slides.length > 0) {
-  //     setSlides(initialData.slides);
-  //     setCurrentSlideId(initialData.slides[0].id);
-  //     isInitialMount.current = false;
-  //   }
-  // }, [initialData]);
-
-  // Sync changes with parent component, but only when slides actually change
-  // useEffect(() => {
-  //   if (!isInitialMount.current && onSave && slides.length > 0) {
-  //     onSave({ slides });
-  //   }
-  // }, [slides, onSave]);
+  
 
   // Element Movement Function
   const moveElement = useCallback((id, left, top) => {
@@ -232,6 +267,8 @@ function SlideEditor({ onSave, initialData, saveSlide , slides, setSlides }) {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+    
+    
     
     setSlides([...slides, newSlide]);
     setCurrentSlideId(newSlide.id);
@@ -434,23 +471,71 @@ function SlideEditor({ onSave, initialData, saveSlide , slides, setSlides }) {
       slides: slides,
       exportedAt: new Date().toISOString()
     };
-    
-    if (onSave) {
-      onSave(designData);
-    }
   };
 
+
+  //confirmation messeage on delete
+  const handleRemoveSlideClick = (e, id) => {
+    e.preventDefault();
+    setSlideToRemove(id);
+    setShowConfirmationModal(true);
+  };
+  const confirmRemoveSlide = () => {
+    if (slideToRemove) {
+      // const slideToRemove = slides.find(slide => slide.id === slideToRemove);
+      // const slideElements = slideToRemove.elements.length > 0 ? slideToRemove.elements : null;
+      // If the slide has elements, we can proceed with removal of the elements 
+      const remainingSlides = slides.filter(slide => slide.id !== slideToRemove);
+      setSlides(remainingSlides);
+  
+      if (currentSlideId === slideToRemove) {
+        setCurrentSlideId(remainingSlides.length > 0 ? remainingSlides[0].id : null);
+      }
+      
+    }
+  
+    setShowConfirmationModal(false);
+    setSlideToRemove(null);
+  };
+  const cancelRemoveSlide = () => {
+    setShowConfirmationModal(false);
+    setSlideToRemove(null);
+  };
   return (
     <div className="slideshow-editor p-4 flex flex-col h-screen max-h-full">
       {/* Controls */}
+      {!readOnly &&(
       <div className="controls mb-4 flex items-center space-x-2 flex-wrap">
         <h2 className="text-xl font-semibold mr-4 w-full sm:w-auto mb-2 sm:mb-0">Slide Editor</h2>
         <button onClick={addSlide} className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 mb-2 sm:mb-0">Add Slide</button>
-        
+        {showConfirmationModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+              <div className="bg-white rounded-lg shadow-lg p-6 w-96">
+                <h3 className="text-lg font-semibold mb-4">Confirm Slide Removal</h3>
+                <p className="text-gray-600 mb-6">
+                  Are you sure you want to permanently remove this slide? This action cannot be undone.
+                </p>
+                <div className="flex justify-end space-x-2">
+                  <button
+                    onClick={cancelRemoveSlide}
+                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmRemoveSlide}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         {slides.length > 0 && currentSlide && (
           <>
             <button 
-              onClick={(e) => removeSlide(e,currentSlide.id)} 
+              onClick={(e) => handleRemoveSlideClick(e,currentSlide.id)} 
               className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 mb-2 sm:mb-0" 
               disabled={slides.length <= 1}
             >
@@ -489,12 +574,12 @@ function SlideEditor({ onSave, initialData, saveSlide , slides, setSlides }) {
               ))}
             </select>
             
-            <button 
+            {/* <button 
               onClick={exportDesign} 
               className="ml-auto bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600 mb-2 sm:mb-0"
             >
               Save Design
-            </button>
+            </button> */}
           </>
         )}
         
@@ -503,8 +588,8 @@ function SlideEditor({ onSave, initialData, saveSlide , slides, setSlides }) {
             No slides yet. Add one to start!
           </p>
         )}
-      </div>
-
+      </div>)
+      }
       {/* Slide Canvas */}
       <div className="slides-container flex-grow border border-gray-300 rounded bg-gray-50 overflow-auto">
         {currentSlide ? (
@@ -535,7 +620,7 @@ function SlideEditor({ onSave, initialData, saveSlide , slides, setSlides }) {
           </div>
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500">
-            {slides.length > 0 ? "Select or add a slide" : "Add a slide to begin"}
+            {slides.length > 0 ? "Select or add a slide" : "No Slides Available"}
           </div>
         )}
       </div>

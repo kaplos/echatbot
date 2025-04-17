@@ -23,10 +23,10 @@ function CustomSelect({onSelect,version,setNewOption ,informationFromDataBase,hi
   useEffect(() => {
     const fetchData = async () => {
       const data = await getFromDatabase();
-      console.log(data ,'data from model')
+      // console.log(data ,'data from model')
       setOptions(data);
       // inputRef.current.defaultValue =
-      console.log(data,version);
+      // console.log(data,version);
   };
 
   fetchData();
@@ -93,25 +93,27 @@ function CustomSelect({onSelect,version,setNewOption ,informationFromDataBase,hi
     setIsOpen(false);
   };
   let item = options.find(item => item.id === Number.parseInt(informationFromDataBase))
-  console.log(item? item.name:'n/a',`name of ${version}`,informationFromDataBase)
+  // console.log(item? item.name:'n/a',`name of ${version}`,informationFromDataBase)
   return (
-    <div className="relative"  id="custom-select">
+ <div className="relative"  id="custom-select">
       {/* Dropdown Trigger */}
-      <input
-        ref={inputRef}
-        defaultValue={item? item.name:''}
-        onFocus={() => setIsOpen(true)}
-        required={version==='category'}
-        // onBlur={() => setIsOpen(false)}
-        className="input text-left"
-      />
-      <ChevronDown className="absolute top-3 right-3 text-gray-500 pointer-events-none" />
+      <div className="z-10 relative w-full">
+        <input
+          ref={inputRef}
+          defaultValue={item? item.name:''}
+          onFocus={() => setIsOpen(true)}
+          required={version==='category'}
+          // onBlur={() => setIsOpen(false)}
+          className="input text-left"
+        />
+        <ChevronDown className="absolute top-3 right-3 text-gray-500 pointer-events-none" />
+      </div>
         {/* Select Collection */}
      
 
       {/* Dropdown Options */}
       {isOpen && (
-        <div className="absolute z-100 bg-white border border-gray-300 rounded-lg shadow-lg w-full mt-1"
+        <div className="absolute z-50 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg w-full"
         ref={dropdownRef}>
         {/* Search Bar */}
         {!isCreating ? (

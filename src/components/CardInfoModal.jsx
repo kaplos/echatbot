@@ -4,6 +4,7 @@ import { X,TagIcon } from 'lucide-react';
 import ImageUpload from './ImageUpload';
 import ConfirmationModal from './ConfirmationModal';
 import { useSupabase,handleImageUpload } from './SupaBaseProvider';
+import SlideEditorWrapper from './Ideas/SlideEditor';
 
 const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
     const supabase = useSupabase();
@@ -15,12 +16,13 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
         title: idea.title,
         description: idea.description,
         tags: JSON.parse(idea.tags),
-        images: JSON.parse(idea.images),
+        slides: idea.slides,
         status: idea.status,
         comments: idea.comments,
         created_at: idea.created_at,  
       });
-      const [formData, setFormData] = useState({ ...originalData });
+      const {slides ,...rest} = originalData
+      const [formData, setFormData] = useState({ ...rest,slides: null });
     
       useEffect(() => {
         setOriginalData({
@@ -28,7 +30,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
             title: idea.title,
             description: idea.description,
             tags: JSON.parse(idea.tags),
-            images: JSON.parse(idea.images),
+            slides: idea.slides,
             status: idea.status,
             comments: idea.comments,
             created_at: idea.created_at,  
@@ -38,31 +40,18 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
             title: idea.title,
             description: idea.description,
             tags: JSON.parse(idea.tags),
-            images: JSON.parse(idea.images),
+            slides: null,
             status: idea.status,
             comments: idea.comments,
             created_at: idea.created_at,  
-
         });
-      }, [idea]);
+      }, [idea,isOpen]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
-  const handleImageChange = async(images) => {
-    let imageUrls ;
-        if (images.length > 0) {
-          imageUrls = [ await handleImageUpload(images), ...formData.images];
-        }
-    setFormData({ ...formData, imageUrls });
-    };
-
-//   const handleTagChange = (index, value) => {
-//     const newTags = [...formData.tags];
-//     newTags[index] = value;
-//     setFormData({ ...formData, tags: newTags });
-//   };
+  
 
 
   const handleAddTag = (e) => {
@@ -93,20 +82,17 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
     if (formData.title !== originalData.title) updates.title = formData.title;
     if (formData.description !== originalData.description) updates.description = formData.description;
     if (JSON.stringify(formData.tags) !== JSON.stringify(originalData.tags)) updates.tags = JSON.stringify(formData.tags);
-    if (JSON.stringify(formData.images) !== JSON.stringify(originalData.images)) updates.images = JSON.stringify(formData.images);
     if (formData.status!==originalData.status) updates.status = formData.status;
     if (formData.comments !== originalData.comments) updates.comments = formData.comments;
-    const removedImages = getRemovedImages(originalData.images, formData.images);
-    
-    // need to remove any photos that are deleted from an edited idea
-    // ^ This is the function that will get the image urls that are removed 
+    if (formData.slides) updates.slides = formData.slides;
 
+    console.log(updates, "updates");
     if (Object.keys(updates).length > 0) {
-        console.log(updates, "updates");
+
       const { data, error } = await supabase
         .from('Ideas')
         .update(updates)
-        .eq('id', card.id);
+        .eq('id', idea.id);
 
       if (error) {
         console.error('Error updating idea:', error);
@@ -127,11 +113,11 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
 
 
 
-  const handleOpenModal = () => {
+  const handleOpenConfirmationModal = () => {
     setConfirmationModal(true);
   };
 
-  const handleCloseModal = () => {
+  const handleCloseConfirmationModal = () => {
     setConfirmationModal(false);
   };
 
@@ -169,7 +155,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white shadow-xl">
+              <Dialog.Panel className="w-full min-w-6xl max-w-6xl transform overflow-hidden rounded-2xl bg-white shadow-xl">
                 <div className="flex justify-between items-center p-6 border-b">
                   <Dialog.Title className="text-xl font-semibold text-gray-900">
                     Edit Card Information
@@ -188,14 +174,9 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
                 <div className="p-6">
                   <div className="space-y-6">
                   <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Images
-                      </label>
                       <div className="mt-1 flex flex-wrap gap-2">
-                      <ImageUpload
-                        images={formData.images || []}
-                        onChange={handleImageChange}
-                      />
+                      
+                      <SlideEditorWrapper initialData={originalData.slides} setIdeaForm={(data) => {console.log(data,'data from slide editior update' ) ; setFormData({...formData,slides:data})}}/>
                         
                       </div>
                     </div>
@@ -208,7 +189,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
                         name="title"
                         value={formData.title}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                        className="input mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                       />
                     </div>
                     <div>
@@ -219,9 +200,9 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
                             name="status"
                             value={formData.status}
                             onChange={handleInputChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                            className="input mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                         >
-                          <option value="in_review">In Review</option> 
+                            <option value="in_review">In Review</option> 
                             <option value="approved">Approved</option>
                             <option value="rejected">Rejected</option> 
                         </select>
@@ -236,7 +217,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
                         rows={4}
                         value={formData.description}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                        className="input mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                       />
                     </div>
 
@@ -270,7 +251,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
                           onKeyDown={handleAddTag}
                           // onSubmit={handleAddTag}
                           placeholder="Type a tag and press Enter"
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-chabot-gold focus:ring-chabot-gold"
+                          className="input block w-full rounded-md border-gray-300 shadow-sm focus:border-chabot-gold focus:ring-chabot-gold"
                         />
                       </div>
                               <div>
@@ -282,7 +263,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
                                       rows={4}
                                       value={formData.comments}
                                       onChange={handleInputChange}
-                                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                                      className="input mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                                   />
                               </div>
                     </div>

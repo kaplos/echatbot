@@ -1,15 +1,13 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useSupabase } from '../SupaBaseProvider';
 import SlideEditorWrapper from './SlideEditor';
-import { v4 as uuidv4 } from 'uuid';
-import { X } from 'lucide-react';
+import { X,TagIcon } from 'lucide-react';
 
-export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState('Active');
+import { v4 as uuidv4 } from 'uuid';
+
+export default function AddIdeaModal({ isOpen, onClose, onSave }) {
   const [loading, setLoading] = useState(false);
-  const [slideData, setSlidesData] = useState(null);
+  const [tagInput,setTagInput] = useState('');
   const supabase = useSupabase();
   const modalRef = useRef(null);
   const [ideaForm, setIdeaForm] = useState({
@@ -20,6 +18,8 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
     created_at: new Date().toISOString(),
     tags: []
   });
+
+ 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,44 +38,39 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
       if (error) throw error;
       
       // Reset form and close modal
-      setTitle('');
-      setDescription('');
-      setStatus('Active');
-      setSlidesData(null);
-      onClose();
-      
+      setIdeaForm({
+        title: '',
+        description: '',
+        status: 'Active',
+        slides: [],
+        created_at: new Date().toISOString(),
+        tags: []
+      });
+
+      onSave(newIdea); // Notify parent component
       // Refresh ideas list
-      if (fetchIdeas) {
-        fetchIdeas();
-      }
     } catch (error) {
       console.error('Error adding idea:', error);
     } finally {
       setLoading(false);
     }
   };
-
-  // Handle slide changes without saving to database
-  const handleSlideChange = useCallback((slide, allSlides) => {
-    // Only update if the data has actually changed
-    setSlideData(prevData => {
-      const newSlides = allSlides.map(s => ({
-        ...s,
-        elements: s.elements || []
-      }));
-      
-      // Check if the data has actually changed
-      if (prevData && 
-          JSON.stringify(prevData.slides) === JSON.stringify(newSlides)) {
-        return prevData;
+  const removeTag = (tag) => {
+    setIdeaForm({ ...ideaForm, tags: ideaForm.tags.filter((t) => t !== tag) });
+  };
+  const handleAddTag = (e) => {
+    console.log(e,'e.target.value');
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault();
+      if (!ideaForm.tags?.includes(tagInput.trim())) {
+        setIdeaForm({
+          ...ideaForm,
+          tags: [...(ideaForm.tags || []), tagInput.trim()],
+        });
       }
-      
-      return {
-        slides: newSlides,
-        lastUpdated: new Date().toISOString()
-      };
-    });
-  }, []);
+      setTagInput('');
+    }
+  };
 
   // Handle design export when the design is saved
   const handleDesignExport = useCallback((designData) => {
@@ -122,11 +117,7 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
               </label>
               <div className="border border-gray-300 rounded-lg h-[500px] overflow-hidden">
                 <SlideEditorWrapper 
-                  ideaForm={ideaForm.slides}
                   setIdeaForm={(data) => setIdeaForm({...ideaForm, slides: data})}
-                  // saveSlide={(data) => setIdeaForm({...ideaForm, slides: data})}
-                  // onSave={(data) => setIdeaForm({...ideaForm, slides: data})}
-                  // onSlideChange={handleSlideChange}
                   onExport={handleDesignExport}
                 />
               </div>
@@ -161,7 +152,41 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
                 rows="3"
               />
             </div>
-
+            <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Tags
+            </label>
+            <div className="mt-1">
+              <div className="flex flex-wrap gap-2 mb-2">
+                {ideaForm.tags?.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+                    >
+                    <TagIcon className="w-3 h-3 mr-1" />
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="ml-1 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleAddTag}
+                // onSubmit={handleAddTag}
+                placeholder="Type a tag and press Enter"
+                className="input block w-full rounded-md border-gray-300 shadow-sm focus:border-chabot-gold focus:ring-chabot-gold"
+              />
+            </div>
+              
+              </div>
             <div className="mb-4">
               <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
                 Status
@@ -173,10 +198,9 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
                 onChange={handleFormChange}
                 className="w-full p-2 border border-gray-300 rounded-lg"
               >
-                <option value="Active">Active</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-                <option value="On Hold">On Hold</option>
+                  <option value="in_review">In Review</option> 
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option> 
               </select>
             </div>
             

@@ -202,13 +202,13 @@ const DesignInfoModal = ({ isOpen, onClose, design,updateDesign }) => {
                                       />
                                     </div>
                                   
-                                    <div>
-                                        <label htmlFor="board" className="text-sm font-medium text-gray-700">Board</label>
+                                    <div className=' mb-10'>
+                                        <label htmlFor="board" className=" text-sm font-medium text-gray-700">Board</label>
                                         <CustomSelect  onSelect={handleCustomSelect} version={'collection'} informationFromDataBase={originalData.collection}/>
                                     </div>
             
-                                    <div className='mb-10'>
-                                        <label htmlFor="category" className="text-sm font-medium text-gray-700">Category</label>
+                                    <div className=' mb-10'>
+                                        <label htmlFor="category" className=" text-sm font-medium text-gray-700">Category</label>
                                         <CustomSelect  onSelect={handleCustomSelect} version={'category'} informationFromDataBase={originalData.category} />
                                     </div>
                                   </div>
