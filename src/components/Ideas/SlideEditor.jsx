@@ -5,16 +5,74 @@ import { useDrag, useDrop, DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { v4 as uuidv4 } from 'uuid';
 
+// Editable Text Component
+const EditableText = ({ elementId, content, currentSlide, currentSlideId, setSlides }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [text, setText] = useState(content);
+  const inputRef = useRef(null);
+  
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditing]);
+  
+  const handleDoubleClick = () => {
+    setIsEditing(true);
+  };
+  
+  const handleBlur = () => {
+    setIsEditing(false);
+    
+    // Update the element with new text
+    if (text !== content && currentSlide) {
+      const updatedElements = currentSlide.elements.map(el => 
+        el.id === elementId ? { ...el, content: text } : el
+      );
+      
+      const updatedSlide = {
+        ...currentSlide,
+        elements: updatedElements
+      };
+      
+      setSlides(slides => slides.map(s => 
+        s.id === currentSlideId ? updatedSlide : s
+      ));
+    }
+  };
+  
+  const handleChange = (e) => {
+    setText(e.target.value);
+  };
+  
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleBlur();
+    }
+  };
+  
+  return isEditing ? (
+    <input
+      ref={inputRef}
+      type="text"
+      value={text}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      className="bg-transparent border-b border-gray-400 outline-none w-full"
+    />
+  ) : (
+    <div onDoubleClick={handleDoubleClick} className="cursor-text">
+      {content}
+    </div>
+  );
+};
+
 // Create a wrapper component that provides the DndProvider
-function SlideEditorWrapper({ onSave, initialData, onSlideChange, onExport }) {
+function SlideEditorWrapper({ onSave, initialData ,ideaForm,setIdeaForm,saveSlide }) {
   return (
     <DndProvider backend={HTML5Backend}>
-      <SlideEditor 
-        onSave={onSave} 
-        initialData={initialData} 
-        onSlideChange={onSlideChange}
-        onExport={onExport}
-      />
+      <SlideEditor onSave={onSave} initialData={initialData} slides={ideaForm} setSlides={setIdeaForm} saveSlide={saveSlide} />
     </DndProvider>
   );
 }
@@ -26,7 +84,7 @@ const ItemTypes = {
 
 // DraggableElement as a separate component outside SlideEditor
 function DraggableElement(props) {
-  const { id, left, top, type, content, src, onDelete } = props;
+  const { id, left, top, type, content, src, onDelete, currentSlide, currentSlideId, setSlides } = props;
   const ref = useRef(null);
 
   const [{ isDragging }, drag] = useDrag({
@@ -39,9 +97,6 @@ function DraggableElement(props) {
 
   drag(ref);
 
-  // Give text elements a higher z-index than images
-  const zIndexValue = type === 'text' ? 20 : 10;
-
   const style = {
     position: 'absolute',
     left: `${left}px`,
@@ -53,10 +108,8 @@ function DraggableElement(props) {
     backgroundColor: type === 'text' ? 'rgba(255, 255, 0, 0.7)' : 'transparent',
     minWidth: '50px',
     minHeight: '20px',
-    zIndex: zIndexValue,
+    zIndex: type === 'text' ? 20 : 10,
     borderRadius: '4px',
-    transform: isDragging ? 'scale(1.05)' : 'none',
-    transition: 'transform 0.2s ease',
   };
 
   return (
@@ -64,7 +117,8 @@ function DraggableElement(props) {
       {/* Delete button - show on hover */}
       <button 
         onClick={(e) => {
-          e.stopPropagation(); // Prevent drag from being triggered
+          e.preventDefault();
+          e.stopPropagation();
           onDelete(id);
         }}
         className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-30"
@@ -76,277 +130,72 @@ function DraggableElement(props) {
       {type === 'image' ? (
         <img src={src} alt={content || 'Draggable Image'} style={{ maxWidth: '150px', display: 'block' }} />
       ) : (
-        <div>{content}</div>
+        <EditableText 
+          elementId={id} 
+          content={content} 
+          currentSlide={currentSlide}
+          currentSlideId={currentSlideId}
+          setSlides={setSlides}
+        />
       )}
     </div>
   );
 }
 
 // Main SlideEditor component
-function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
-  const [slides, setSlides] = useState([]);
+function SlideEditor({ onSave, initialData, saveSlide , slides, setSlides }) {
+  
+  // const [slides, setSlides] = useState([]);
   const [currentSlideId, setCurrentSlideId] = useState(null);
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const navigate = useNavigate();
   const supabase = useSupabase();
   const fileInputRef = useRef(null);
   const slideContainerRef = useRef(null);
+  const isInitialMount = useRef(true);
 
   // Find current slide
-  const currentSlide = slides.find(slide => slide.id === currentSlideId);
+  const currentSlide = slides.find(slide => slide.id === currentSlideId) || null;
 
-  // Notify parent of slide changes
-  useEffect(() => {
-    if (onSlideChange && currentSlide) {
-      // Only notify parent if there are actual changes
-      const currentSlides = slides.map(slide => ({
-        ...slide,
-        elements: slide.elements || []
-      }));
-      
-      // Use a ref to track if we've already notified about these changes
-      const currentSlideId = currentSlide.id;
-      const currentElements = JSON.stringify(currentSlide.elements);
-      
-      if (currentSlideId !== lastNotifiedSlideId.current || 
-          currentElements !== lastNotifiedElements.current) {
-        onSlideChange(currentSlide, currentSlides);
-        lastNotifiedSlideId.current = currentSlideId;
-        lastNotifiedElements.current = currentElements;
-      }
-    }
-  }, [currentSlide, slides, onSlideChange]);
+  // Initialize slides from initialData only once
+  // useEffect(() => {
+  //   if (isInitialMount.current && initialData && initialData.slides && initialData.slides.length > 0) {
+  //     setSlides(initialData.slides);
+  //     setCurrentSlideId(initialData.slides[0].id);
+  //     isInitialMount.current = false;
+  //   }
+  // }, [initialData]);
 
-  // Add refs to track last notified state
-  const lastNotifiedSlideId = useRef(null);
-  const lastNotifiedElements = useRef(null);
+  // Sync changes with parent component, but only when slides actually change
+  // useEffect(() => {
+  //   if (!isInitialMount.current && onSave && slides.length > 0) {
+  //     onSave({ slides });
+  //   }
+  // }, [slides, onSave]);
 
-  // Reset notification tracking when initialData changes
-  useEffect(() => {
-    lastNotifiedSlideId.current = null;
-    lastNotifiedElements.current = null;
-  }, [initialData]);
+  // Element Movement Function
+  const moveElement = useCallback((id, left, top) => {
+    if (!currentSlide) return;
 
-  // If initialData is provided, use it to initialize our slides
-  useEffect(() => {
-    if (initialData && initialData.slides && initialData.slides.length > 0) {
-      setSlides(initialData.slides.map(slide => ({
-        ...slide,
-        elements: slide.elements || []
-      })));
-      setCurrentSlideId(initialData.slides[0].id);
-    } else {
-      // Create a default slide if no initial data is provided
-      const newSlide = {
-        id: uuidv4(),
-        elements: [],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      setSlides([newSlide]);
-      setCurrentSlideId(newSlide.id);
-    }
-  }, [initialData]);
-
-  // Set first slide as current when loaded if not already set
-  useEffect(() => {
-    if (slides.length > 0 && !currentSlideId) {
-      setCurrentSlideId(slides[0].id);
-    }
-  }, [slides, currentSlideId]);
-
-  // Setup drag and drop for file dropping
-  const setupNativeFileDrop = () => {
-    const handleDragOver = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      // Only show drop zone if we're dragging files
-      if (e.dataTransfer.types.includes('Files')) {
-        setIsDraggingOver(true);
-      }
-    };
-
-    const handleDragEnter = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      // Only show drop zone if we're dragging files
-      if (e.dataTransfer.types.includes('Files')) {
-        setIsDraggingOver(true);
-      }
-    };
-
-    const handleDragLeave = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDraggingOver(false);
-    };
-
-    const handleDrop = async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDraggingOver(false);
-
-      if (!currentSlide) return;
-      
-      // Get the files from the drop event
-      const files = Array.from(e.dataTransfer.files).filter(file => 
-        file.type.startsWith('image/')
-      );
-      
-      if (files.length === 0) return;
-
-      // Calculate drop position relative to the slide container
-      const containerRect = slideContainerRef.current.getBoundingClientRect();
-      const dropX = e.clientX - containerRect.left;
-      const dropY = e.clientY - containerRect.top;
-      
-      // Process and upload files
-      await processFiles(files, dropX, dropY);
-    };
-
-    // Add event listeners to the slide container
-    const container = slideContainerRef.current;
-    if (container) {
-      container.addEventListener('dragover', handleDragOver);
-      container.addEventListener('dragenter', handleDragEnter);
-      container.addEventListener('dragleave', handleDragLeave);
-      container.addEventListener('drop', handleDrop);
-
-      // Clean up event listeners
-      return () => {
-        container.removeEventListener('dragover', handleDragOver);
-        container.removeEventListener('dragenter', handleDragEnter);
-        container.removeEventListener('dragleave', handleDragLeave);
-        container.removeEventListener('drop', handleDrop);
-      };
-    }
-  };
-
-  // Add event listeners for file drag and drop
-  useEffect(() => {
+    // Calculate bounds
+    let clampedLeft = left;
+    let clampedTop = top;
     if (slideContainerRef.current) {
-      const cleanup = setupNativeFileDrop();
-      return cleanup;
+      const bounds = slideContainerRef.current.getBoundingClientRect();
+      clampedLeft = Math.max(0, Math.min(left, bounds.width - 50));
+      clampedTop = Math.max(0, Math.min(top, bounds.height - 50));
     }
-  }, [currentSlide, slideContainerRef.current]);
 
-  // Process multiple files for upload
-  const processFiles = async (files, initialLeft = 100, initialTop = 100) => {
-    if (!currentSlide || !files.length) return;
-    
-    try {
-      const newElements = [];
-      const spacing = 20; // Spacing between dropped images
-      
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const fileName = `${uuidv4()}-${file.name}`;
-        const filePath = `idea-images/${fileName}`;
+    // Update element position
+    const updatedElements = (currentSlide.elements || []).map(element =>
+      element.id === id ? { ...element, left: clampedLeft, top: clampedTop } : element
+    );
 
-        // Calculate position for multiple images
-        const left = initialLeft + (i * spacing);
-        const top = initialTop + (i * spacing);
+    const updatedSlide = { ...currentSlide, elements: updatedElements };
 
-        // Upload to storage
-        const { error: uploadError } = await supabase.storage
-          .from('echatbot')
-          .upload(filePath, file);
-
-        if (uploadError) {
-          console.error(`Error uploading ${file.name}:`, uploadError.message);
-          continue;
-        }
-
-        // Get public URL
-        const { data: urlData, error: urlError } = supabase.storage
-          .from('echatbot')
-          .getPublicUrl(filePath);
-
-        if (urlError || !urlData?.publicUrl) {
-          console.error(`Could not get public URL for ${file.name}`, urlError?.message);
-          continue;
-        }
-
-        // Add to new elements list
-        newElements.push({
-          id: uuidv4(),
-          type: 'image',
-          src: urlData.publicUrl,
-          content: file.name,
-          left,
-          top,
-        });
-      }
-
-      if (newElements.length > 0) {
-        // Update current slide with all new image elements
-        const updatedSlide = {
-          ...currentSlide,
-          elements: [...(currentSlide.elements || []), ...newElements],
-        };
-
-        // Update slides state
-        setSlides(prevSlides => 
-          prevSlides.map(s => s.id === currentSlideId ? updatedSlide : s)
-        );
-        
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Error processing files:', error.message);
-      return false;
-    }
-  };
-
-  // Update handleImageUpload to use processFiles
-  const handleImageUpload = async (event) => {
-    if (!currentSlide || !event.target.files || event.target.files.length === 0 || !supabase) return;
-    
-    const files = Array.from(event.target.files);
-    await processFiles(files);
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  // Export current design as a JSON object
-  const exportDesign = () => {
-    if (slides.length === 0) {
-      console.error("No slides to export");
-      return;
-    }
-    
-    const designData = {
-      slides: slides,
-      exportedAt: new Date().toISOString()
-    };
-    
-    // Call onExport if provided - this will be used by AddIdeaModal
-    if (onExport) {
-      onExport(designData);
-      return; // Early return after sending to parent component
-    }
-    
-    // If we're in modal context and onSave is provided, use it
-    if (onSave) {
-      onSave(designData);
-    } else {
-      // Otherwise offer a download of the JSON
-      const dataStr = JSON.stringify(designData, null, 2);
-      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-      
-      const exportFileDefaultName = `slide-design-${Date.now()}.json`;
-      
-      const linkElement = document.createElement('a');
-      linkElement.setAttribute('href', dataUri);
-      linkElement.setAttribute('download', exportFileDefaultName);
-      linkElement.click();
-    }
-  };
+    // Update state
+    setSlides(slides.map(slide =>
+      slide.id === currentSlideId ? updatedSlide : slide
+    ));
+  }, [currentSlide, currentSlideId, slides]);
 
   // Drop target handler
   const [{ isOver }, drop] = useDrop({
@@ -357,35 +206,15 @@ function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
 
       if (!offset || !containerRect) return;
 
-      // Calculate the new position relative to the container
       const newLeft = Math.round(offset.x - containerRect.left);
       const newTop = Math.round(offset.y - containerRect.top);
 
-      // Update the element's position
       moveElement(item.id, newLeft, newTop);
-      return undefined;
     },
     collect: monitor => ({
       isOver: !!monitor.isOver(),
     }),
   });
-
-  // Element Movement Function
-  const moveElement = useCallback((id, left, top) => {
-    if (!currentSlide) return;
-
-    // Update element position
-    const updatedElements = (currentSlide.elements || []).map(element =>
-      element.id === id ? { ...element, left, top } : element
-    );
-
-    const updatedSlide = { ...currentSlide, elements: updatedElements };
-
-    // Update state
-    setSlides(prevSlides => 
-      prevSlides.map(slide => slide.id === currentSlideId ? updatedSlide : slide)
-    );
-  }, [currentSlide, currentSlideId]);
 
   // Ref combining function
   const setDropTargetRef = useCallback(node => {
@@ -394,9 +223,11 @@ function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
   }, [drop]);
 
   // Add a new slide
-  const addSlide = () => {
+  const addSlide = async (e) => {
+    e.preventDefault();
+    
     const newSlide = { 
-      id: uuidv4(),
+      id: uuidv4(), 
       elements: [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -407,7 +238,9 @@ function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
   };
 
   // Remove a slide
-  const removeSlide = (id) => {
+  const removeSlide = async (e, id) => {
+    e.preventDefault();
+    
     const remainingSlides = slides.filter(slide => slide.id !== id);
     setSlides(remainingSlides);
     
@@ -417,7 +250,9 @@ function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
   };
 
   // Add text element to slide
-  const addTextElement = () => {
+  const addTextElement = (e) => {
+    e.preventDefault();
+
     if (!currentSlide) return;
     
     const newElement = {
@@ -433,11 +268,78 @@ function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
       elements: [...(currentSlide.elements || []), newElement]
     };
     
-    setSlides(slides.map(s => s.id === currentSlideId ? updatedSlide : s));
+    setSlides(slides.map(s => 
+      s.id === currentSlideId ? updatedSlide : s
+    ));
+  };
+
+  // Handle image upload
+  const handleImageUpload = async (event) => {
+    if (!currentSlide || !event.target.files || event.target.files.length === 0 || !supabase) return;
+    
+    try {
+      const files = Array.from(event.target.files);
+      const uploadedElements = [];
+
+      for (const file of files) {
+        const fileName = `${uuidv4()}-${file.name}`;
+        const filePath = `idea-images/${fileName}`;
+    
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabase.storage
+          .from('echatbot')
+          .upload(filePath, file);
+    
+        if (uploadError) {
+          console.error(`Error uploading ${file.name}:`, uploadError);
+          continue;
+        }
+    
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('echatbot')
+          .getPublicUrl(filePath);
+    
+        if (!publicUrl) {
+          console.error(`Error getting URL for ${file.name}`);
+          continue;
+        }
+    
+        // Create draggable image element
+        uploadedElements.push({
+          id: uuidv4(),
+          type: 'image',
+          src: publicUrl,
+          content: file.name,
+          left: 100,
+          top: 100,
+        });
+      }
+
+      // Update current slide with new elements
+      const updatedSlide = {
+        ...currentSlide,
+        elements: [...(currentSlide.elements || []), ...uploadedElements]
+      };
+
+      // Update slides state
+      setSlides(slides.map(s => 
+        s.id === currentSlideId ? updatedSlide : s
+      ));
+
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    }
   };
 
   // Trigger file input click
-  const triggerImageUpload = () => {
+  const triggerImageUpload = (e) => {
+    e.preventDefault();
+    e.stopPropagation(); // Prevent event bubbling
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
@@ -457,71 +359,10 @@ function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
       elements: updatedElements
     };
     
-    // Update state only
-    setSlides(slides.map(s => s.id === currentSlideId ? updatedSlide : s));
-  };
-
-  // Editable Text Component
-  const EditableText = ({ elementId, content }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [text, setText] = useState(content);
-    const inputRef = useRef(null);
-    
-    useEffect(() => {
-      if (isEditing && inputRef.current) {
-        inputRef.current.focus();
-      }
-    }, [isEditing]);
-    
-    const handleDoubleClick = () => {
-      setIsEditing(true);
-    };
-    
-    const handleBlur = () => {
-      setIsEditing(false);
-      
-      // Update the element with new text
-      if (text !== content && currentSlide) {
-        const updatedElements = currentSlide.elements.map(el => 
-          el.id === elementId ? { ...el, content: text } : el
-        );
-        
-        const updatedSlide = {
-          ...currentSlide,
-          elements: updatedElements
-        };
-        
-        setSlides(slides.map(s => 
-          s.id === currentSlideId ? updatedSlide : s
-        ));
-      }
-    };
-    
-    const handleChange = (e) => {
-      setText(e.target.value);
-    };
-    
-    const handleKeyDown = (e) => {
-      if (e.key === 'Enter') {
-        handleBlur();
-      }
-    };
-    
-    return isEditing ? (
-      <input
-        ref={inputRef}
-        type="text"
-        value={text}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        className="bg-transparent border-b border-gray-400 outline-none w-full"
-      />
-    ) : (
-      <div onDoubleClick={handleDoubleClick} className="cursor-text">
-        {content}
-      </div>
-    );
+    // Update state
+    setSlides(slides.map(s => 
+      s.id === currentSlideId ? updatedSlide : s
+    ));
   };
 
   // Update DraggableElement to support editable text
@@ -562,6 +403,7 @@ function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
         {/* Delete button - show on hover */}
         <button 
           onClick={(e) => {
+            e.preventDefault();
             e.stopPropagation(); // Prevent drag from being triggered
             onDelete(id);
           }}
@@ -580,26 +422,44 @@ function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
     );
   }
 
+  // Export current design as a JSON object
+  const exportDesign = (e) => {
+    e.preventDefault();
+    if (slides.length === 0) {
+      console.error("No slides to export");
+      return;
+    }
+    
+    const designData = {
+      slides: slides,
+      exportedAt: new Date().toISOString()
+    };
+    
+    if (onSave) {
+      onSave(designData);
+    }
+  };
+
   return (
     <div className="slideshow-editor p-4 flex flex-col h-screen max-h-full">
       {/* Controls */}
       <div className="controls mb-4 flex items-center space-x-2 flex-wrap">
         <h2 className="text-xl font-semibold mr-4 w-full sm:w-auto mb-2 sm:mb-0">Slide Editor</h2>
-        <button onClick={addSlide} className="bg-chabot-gold text-white px-3 py-1 rounded hover:bg-opacity-90 mb-2 sm:mb-0">Add Slide</button>
+        <button onClick={addSlide} className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 mb-2 sm:mb-0">Add Slide</button>
         
         {slides.length > 0 && currentSlide && (
           <>
             <button 
-              onClick={() => removeSlide(currentSlide.id)} 
+              onClick={(e) => removeSlide(e,currentSlide.id)} 
               className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 mb-2 sm:mb-0" 
               disabled={slides.length <= 1}
             >
               Remove Current Slide
             </button>
-            <button onClick={addTextElement} className="bg-chabot-gold text-white px-3 py-1 rounded hover:bg-opacity-90 mb-2 sm:mb-0">
+            <button onClick={addTextElement} className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 mb-2 sm:mb-0">
               Add Text
             </button>
-            <button onClick={triggerImageUpload} className="bg-chabot-gold text-white px-3 py-1 rounded hover:bg-opacity-90 mb-2 sm:mb-0">
+            <button onClick={triggerImageUpload} className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 mb-2 sm:mb-0">
               Add Image
             </button>
             
@@ -615,7 +475,10 @@ function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
             <select
               value={currentSlideId || ''}
               onChange={(e) => {
-                setCurrentSlideId(e.target.value);
+                const selectedId = e.target.value;
+                if (slides.some(s => s.id === selectedId)) {
+                  setCurrentSlideId(selectedId);
+                }
               }}
               className="p-1 border rounded mb-2 sm:mb-0"
             >
@@ -628,7 +491,7 @@ function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
             
             <button 
               onClick={exportDesign} 
-              className="ml-auto bg-chabot-gold text-white px-3 py-1 rounded hover:bg-opacity-90 mb-2 sm:mb-0"
+              className="ml-auto bg-indigo-500 text-white px-3 py-1 rounded hover:bg-indigo-600 mb-2 sm:mb-0"
             >
               Save Design
             </button>
@@ -651,23 +514,11 @@ function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
             style={{ 
               minHeight: '600px', 
               minWidth: '800px',
-              backgroundColor: isDraggingOver 
-                ? 'rgba(79, 70, 229, 0.1)' 
-                : (isOver ? 'rgba(0, 0, 255, 0.05)' : 'transparent'),
-              transition: 'background-color 0.2s ease',
+              backgroundColor: 'transparent',
             }}
           >
-            {/* Dropzone indicator */}
-            {isDraggingOver && (
-              <div className="absolute inset-0 border-2 border-dashed border-indigo-400 flex items-center justify-center pointer-events-none z-0">
-                <div className="bg-white bg-opacity-80 px-4 py-2 rounded-lg shadow text-indigo-700 font-medium">
-                  Drop images here
-                </div>
-              </div>
-            )}
-          
             {(currentSlide.elements || []).map((element) => (
-              <DraggableElementWithEdit
+              <DraggableElement
                 key={element.id}
                 id={element.id}
                 left={element.left}
@@ -676,6 +527,9 @@ function SlideEditor({ onSave, initialData, onSlideChange, onExport }) {
                 content={element.content}
                 src={element.src}
                 onDelete={deleteElement}
+                currentSlide={currentSlide}
+                currentSlideId={currentSlideId}
+                setSlides={setSlides}
               />
             ))}
           </div>

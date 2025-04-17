@@ -24,7 +24,7 @@ export default function IdeaCard ({idea,handleClick}){
           key={idea.id}
           className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
         >
-            {idea.images.length > 0 && (
+            {/* {idea.images.length > 0 && (
         <div className="aspect-video w-full overflow-hidden">
           <img
             src={parseArray(idea.images)[0]}
@@ -32,7 +32,7 @@ export default function IdeaCard ({idea,handleClick}){
             className="w-full h-full object-contain"
           />
         </div>
-      )}
+      )} */}
 
         <div className="p-4">
           <div className="flex justify-between items-start mb-2">

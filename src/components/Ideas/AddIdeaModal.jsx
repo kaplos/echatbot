@@ -9,28 +9,31 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('Active');
   const [loading, setLoading] = useState(false);
-  const [slideData, setSlideData] = useState(null);
+  const [slideData, setSlidesData] = useState(null);
   const supabase = useSupabase();
   const modalRef = useRef(null);
-
+  const [ideaForm, setIdeaForm] = useState({
+    title: '',
+    description: '',
+    status: 'Active',
+    slides: [],
+    created_at: new Date().toISOString(),
+    tags: []
+  });
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!ideaForm.title.trim()) return;
 
     setLoading(true);
     try {
       // Add the idea with slides data included
       const newIdea = {
-        id: uuidv4(),
-        title,
-        description,
-        status,
-        slides: slideData ? slideData.slides : [],
-        created_at: new Date().toISOString()
+       ...ideaForm, 
+        slides: ideaForm.slides ? ideaForm.slides : [],
       };
 
-      const { error } = await supabase.from('ideas').insert(newIdea);
+      const { error } = await supabase.from('Ideas').insert(newIdea);
       
       if (error) throw error;
       
@@ -38,7 +41,7 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
       setTitle('');
       setDescription('');
       setStatus('Active');
-      setSlideData(null);
+      setSlidesData(null);
       onClose();
       
       // Refresh ideas list
@@ -46,7 +49,7 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
         fetchIdeas();
       }
     } catch (error) {
-      console.error('Error adding idea:', error.message);
+      console.error('Error adding idea:', error);
     } finally {
       setLoading(false);
     }
@@ -85,6 +88,10 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
       onClose();
     }
   };
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setIdeaForm(prev => ({ ...prev, [name]: value }));
+  };
 
   if (!isOpen) return null;
 
@@ -115,7 +122,11 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
               </label>
               <div className="border border-gray-300 rounded-lg h-[500px] overflow-hidden">
                 <SlideEditorWrapper 
-                  onSlideChange={handleSlideChange}
+                  ideaForm={ideaForm.slides}
+                  setIdeaForm={(data) => setIdeaForm({...ideaForm, slides: data})}
+                  // saveSlide={(data) => setIdeaForm({...ideaForm, slides: data})}
+                  // onSave={(data) => setIdeaForm({...ideaForm, slides: data})}
+                  // onSlideChange={handleSlideChange}
                   onExport={handleDesignExport}
                 />
               </div>
@@ -128,8 +139,10 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
               <input
                 type="text"
                 id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                name="title"
+                placeholder="Enter idea title"
+                value={ideaForm.title}
+                onChange={handleFormChange}
                 className="w-full p-2 border border-gray-300 rounded-lg"
                 required
               />
@@ -141,8 +154,9 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
               </label>
               <textarea
                 id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                name="description"
+                value={ideaForm.description}
+                onChange={handleFormChange}
                 className="w-full p-2 border border-gray-300 rounded-lg"
                 rows="3"
               />
@@ -154,8 +168,9 @@ export default function AddIdeaModal({ isOpen, onClose, fetchIdeas }) {
               </label>
               <select
                 id="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
+                name='status'
+                value={ideaForm.status}
+                onChange={handleFormChange}
                 className="w-full p-2 border border-gray-300 rounded-lg"
               >
                 <option value="Active">Active</option>
