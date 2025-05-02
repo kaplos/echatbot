@@ -13,6 +13,7 @@ import ViewQuote from './Pages/ViewQuote';
 import MetalPrices from './Pages/MetalPrices';
 import DesignQuote from './Pages/DesignQuotes';
 import Login from './Pages/Login';
+import VendorPreloader from './components/VendorPreloader';
 import './App.css';
 import SupaBaseProvider, { useSupabase } from './components/SupaBaseProvider';
 import { MessageProvider } from './components/Messages/MessageContext';
@@ -72,6 +73,7 @@ function AppContent() {
 function App() {
   return (
     <SupaBaseProvider>
+      <VendorPreloader></VendorPreloader>
       <MessageProvider>
         <MessageBox />
         <Router>

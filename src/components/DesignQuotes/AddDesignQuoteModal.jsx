@@ -51,7 +51,8 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
       // }
       // console.log("data of vendors", data);
       // setVendors(data);
-      // console.log(vendors, "vendors from store");
+      console.log(vendors, "vendors from store");
+
       setLossPercent(vendors[0].pricingsetting.lossPercentage);
       // vendorLossRef.current.textContent = data[0].pricingsetting.lossPercentage
   }, [isOpen]);
