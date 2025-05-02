@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 export default function AddIdeaModal({ isOpen, onClose, onSave }) {
   const [loading, setLoading] = useState(false);
   const [tagInput,setTagInput] = useState('');
-  const supabase = useSupabase();
+  const {supabase} = useSupabase();
   const modalRef = useRef(null);
   const [ideaForm, setIdeaForm] = useState({
     title: '',

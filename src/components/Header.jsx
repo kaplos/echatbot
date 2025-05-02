@@ -1,7 +1,10 @@
 import React from 'react';
 import { Bell, Search, User } from 'lucide-react';
-
+import { useSupabase } from '../components/SupaBaseProvider';
 const Header = () => {
+  const {session} = useSupabase();
+  const displayName = session?.user?.user_metadata?.full_name || session?.user?.email || 'User';
+
   return (
     <header className="h-16 bg-white border-b border-gray-200 fixed top-0 right-0 left-64 z-10">
       <div className="h-full px-6 flex items-center justify-between">
@@ -23,7 +26,7 @@ const Header = () => {
           </button>
           <button className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-lg">
             <User className="w-5 h-5 text-gray-600" />
-            <span className="text-sm text-gray-700">Profile</span>
+            <span className="text-sm text-gray-700">{displayName}</span>
           </button>
         </div>
       </div>

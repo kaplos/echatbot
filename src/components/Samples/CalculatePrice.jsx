@@ -62,7 +62,9 @@ export default function CalculateMetalCost({ type: originalType, weight, karat, 
     }, [prices, type, weight, karat, lossPercent]);
     // Update PricingContext when metal cost changes
     useEffect(() => {
-        onMetalCostChange(parseFloat(metalCost)); // Send to parent
+        if (onMetalCostChange) {
+            onMetalCostChange(parseFloat(metalCost)); // Send to parent
+        }
     }, [metalCost, onMetalCostChange]);
 
     return (
@@ -80,9 +82,9 @@ const getMetalCost = (metalPrice, weight, karat, lossPercent) => {
     let buyingFee = 1.01;
     const lossPercentFormatted = (lossPercent > 1 ? lossPercent / 100 : lossPercent) + 1;
 
-    console.log(metalPrice, weight, lossPercentFormatted);
 
-    if (metalPrice && weight && lossPercent) {
+    if (metalPrice && weight && lossPercentFormatted) {
+        console.log('calculated price', Number((((weight * metalPrice * buyingFee) / 31.1035) * lossPercentFormatted).toFixed(2)))
         return Number((((weight * metalPrice * buyingFee) / 31.1035) * lossPercentFormatted).toFixed(2));
     }
     return 0.00;

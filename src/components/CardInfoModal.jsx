@@ -7,7 +7,7 @@ import { useSupabase,handleImageUpload } from './SupaBaseProvider';
 import SlideEditorWrapper from './Ideas/SlideEditor';
 
 const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
-    const supabase = useSupabase();
+    const {supabase} = useSupabase();
     const [tagInput, setTagInput] = useState('');
     const [confirmationModal, setConfirmationModal] = useState(false);
     

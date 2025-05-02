@@ -186,7 +186,7 @@ function SlideEditor({ onSave, slides, setSlides,readOnly }) {
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [slideToRemove, setSlideToRemove] = useState(null);
 
-  const supabase = useSupabase();
+  const {supabase} = useSupabase();
   const fileInputRef = useRef(null);
   const slideContainerRef = useRef(null);
   const isInitialMount = useRef(true);
@@ -434,7 +434,7 @@ function SlideEditor({ onSave, slides, setSlides,readOnly }) {
       zIndex: zIndexValue,
       borderRadius: '4px',
     };
-  
+
     return (
       <div ref={ref} style={style} className="group">
         {/* Delete button - show on hover */}
@@ -546,8 +546,8 @@ function SlideEditor({ onSave, slides, setSlides,readOnly }) {
             </button>
             <button onClick={triggerImageUpload} className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 mb-2 sm:mb-0">
               Add Image
-            </button>
-            
+      </button>
+
             <input
               type="file"
               multiple={true}
@@ -616,8 +616,8 @@ function SlideEditor({ onSave, slides, setSlides,readOnly }) {
                 currentSlideId={currentSlideId}
                 setSlides={setSlides}
               />
-            ))}
-          </div>
+              ))}
+            </div>
         ) : (
           <div className="flex items-center justify-center h-full text-gray-500">
             {slides.length > 0 ? "Select or add a slide" : "No Slides Available"}

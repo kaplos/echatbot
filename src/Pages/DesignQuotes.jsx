@@ -1,13 +1,19 @@
 import { Plus, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import DesignList from '../components/Designs/DesignList';
-import AddDesignModal from '../components/Designs/AddDesignModal';
+import DesignQuoteList from '../components/DesignQuotes/DesignQuoteList';
+import AddDesignQuoteModal from '../components/DesignQuotes/AddDesignQuoteModal';
 import Loading from '../components/Loading';
-import DesignInfoModal from '../components/Designs/DesignInfoModal';
+import DesignQuoteInfoModal from '../components/DesignQuotes/DesignQuoteInfoModal';
+import DesignApprovalForm from '../components/DesignQuotes/DesignApprovalForm';
 import { useSupabase } from '../components/SupaBaseProvider';
-const Designs = () =>{
+import { useLocation } from 'react-router-dom';
+
+const DesignQuote = () =>{
     const {supabase} = useSupabase();
-    
+    const location = useLocation(); // Access the current URL
+    const queryParams = new URLSearchParams(location.search); // Parse the query string
+    const designId = queryParams.get('designId'); 
+
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [selectedDesign, setSelectedDesign] = useState(null);
@@ -19,27 +25,33 @@ const Designs = () =>{
 
     // console.log(selectedDesign, 'designs');    
     useEffect(()=>{
-        const fetchIdeas = async () => {
+        const fetchDesignQuote = async () => {
             setIsLoading(true);
-            const { data, error } = await supabase.from('designs')
-            .select('*')
-            .order('created_at', { ascending: false }) // Replace 'created_at' with your timestamp column
-            .limit(12);
-            
+            console.log(designId,'designId from params')
+            let query = supabase.from('starting_info').select('*');
+            if (designId) {
+                query = query.eq('id', designId);
+            }else{
+                query = query.order('created_at', { ascending: false }).limit(12); // Replace 'created_at' with your timestamp column
+            }
+            const { data, error } = await query; // Use the modified query here
+
+            console.log(data, 'data from supabase');
             if (error) {
-              console.error('Error fetching designs:', error);
+              console.error('Error fetching design quotes:', error);
+              setIsLoading(false);
               return;
             }
             setDesigns(data);
-            // console.log(data);
-            setIsLoading(false);
+            setIsLoading(false); // Moved this line up for clarity
           };
-           fetchIdeas(); 
+          fetchDesignQuote(); 
     },[])
+            
     
     const handleClick = async (design) => {
         const { data, error } = await supabase
-      .from('designs')
+      .from('starting_info')
       .select('*')
       .eq('id', design.id);
 
@@ -60,11 +72,13 @@ const Designs = () =>{
     if(isLoading){
         return <Loading />
     }
-
+    // if(designs.length === 0){
+    //     return <div className="flex justify-center items-center h-screen">No Design Quotes Found</div>
+    // }
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Designs</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Design Quotes</h1>
                 <div className="flex space-x-3">
                         {/* <button 
                             className="bg-white text-gray-700 px-4 py-2 rounded-lg flex items-center hover:bg-gray-50 border border-gray-300"
@@ -78,11 +92,14 @@ const Designs = () =>{
                             onClick={() => setIsAddModalOpen(true)}
                         >
                             <Plus className="w-5 h-5 mr-2" />
-                            New Design
+                            New Design Quote
                         </button>
                     </div>
                 </div>
-                <DesignList
+                {designs.length === 0 ? (
+                    <div className="flex justify-center items-center h-screen">No Design Quotes Found For This Design</div>
+                ) : 
+                <DesignQuoteList
                     designs={designs}
                     // onDesignClick={(design) => {
 
@@ -91,10 +108,10 @@ const Designs = () =>{
                     // }}
                     onDesignClick={handleClick}
                 />
+                } 
 
 
-
-                <AddDesignModal
+                <AddDesignQuoteModal
                     isOpen={isAddModalOpen}
                     onSave={(design) => {
                         setIsAddModalOpen(false)
@@ -103,14 +120,26 @@ const Designs = () =>{
                     onClose={() => setIsAddModalOpen(false)}
                 />
                 {design &&
-                    <DesignInfoModal 
+                    <DesignApprovalForm 
                         isOpen={isDetailsOpen}
+                        updateDesign={updateDesign}
                         onClose={() => setIsDetailsOpen(false)}
                         design={design}
-                        updateDesign={updateDesign}
+                        openEditModal={() => {setIsAddModalOpen(true)
+
+                        }} 
+                    />
+                }
+                {design&&
+
+                    <DesignQuoteInfoModal 
+                    isOpen={isAddModalOpen}
+                    onClose={() => setIsAddModalOpen(false)}
+                    design={design}
+                    updateDesign={updateDesign}
                     />
                 }
         </div>
     )
 }
-export default Designs;
+export default DesignQuote;

@@ -6,7 +6,7 @@ import {useEffect, useState } from "react";
 export default function EditableCell({handleChange,setEditingCell,editingCell,row,index,cellType}){
     // console.log('Row:', row, 'Index:', index,'editable cell');
     // console.log(row,cellType,cellType.replace(/['"]/g, ''),index)
-    const supabase = useSupabase();
+    const {supabase} = useSupabase();
     const [customValue, setCustomValue] = useState(row.tags);
 
     const handleStatusChange = async (quoteNumber, status) => {

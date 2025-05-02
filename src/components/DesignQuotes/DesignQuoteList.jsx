@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Download } from 'lucide-react';
 import { exportToCSV } from '../../utils/exportUtils';
 import DesignCard from './DesignCard';
-const DesignList = ({ designs, onDesignClick }) => {
+const DesignQuoteList = ({ designs, onDesignClick }) => {
     const [selectedDesigns, setSelectedDesigns] = useState(new Set());
     const [isSelectionMode, setIsSelectionMode] = useState(false);
      
@@ -42,16 +42,14 @@ const DesignList = ({ designs, onDesignClick }) => {
             )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {designs.map((design) => 
-            console.log(design,'designs from design list')||
-            (
-              <DesignCard
-                  key={design.id}
-                  design={design}
-                  onClick={isSelectionMode ? toggleDesignSelection : onDesignClick}
-                  selected={selectedDesigns.has(design.id)}
-                  selectable={isSelectionMode}
-              />
+            {designs.map((design) => (
+            <DesignCard
+                key={design.id}
+                design={design}
+                onClick={isSelectionMode ? toggleDesignSelection : onDesignClick}
+                selected={selectedDesigns.has(design.id)}
+                selectable={isSelectionMode}
+            />
             ))}
         </div>
     </div>
@@ -59,4 +57,4 @@ const DesignList = ({ designs, onDesignClick }) => {
     
 }
 
-export default DesignList;
+export default DesignQuoteList;

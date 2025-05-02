@@ -5,13 +5,17 @@ import { useSupabase } from '../SupaBaseProvider';
 import { ChevronDown, X,Upload } from 'lucide-react';
 import { getStatusColor } from '../../utils/designUtils';
 import CustomSelect from '../CustomSelect';
+import { useNavigate } from 'react-router-dom';
+import { use } from 'react';
 
 const DesignInfoModal = ({ isOpen, onClose, design,updateDesign }) => {
     console.log(design, 'design in modal');
-    const supabase = useSupabase();
+    const {supabase} = useSupabase();
+    const navigate = useNavigate();
+    const [hasQuotes, setHasQuotes] = useState(false);
     const [originalData, setOriginalData] = useState({
         id: design.id ,
-        title: design.title ,
+        name: design.name ,
         description: design.description ,
         link: design.link,
         collection: design.collection,
@@ -24,7 +28,7 @@ const DesignInfoModal = ({ isOpen, onClose, design,updateDesign }) => {
         useEffect(() => {
                 setOriginalData({
                     id: design.id,
-                    title: design.title,
+                    name: design.name,
                     description: design.description,
                     link: design.link,
                     collection: design.collection,
@@ -34,7 +38,7 @@ const DesignInfoModal = ({ isOpen, onClose, design,updateDesign }) => {
                 });
                 setFormData({
                     id: design.id,
-                    title: design.title,
+                    name: design.name,
                     description: design.description,
                     link: design.link,
                     collection: design.collection,
@@ -42,6 +46,20 @@ const DesignInfoModal = ({ isOpen, onClose, design,updateDesign }) => {
                     images:  design.images,
                     status: design.status,  
                 });
+        }, [design]);
+        useEffect(() => {
+            const checkForQuotes = async () => {
+          const {data,error} = await supabase
+                .from('starting_info').select('*').eq('designId',design.id);
+                if (error) {
+                    console.error('Error fetching quotes:', error);
+                    return;
+                }
+                if (data.length > 0) {
+                    setHasQuotes(true);
+                }
+            }
+            checkForQuotes();
         }, [design]);
 
               const handleInputChange = (e) => {
@@ -62,7 +80,7 @@ const DesignInfoModal = ({ isOpen, onClose, design,updateDesign }) => {
               const handleSubmit = async (e) => {
                 e.preventDefault();
                 const updates = {};
-                if (formData.title !== originalData.title) updates.title = formData.title;
+                if (formData.name !== originalData.name) updates.name = formData.name;
                 if (formData.description !== originalData.description) updates.description = formData.description;
                 if (formData.images !== originalData.images) updates.images =formData.images;
                 if (formData.status!==originalData.status) updates.status = formData.status;
@@ -81,7 +99,8 @@ const DesignInfoModal = ({ isOpen, onClose, design,updateDesign }) => {
                   const { data, error } = await supabase
                     .from('designs')
                     .update(updates)
-                    .eq('id', design.id);
+                    .eq('id', design.id)
+                    .select();
             
                   if (error) {
                     console.error('Error updating design:', error);
@@ -90,7 +109,7 @@ const DesignInfoModal = ({ isOpen, onClose, design,updateDesign }) => {
                     setOriginalData({ ...formData });
                     
                     // Call the update function to update the idea in the parent component
-                    updateDesign({ ...formData});
+                    updateDesign({ ...data[0] });
                   }
                 }
             
@@ -151,32 +170,47 @@ const DesignInfoModal = ({ isOpen, onClose, design,updateDesign }) => {
                                   />
                                 </div>
                                         {/* this is the status function */}
-                                        <div className="mt-6 mb-2 flex justify-center w-full ">
-                                            <div className='flex flex-col '>
-                                                <label htmlFor="status" className='self-start'>Status:</label>
-                                                <select name="status" onChange={(e) => setFormData({...formData,status:e.target.value})} value={formData.status} className={`${getStatusColor(formData.status)} mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}>
-                                                    <option value="working_on_it">Working on it</option>
-                                                    <option value="waiting_on_cads">Waiting on cads</option>
-                                                    <option value="sample_created">Sample created</option>
-                                                    <option value="received_quote">Receieved quote</option>
-                                                    <option value="dead">Dead</option>
-                                                </select>
-                                            </div>
-                                        </div>
+                                        <div className="mt-6 mb-2 flex items-center justify-evenly w-full flex-row ">
+  <div className="flex flex-col ">
+    <label htmlFor="status" className="self-start">Status:</label>
+    <select
+      name="status"
+      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+      value={formData.status}
+      className={`${getStatusColor(formData.status)} mt-1 border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
+    >
+      <option value="working_on_it">Working on it</option>
+      <option value="waiting_on_cads">Waiting on cads</option>
+      <option value="sample_created">Sample created</option>
+      <option value="received_quote">Received quote</option>
+      <option value="dead">Dead</option>
+    </select>
+  </div>
+  <div className=" flex flex-col">
+    <label htmlFor="status" className="self-start">View Quote(s) </label>
+
+    <button
+      className="bg-chabot-gold text-white px-4 py-2 rounded-lg flex items-center hover:bg-opacity-90 transition-colors"
+      onClick={() => navigate(`/designQuote?designId=${design.id}`)}
+    >
+      View Quote(s)
+    </button>
+  </div>
+</div>
                                     </div>
                                 </div>
             
                                   <div className=" flex-1 space-y-6">
                                     <div>
                                       <label className="block text-sm font-medium text-gray-700">
-                                        Title
+                                        Name
                                       </label>
                                       <input
                                         required
                                         type="text"
                                         className="mt-1 block input shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                                        value={formData.title}
-                                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                       />
                                     </div>
                                     <div>

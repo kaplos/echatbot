@@ -4,7 +4,7 @@ import { X, Plus, Trash2 } from 'lucide-react';
 import { useSupabase } from '../../components/SupaBaseProvider';
 
 const AddVendorForm = ({ isOpen, onClose, onSave}) => {
-    const supabase = useSupabase();
+    const {supabase} = useSupabase();
     const [formData, setFormData] = useState({
         name: '',
         email: '',

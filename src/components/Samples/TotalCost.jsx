@@ -8,7 +8,9 @@ export default function TotalCost({ metalCost, miscCost, laborCost, stones,updat
         const totalCost = (metalCost + (miscCost || 0) + (laborCost || 0) + stoneCost).toFixed(2);
     
     useEffect(()=>{
-        updateTotalCost(totalCost)
+        if(updateTotalCost){
+            updateTotalCost(totalCost)
+        }
     },[totalCost])
 
     // Calculate total cost dynamically

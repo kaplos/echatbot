@@ -3,7 +3,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { useSupabase } from "./SupaBaseProvider";
 
 function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected }) {
-  const supabase = useSupabase();
+  const {supabase} = useSupabase();
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
 
@@ -61,11 +61,28 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
   };
 
   const getFromDatabase = async () => {
-    const { data, error } = await supabase
-      .from(version === "collection" ? "Ideas" : version)
-      .select("*");
+    let query = supabase.from(version)
+    if(version!=="samples"){
+        query = query.select('*')
+    }else{
+        query=query.select(`*,
+           startingInfo: starting_info_id(*)`);
+    }
+    let { data, error } = await query
+    if(version==="samples"){
+      data = data.map(item=> {
+        let {startingInfo} =item;
+        delete startingInfo.id
+        delete item.startingInfo
+        return {
+          ...item,
+          ...startingInfo
+      }
+    })
+    }
+    console.log(data)
 
-    if (error) {
+      if (error) {
       console.error(`Error fetching ${version}:`, error);
     }
 

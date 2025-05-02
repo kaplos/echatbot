@@ -8,7 +8,7 @@ import AddSampleModal from '../components/Samples/AddSampleModal'
 import SampleInfoModal from '../components/Samples/SampleInfoModal'
 
 export default function Samples(){
-    const supabase = useSupabase();
+    const {supabase} = useSupabase();
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [sample,setSample] = useState(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -19,11 +19,12 @@ export default function Samples(){
     useEffect(()=>{
         const fetchSamples = async () => {
             setIsLoading(true);
-            const { data, error } = await supabase.from('samples')
-            .select('*')
+            const { data, error } = await supabase
+            .from('samples')
+            .select('*, starting_info(*)')
             .order('created_at', { ascending: false }) // Replace 'created_at' with your timestamp column
             .limit(12);
-            
+            console.log(data[0],'data from samples')
             if (error) {
               console.error('Error fetching samples:', error);
               return;
@@ -37,7 +38,7 @@ export default function Samples(){
     const handleClick = async (sample) => {
         const { data, error } = await supabase
       .from('samples')
-      .select('*')
+      .select('*, starting_info(*)')
       .eq('id', sample.id);
 
       if (error) {
@@ -45,7 +46,14 @@ export default function Samples(){
         return;
       }
       console.log(data,'data from click');
-        setSample(data[0]);
+        const startingInfo = data[0].starting_info;
+        delete data[0].starting_info
+        const restructuredData = {
+            formData: data[0],
+            starting_info: startingInfo
+
+        }
+        setSample(restructuredData);
         setIsDetailsOpen(true);
     }
     const updateSample = (updatedSamples) => {

@@ -13,6 +13,7 @@ export const metalTypes = [
 ]
 
 export const getMetalType = (type) => {
+    // console.log(type,'type from getMetalType')
     return metalTypes.find(metal => metal.type === type);
 }
 

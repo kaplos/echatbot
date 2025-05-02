@@ -7,7 +7,7 @@ import VendorFormEdit from '../components/Vendor/VendorFormEdit';
 import Loading from '../components/Loading';
 
 const Vendors = () => {
-    const supabase = useSupabase();
+    const {supabase} = useSupabase();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isEditFormOpen, setIsEditFormOpen] = useState(false);
     const [selectedDesign, setSelectedDesign] = useState(null);

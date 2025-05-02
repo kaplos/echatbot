@@ -29,18 +29,22 @@ export default function EditableCellWithGeneric({
                         value={customValue}
                         onChange={(e) => setCustomValue(e.target.value)}
                         onBlur={() => {
-                            // console.log(row,cellType, customValue);
-                            handleChange(id,cellType,customValue);
-                            setEditingCell(null)
-                            // setCustomValue('');
-                        }}
-                        onKeyDown={(e) => e.key === "Enter" && setEditingCell(null)}
+                            console.log("Saving data:", customValue); // Log the value before sending it back
+                            handleChange(id, cellType, customValue);
+                            setEditingCell(null);
+                          }}
+                        onKeyDown={(e) => { if(e.key === "Enter"){
+                            console.log("Saving data:", customValue); // Log the value before sending it back
+                            handleChange(id, cellType, customValue)
+                                setEditingCell(null)}}
+
+                        }
                         className="border border-gray-300 p-1 w-full text-center"
                         autoFocus
                     />
                 
             ) : (
-                customValue !== undefined || customValue !=='' ? customValue : "Click to edit"
+                !customValue  || customValue ==='' ?  "Click to edit":customValue 
             )}
         </td>
     );

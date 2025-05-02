@@ -1,7 +1,8 @@
 import { FileImage, CheckCircle } from 'lucide-react';
 import React from 'react';
 import { getStatusColor } from '../../utils/designUtils';
-
+import { formatShortDate } from '../../utils/dateUtils';
+import { MessageSquare, Calendar, Tag,Pencil } from 'lucide-react';
 
 const SampleCard = ({ 
     sample, 
@@ -9,11 +10,12 @@ const SampleCard = ({
     selected = false,
     selectable = false,
   }) => {
+    console.log(sample, 'sample from sample card');
     const handleClick = (e) => {
       e.preventDefault();
       onClick(sample);
     };
-   let images = Array.isArray(sample.images) ? sample.images : JSON.parse(sample.images);
+   let images = Array.isArray(sample.starting_info.images) ? sample.starting_info.images : JSON.parse(sample.starting_info.images) || [];
 
    return (
            <div
@@ -40,7 +42,7 @@ const SampleCard = ({
                  <>
                    <img
                      src={images[0]}
-                     alt={sample.title}
+                     alt={sample.name}
                      className="w-full h-full object-contain"
                    />
                    {/* <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white px-2 py-1 text-center">
@@ -65,11 +67,21 @@ const SampleCard = ({
                      sample.status
                    )}`}
                  >
-                   {sample.status.replace('_', ' ')}
+                   {sample.status.replaceAll('_', ' ')}
                  </span>
                </div>
                {/* <label htmlFor="">name:</label> */}
                <p className="mt-2 text-sm text-gray-600 line-clamp-2">Name: {sample.name}</p>
+               <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center">
+                  <Calendar className="w-4 h-4 mr-1" />
+                  <span>{formatShortDate(sample.created_at)}</span>
+                </div>
+                <div className="flex items-center">
+                  <Pencil className="w-4 h-4 mr-1" />
+                  <span>{formatShortDate(sample.updated_at)}</span>
+                </div>
+              </div>
              </div>
            </div>
          );

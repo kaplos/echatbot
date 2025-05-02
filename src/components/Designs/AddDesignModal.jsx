@@ -10,7 +10,7 @@ import { useSupabase } from '../SupaBaseProvider';
 
 
 const AddDesignModal = ({ isOpen, onClose,onSave }) => {
-    const supabase = useSupabase();
+    const {supabase} = useSupabase();
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -23,12 +23,12 @@ const AddDesignModal = ({ isOpen, onClose,onSave }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const newDesign = {
-            title: formData.title,
+            name: formData.name,
             description: formData.description,
             link: formData.link,
             collection: formData.collection,
             category: formData.category,
-            images: JSON.stringify(formData.images),
+            images: formData.images,
             status: formData.status,
         }
     const { data, error } = await supabase
@@ -42,9 +42,9 @@ const AddDesignModal = ({ isOpen, onClose,onSave }) => {
     console.log(data, 'data from insert designs ');
 
     
-    onSave(data);
+    onSave(data[0]);
     setFormData({
-        title: '',
+        name: '',
         description: '',
         link:'',
         collection: '',
@@ -134,14 +134,14 @@ const handleCustomSelect = (option) => {
                       <div className=" flex-1 space-y-6">
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
-                            Title
+                            Name
                           </label>
                           <input
                             required
                             type="text"
                             className="mt-1 block input shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            value={formData.title}
-                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                           />
                         </div>
                         <div>

@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 import {useSupabase} from "./SupaBaseProvider";
 
 function CustomSelect({onSelect,version,setNewOption ,informationFromDataBase,hidden=false}) {
-  const supabase = useSupabase();
+  const {supabase} = useSupabase();
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
 

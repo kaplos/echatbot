@@ -6,7 +6,7 @@ import { Dialog,  Transition } from '@headlessui/react';
 import CustomSelect from '../CustomSelect';
 
 const AddQuoteModal = ({ isOpen, onClose, onSave }) => {
-            const supabase = useSupabase();
+            const {supabase} = useSupabase();
             const [formData, setFormData] = useState(
               {date: 'may 5th 2000', quoteNumber: '624-0000102', agent:'Brian Shabot',buyer:'Maria Leon' ,tags:'test hello',status:'sent',gold:2300,silver:32,items:[]})
 

@@ -1,4 +1,5 @@
 export const formatDate = (dateString) => {
+  console.log(dateString,'date string in date utils')
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
@@ -14,7 +15,7 @@ export const formatDate = (dateString) => {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: '2-digit',
     }).format(date);
   };
   

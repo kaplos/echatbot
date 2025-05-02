@@ -7,7 +7,7 @@ import { useSupabase } from '../components/SupaBaseProvider';
 
 export default function Quote (){
     const navigate = useNavigate()
-    const supabase = useSupabase();
+    const {supabase} = useSupabase();
     const [isLoading, setIsLoading] = useState(true);
     const [isAddModalOpen,setIsAddModalOpen]= useState(false)
     const [quotes,setQuotes ]=useState([])

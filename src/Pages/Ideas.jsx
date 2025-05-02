@@ -8,7 +8,8 @@ import Loading from '../components/Loading';
 import SlideEditor from '../components/Ideas/SlideEditor';
 
 export default function Ideas() {
-  const supabase = useSupabase();
+  const {supabase} = useSupabase();
+  // console.log(supabase, 'supabase from ideas page');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const [slideEditorOpen, setSlideEditorOpen] = useState(false);

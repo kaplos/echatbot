@@ -8,7 +8,7 @@ import { useSupabase } from "../SupaBaseProvider";
 
 const EditableGrid = ({ quotes, setQuotes }) => {
   const navigate = useNavigate();
-  const supabase = useSupabase();
+  const {supabase} = useSupabase();
   const [editingCell, setEditingCell] = useState(null);
   const [page, setPage] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -52,7 +52,9 @@ const fetchQuotes = async (pageNumber) => {
 
   const { data, error } = await supabase
     .from('quotes')
-    .select('*')
+    .select(`
+      * 
+    `)
     .order('created_at', { ascending: true }) // or by ID
     .range(from, to);
 

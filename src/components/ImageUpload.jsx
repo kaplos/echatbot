@@ -3,7 +3,7 @@ import { Upload } from 'lucide-react';
 import { useSupabase } from './SupaBaseProvider';
 
 const ImageUpload = ({ images, onChange, type = "image" }) => {
-  const supabase = useSupabase();
+  const {supabase} = useSupabase();
 
   const [imageToShow, setImageToShow] = useState(images[0] || null);
   useEffect(() => {
@@ -14,7 +14,10 @@ const ImageUpload = ({ images, onChange, type = "image" }) => {
     const files = Array.from(e.target.files);
     const imageUrls = await handleImageUpload(files);
     console.log(imageUrls, 'imageUrls from upload');
+    // console.log('Calling onChange with:', [...images, ...imageUrls]);
     onChange([...images, ...imageUrls]);
+    setImageToShow(imageUrls[0]); // Show the first uploaded image
+
   };
 
   const handleImageUpload = async (files) => {

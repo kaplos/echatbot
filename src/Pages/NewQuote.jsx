@@ -10,13 +10,14 @@ import { useMetalPriceStore } from '../store/MetalPrices';
 import { getTotalCost } from '../components/Samples/TotalCost';
 import { useLocation } from 'react-router-dom';
 import EditableCellWithGenerics from '../components/Qoutes/EditableCellWithGenerics';
-
+import { useVendorStore } from '../store/VendorStore';
 export default function NewQuote() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const { prices } = useMetalPriceStore();
-  const supabase = useSupabase();
+  const {supabase,session} = useSupabase();
+  
   const { showMessage } = useMessage();
   const [productInfo, setProductInfo] = useState([]);
   const [lineItems, setlineItems] = useState([]);
@@ -32,22 +33,24 @@ export default function NewQuote() {
   // }
 // );
   const quote = new URLSearchParams(location.search).get('quote') || null
-  
+  const userId = session?.user?.id; // User ID
+
   const { formData, updateFormField, resetForm } = useFormUpdater({
     agent: '',
     buyer: '',
     tags: '',
     status: "Created",
+    agent: userId,
     gold: parseFloat(prices.gold.price),
     silver: parseFloat(prices.silver.price),
     quoteTotal: 0
   });
-    
+  const {getVendorById,vendors}= useVendorStore()
+
   const [isLoading,setIsLoading] = useState(false)
   const [editingCell, setEditingCell] = useState(null);
 
   const [isOpen, setIsOpen] = useState(false);
-  const [vendors, setVendors] = useState([]);
 
    useEffect(() => {   
                       
@@ -62,16 +65,25 @@ export default function NewQuote() {
                     *,
                     lineItems (
                       *,
-                      product:productId ( * )
+                      product:productId ( 
+                       *,
+                       startingInfo: starting_info_id ( * )
+                      )
                     )
                   `)
                   .eq('quoteNumber', quote)
                   .single();
-                  let products = data.lineItems.map(item => item.product)
-                  // delete data.lineItems
-                  console.log(products)
+                  const processedLineItems = data.lineItems.map((item) => {
+                    const { startingInfo, ...productData } = item.product; // Extract startingInfo and product data
+                    const { id,...startingInfoData } = startingInfo; // Extract id and other properties from startingInfo
+                    return {
+                        ...productData, // Spread the product data into the top-level object
+                        ...startingInfoData, // Spread the startingInfo data into the top-level object
+                    };
+                });                // delete data.lineItems
+                  console.log(processedLineItems)
                   setlineItems(data.lineItems)
-                  setProductInfo(products)
+                  setProductInfo(processedLineItems)
                 console.log(data)
 
                 if (error) {
@@ -90,18 +102,7 @@ export default function NewQuote() {
         }
     }
     ,[quote]) 
-  useEffect(() => {
-    const fetchVendors = async () => {
-      const { data, error } = await supabase.from('vendors').select('*');
-      if (error) {
-        console.error(error);
-      } else {
-        setVendors(data);
-      }
-    };
-
-    fetchVendors();
-  }, [supabase]);
+ 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -114,6 +115,7 @@ export default function NewQuote() {
     const {lineItems: dontUse,...rest} = formData
     const submitForm = {
       ...rest,
+      updated_at: new Date().toISOString(),
       quoteTotal: quoteTotal,
     };
     if(quote){
@@ -249,18 +251,24 @@ export default function NewQuote() {
         })
       );
     };
-    
   const handleCustomSelect = (items) => {
     setProductInfo(prev=> [...prev,...items]);
     
-    const itemData = items.map((item) => ({
-      productId: item.id,
-      retailPrice: 0,
-      internalNote: '',
-      margin: 0,
-      totalCost: parseFloat(totalCost(item, vendors.find((vendor) => vendor.id === item.vendor)?.pricingsetting?.lossPercentage).toFixed(2)),
-      salesPrice: totalCost(item, vendors.find((vendor) => vendor.id === item.vendor)?.pricingsetting?.lossPercentage)
-    }));
+    const itemData = items.map((item) => 
+      
+
+      
+      ({
+        productId: item.id,
+        retailPrice: 0,
+        internalNote: '',
+        margin: 0,
+        totalCost: parseFloat(totalCost(item, getVendorById( item.vendor).pricingsetting?.lossPercentage).toFixed(2)),
+        salesPrice: totalCost(item, getVendorById( item.vendor).pricingsetting?.lossPercentage)
+      })
+      
+    
+  )
     setlineItems((prev) => [...prev, ...itemData]);
     // const quoteTotal = submitData.reduce((acc, item) => acc + item.totalCost, 0);
 
@@ -364,7 +372,7 @@ export default function NewQuote() {
                     {
 
                       let productInfoObject = productInfo.find((item) => item.id === product.productId)  
-                    
+                      console.log(productInfo,productInfoObject.styleNumber,'product info object')
                     return (
                         
                       <tr key={index}>
@@ -420,7 +428,7 @@ export default function NewQuote() {
                             cellType={'internalNote'}
                             data={product.internalNote} // Placeholder for actual data
                         />
-                        <td className="border border-gray-300 p-2 text-center">{lineItems.buyerComment}</td>
+                        <td className="border border-gray-300 p-2 text-center">{product.BuyerComment}</td>
                           <button  onClick={(event)=> deleteLineItem(event,product)} className="border border-gray-300 p-2 text-center">
                             Delete
                           </button>
