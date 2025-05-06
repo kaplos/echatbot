@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bell, Search, User } from 'lucide-react';
 import { useSupabase } from '../components/SupaBaseProvider';
+import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const { session, supabase } = useSupabase();
   const displayName = session?.user?.user_metadata?.full_name || session?.user?.email || 'User';
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null); // Ref for the dropdown
-
+  const navigate = useNavigate()
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.reload(); // Reload the page to reset the session
+    navigate('/login')
+    // window.location.reload(); // Reload the page to reset the session
   };
 
   // Close dropdown if clicked outside

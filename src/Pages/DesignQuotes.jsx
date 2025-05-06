@@ -30,7 +30,7 @@ const DesignQuote = () =>{
             console.log(designId,'designId from params')
             let query = supabase.from('starting_info').select('*');
             if (designId) {
-                query = query.eq('id', designId);
+                query = query.eq('designId', designId);
             }else{
                 query = query.order('created_at', { ascending: false }).limit(12); // Replace 'created_at' with your timestamp column
             }
