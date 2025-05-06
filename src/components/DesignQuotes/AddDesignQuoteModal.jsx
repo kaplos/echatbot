@@ -91,35 +91,43 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log(formData);
-const { data, error } = await supabase
-.from('starting_info')
-.insert([formData])
-.select();
+    const { data, error } = await supabase
+      .from('starting_info')
+      .insert([formData])
+      .select();
 
 if(error) {
     console.log(error);
 }
+
 console.log(data, 'data from insert samples ');
+  // const {error:designIdError}=await supabase
+  //   .from('designs')
+  //   .update('starting_info_id',data[0].id)
+  //   .eq('id',designId)
+  //   .select()
 
-
+  // if(designIdError){
+  //   console.log(designIdError)
+  // }
 onSave(data[0]);
-setFormData({
-  description: "",
-    images: [],
-    color: "Yellow",
-    height: 0,
-    length: 0,
-    width: 0,
-    weight: 0,
-    manufacturerCode: "",
-    metalType: "Gold",
-    platingCharge: 0,
-    stones: [],
-    vendor: null,
-    plating: 0,
-    karat: "10K",
-    status: "working_on_it",
-})
+  setFormData({
+    description: "",
+      images: [],
+      color: "Yellow",
+      height: 0,
+      length: 0,
+      width: 0,
+      weight: 0,
+      manufacturerCode: "",
+      metalType: "Gold",
+      platingCharge: 0,
+      stones: [],
+      vendor: null,
+      plating: 0,
+      karat: "10K",
+      status: "working_on_it",
+  })
 }
   // const handleFileChange = (e) => {
 

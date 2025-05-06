@@ -418,7 +418,7 @@ export default function NewQuote() {
                             editingCell={editingCell}
                             id={productInfoObject.id}
                             cellType={'retailPrice'}
-                            data={product.retailPrice} // Placeholder for actual data
+                            data={parseFloat(product.retailPrice)} // Placeholder for actual data
                         />
                         <EditableCellWithGenerics 
                             handleChange={handleLineChange} 

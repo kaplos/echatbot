@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Scale } from 'lucide-react';
-import { calculateMetalPrice } from '../../utils/metalCalculator';
+import { calculateMetalPrice } from '../../utils/MetalCalculator';
 import {KARAT_PURITY,SILVER_PURITY} from '../Products/TempKarets'
 
 const prices  = {

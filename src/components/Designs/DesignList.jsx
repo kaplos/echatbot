@@ -2,16 +2,28 @@ import React, { useState } from 'react';
 import { Download } from 'lucide-react';
 import { exportToCSV } from '../../utils/exportUtils';
 import DesignCard from './DesignCard';
+import { useSupabase } from '../SupaBaseProvider';
+
 const DesignList = ({ designs, onDesignClick }) => {
     const [selectedDesigns, setSelectedDesigns] = useState(new Set());
     const [isSelectionMode, setIsSelectionMode] = useState(false);
-     
+     const {supabase}=useSupabase();
     const handleExport = () => {
-            const designsToExport = designs.filter(p => selectedProducts.has(p.id));
+            const designsToExport = designs.filter(p => selectedDesigns.has(p.id));
+            getDataToExport(designsToExport)
             exportToCSV(designsToExport);
             setSelectedDesigns(new Set());
             setIsSelectionMode(false);
     };
+    const  getItemsToExport =async (arrayOfProducts)=>{
+
+      const {data:designsData,error:designDataError}= await supabase.from('designs').select("*").in('id',arrayOfProducts)
+      const {data:starting_info,error:starting_infoError}= await supabase.from('starting_info').select("*").in('designId',arrayOfProducts)
+     
+      if(starting_infoError||designDataError){
+          console.error(starting_infoError||designDataError)
+      }
+    }
     const toggleDesignSelection = (design) => {
         const newSelection = new Set(selectedDesigns);
         if (newSelection.has(design.id)) {

@@ -30,7 +30,7 @@ export default function Sidebar  ()  {
   ];
 
   return (
-    <div className="w-64 bg-white h-screen border-r border-gray-200 fixed left-0 top-0">
+    <div className="w-64 bg-white h-screen border-r border-gray-200 fixed left-0 top-0 z-200">
       <div className="p-6">
         <div className="flex flex-col items-center">
           <div className="text-[#C5A572] text-3xl font-serif tracking-wider">

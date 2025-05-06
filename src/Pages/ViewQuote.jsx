@@ -28,7 +28,24 @@ export default function ViewQuote(){
                 const [filter,setFilters] =useState();
 
 
-
+                useEffect(() => {
+                    const updateStatusToViewed = async () => {
+                      if (!isAuthenticated && quote) {
+                        const { error } = await supabase
+                          .from('quotes')
+                          .update({ status: 'viewed:yellow' }) // Update the status to "viewed"
+                          .eq('quoteNumber', quote);
+                  
+                        if (error) {
+                          console.error('Error updating quote status to viewed:', error);
+                        } else {
+                          console.log('Quote status updated to viewed');
+                        }
+                      }
+                    };
+                  
+                    updateStatusToViewed();
+                  }, [isAuthenticated, quote, supabase]);
 
                 useEffect(() => {   
                     
@@ -316,7 +333,7 @@ export default function ViewQuote(){
             const isNotAuthenticatedRender = () =>
                 
                 {
-                    console.log('not authenticated',formData.items)
+                    console.log('not authenticated',formData.retailPrice)
                 return (
                 <div className="flex flex-col min-h-[80vh]">
                 <div className="p-6   flex-1 flex flex-col">

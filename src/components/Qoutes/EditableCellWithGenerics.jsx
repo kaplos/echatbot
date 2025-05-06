@@ -8,7 +8,7 @@ export default function EditableCellWithGeneric({
     id, 
     data
 }) {
-    // console.log(id,'in editable cell')
+    console.log(data,'in editable cell')
 
     const [customValue, setCustomValue] = useState(data);
     useEffect(() => {
@@ -44,7 +44,7 @@ export default function EditableCellWithGeneric({
                     />
                 
             ) : (
-                !customValue  || customValue ==='' ?  "Click to edit":customValue 
+                !customValue || customValue ==='' ?  "Click to edit":customValue 
             )}
         </td>
     );

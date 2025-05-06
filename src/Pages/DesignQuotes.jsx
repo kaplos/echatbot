@@ -123,7 +123,9 @@ const DesignQuote = () =>{
                     <DesignApprovalForm 
                         isOpen={isDetailsOpen}
                         updateDesign={updateDesign}
-                        onClose={() => setIsDetailsOpen(false)}
+                        onClose={() =>{ setIsDetailsOpen(false);
+                            setDesign(null)
+                        }}
                         design={design}
                         openEditModal={() => {setIsAddModalOpen(true)
 

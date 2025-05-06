@@ -1,9 +1,31 @@
-import React from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bell, Search, User } from 'lucide-react';
 import { useSupabase } from '../components/SupaBaseProvider';
+
 const Header = () => {
-  const {session} = useSupabase();
+  const { session, supabase } = useSupabase();
   const displayName = session?.user?.user_metadata?.full_name || session?.user?.email || 'User';
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null); // Ref for the dropdown
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.reload(); // Reload the page to reset the session
+  };
+
+  // Close dropdown if clicked outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false); // Close the dropdown
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 fixed top-0 right-0 left-64 z-10">
@@ -18,16 +40,31 @@ const Header = () => {
             <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-4">
           <button className="p-2 hover:bg-gray-100 rounded-full relative">
             <Bell className="w-5 h-5 text-gray-600" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
-          <button className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-lg">
-            <User className="w-5 h-5 text-gray-600" />
-            <span className="text-sm text-gray-700">{displayName}</span>
-          </button>
+          <div className="relative" ref={dropdownRef}>
+            <button
+              className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-lg"
+              onClick={() => setIsDropdownOpen((prev) => !prev)}
+            >
+              <User className="w-5 h-5 text-gray-600" />
+              <span className="text-sm text-gray-700">{displayName}</span>
+            </button>
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  Log Out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

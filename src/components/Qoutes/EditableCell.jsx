@@ -5,7 +5,7 @@ import { useSupabase } from "../SupaBaseProvider";
 import {useEffect, useState } from "react";
 export default function EditableCell({handleChange,setEditingCell,editingCell,row,index,cellType}){
     // console.log('Row:', row, 'Index:', index,'editable cell');
-    // console.log(row,cellType,cellType.replace(/['"]/g, ''),index)
+    console.log(row,cellType,cellType.replace(/['"]/g, ''),index)
     const {supabase} = useSupabase();
     const [customValue, setCustomValue] = useState(row.tags);
 
@@ -55,7 +55,7 @@ export default function EditableCell({handleChange,setEditingCell,editingCell,ro
                             {editingCell?.index === index && editingCell.field === cellType ? (
                                cellType === 'status' ? (
                                     <select
-                                        value={row.status}
+                                        value={row.status }
                                         onChange={(e) => {
                                             handleStatusChange(row.quoteNumber, e.target.value);
                                             handleChange(row.id, "status", e.target.value)
@@ -64,13 +64,13 @@ export default function EditableCell({handleChange,setEditingCell,editingCell,ro
                                         className={`border border-gray-300 p-1 w-full text-center `}
                                         autoFocus
                                         >
-                                            <option value="Created">Created</option>
-                                            <option value="Sent">Sent</option>
-                                            <option value="Pending">Pending</option>
-                                            <option value="Approved">Approved</option>
-                                            <option value="Rejected">Rejected</option>
-                                            <option value="Viewed">Viewed</option>
-                                            <option value="Paid">Paid</option>
+                                            <option value="created:grey">Created</option>
+                                            <option value="sent:orange">Sent</option>
+                                            <option value="viewed:yellow">Viewed</option>
+                                            {/* <option value="pending:">Pending</option> */}
+                                            {/* <option value="approved:">Approved</option> */}
+                                            {/* <option value="rejected:">Rejected</option> */}
+                                            <option value="paid:green">Paid</option>
                                         </select>
                                 ):(
                                     <input
