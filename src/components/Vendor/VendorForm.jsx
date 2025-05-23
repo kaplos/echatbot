@@ -57,6 +57,7 @@ const AddVendorForm = ({ isOpen, onClose, onSave}) => {
         .insert([formData])
         .select()
 
+        localStorage.setItem('vendors', JSON.stringify(data));
         if(error) {
           console.log(error);
       }

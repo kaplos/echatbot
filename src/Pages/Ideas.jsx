@@ -6,6 +6,7 @@ import { useSupabase } from '../components/SupaBaseProvider';
 import CardInfoModal from '../components/CardInfoModal';
 import Loading from '../components/Loading';
 import SlideEditor from '../components/Ideas/SlideEditor';
+import { useLocation } from 'react-router-dom';
 
 export default function Ideas() {
   const {supabase} = useSupabase();
@@ -17,7 +18,14 @@ export default function Ideas() {
   const [idea, setIdea] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlideData, setCurrentSlideData] = useState(null);
-  
+  const location = useLocation(); // Access the current URL
+    const queryParams = new URLSearchParams(location.search); // Parse the query string
+    const ideaId = queryParams.get('ideaId') || null;
+    useEffect(()=>{
+      if(ideaId){
+        handleClick({id:ideaId})
+      }
+    },[ideaId])
   // Handle opening the slide editor for a new design
   const openSlideEditor = () => {
     setSlideEditorOpen(true);
@@ -92,11 +100,11 @@ export default function Ideas() {
     setSlideEditorOpen(false);
   };
   
-  const handleClick = async (id) => {
+  const handleClick = async (idea) => {
     const { data, error } = await supabase
       .from('Ideas')
       .select('*')
-      .eq('id', id);
+      .eq('id', idea.id);
 
     if (error) {
       console.error('Error fetching idea:', error);
@@ -179,7 +187,10 @@ export default function Ideas() {
             <Plus className="w-5 h-5 mr-2 bg-chatbot-gold" />
             New Idea
           </button>
+          
         </div>
+
+        
       </div>
       
       <IdeaBoard 

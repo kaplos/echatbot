@@ -2,8 +2,10 @@ import React from 'react';
 import { MessageSquare, Calendar, Tag } from 'lucide-react';
 import {formatDate} from '../../utils/dateUtils'
 import SlideEditorWrapper from './SlideEditor';
+import {CheckCircle } from 'lucide-react';
 
-export default function IdeaCard ({idea,handleClick}){
+
+export default function IdeaCard ({idea,onClick,selected = false, selectable = false}){
   
   // console.log(idea,'idea in ideacard')
       
@@ -18,13 +20,32 @@ export default function IdeaCard ({idea,handleClick}){
     }
     return Array.isArray(input) ? input : [];
   };
+  const handleClick = (e) => {
+    e.preventDefault();
+    onClick(idea);
+  };
 
     return (
         <div
-          onClick={()=>handleClick(idea.id)}
+        tabIndex={0}
+        role="button"
+        onKeyDown={(e) => e.key === 'Enter' && handleClick(e)}
+          onClick={handleClick}
           key={idea.id}
-          className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+          // className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+          className={`relative bg-white rounded-lg shadow-sm border ${
+            selected ? 'border-chabot-gold' : 'border-gray-200'
+          } hover:shadow-md transition-shadow cursor-pointer focus:outline-none focus:ring-2 focus:ring-chabot-gold`}
         >
+          {selectable && (
+               <div className="absolute top-2 right-2 z-10">
+                 <CheckCircle 
+                   className={`w-6 h-6 ${
+                     selected ? 'text-chabot-gold' : 'text-gray-300'
+                   }`} 
+                 />
+               </div>
+             )}
             {/* {idea.images.length > 0 && (
         <div className="aspect-video w-full overflow-hidden">
           <img

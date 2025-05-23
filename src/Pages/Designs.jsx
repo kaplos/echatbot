@@ -5,6 +5,9 @@ import AddDesignModal from '../components/Designs/AddDesignModal';
 import Loading from '../components/Loading';
 import DesignInfoModal from '../components/Designs/DesignInfoModal';
 import { useSupabase } from '../components/SupaBaseProvider';
+import ImportModal from '../components/Products/ImportModal';
+import { useLocation } from 'react-router-dom';
+
 const Designs = () =>{
     const {supabase} = useSupabase();
     
@@ -16,7 +19,9 @@ const Designs = () =>{
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [designs, setDesigns] = useState(null);
-
+    const location = useLocation(); // Access the current URL
+    const queryParams = new URLSearchParams(location.search); // Parse the query string
+    const designId = queryParams.get('designId') || null;
     // console.log(selectedDesign, 'designs');    
     useEffect(()=>{
         const fetchIdeas = async () => {
@@ -36,6 +41,11 @@ const Designs = () =>{
           };
            fetchIdeas(); 
     },[])
+    useEffect(()=>{
+        if(designId){
+            handleClick({id:designId})
+        }
+    },[designId])
     
     const handleClick = async (design) => {
         const { data, error } = await supabase
@@ -66,13 +76,13 @@ const Designs = () =>{
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900">Designs</h1>
                 <div className="flex space-x-3">
-                        {/* <button 
+                         <button 
                             className="bg-white text-gray-700 px-4 py-2 rounded-lg flex items-center hover:bg-gray-50 border border-gray-300"
                             onClick={() => setIsImportModalOpen(true)}
                         >
                             <Upload className="w-5 h-5 mr-2" />
                             Import
-                        </button> */}
+                        </button>
                         <button 
                             className="bg-chabot-gold text-white px-4 py-2 rounded-lg flex items-center hover:bg-opacity-90 transition-colors"
                             onClick={() => setIsAddModalOpen(true)}
@@ -84,11 +94,6 @@ const Designs = () =>{
                 </div>
                 <DesignList
                     designs={designs}
-                    // onDesignClick={(design) => {
-
-                    // setIsDetailsOpen(true);
-                    // setSelectedDesign(design);
-                    // }}
                     onDesignClick={handleClick}
                 />
 
@@ -110,6 +115,12 @@ const Designs = () =>{
                         updateDesign={updateDesign}
                     />
                 }
+                <ImportModal
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    type="designs"
+
+                />
         </div>
     )
 }

@@ -12,18 +12,20 @@ import {
   Lightbulb,
   Hammer,
   ReceiptText,
-  Pen
+  Pen,
+  Images
 } from 'lucide-react';
 
 export default function Sidebar  ()  {
   const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', to: '/' },
+    // { icon: LayoutDashboard, label: 'Dashboard', to: '/' },
     { icon: Lightbulb, label: 'Ideas', to: '/ideas' },
     {icon: Pen, label: 'Design' , to: '/designs'},
     {icon: Hammer, label: 'Samples' , to: '/samples'},
     {icon: ReceiptText  , label: 'Quotes' , to: '/quotes'},
     { icon: DollarSign, label: 'Metal Prices', to: '/prices' },
     { icon: Users, label: 'Vendors', to: '/vendors' },
+    { icon: Images, label: 'Images', to: '/images' },
     // { icon: MessageSquare, label: 'Communications', to: '/communications' },
     // { icon: FileText, label: 'Documents', to: '/documents' },
     // { icon: Settings, label: 'Settings', to: '/settings' },

@@ -19,6 +19,7 @@ import SupaBaseProvider, { useSupabase } from './components/SupaBaseProvider';
 import { MessageProvider } from './components/Messages/MessageContext';
 import MessageBox from './components/Messages/MessageBox';
 import { Navigate } from 'react-router-dom';
+import ImageManager from './components/ImageManager';
 
 function AppContent() {
   const { session } = useSupabase(); // Get the current session from Supabase
@@ -27,7 +28,7 @@ function AppContent() {
   if (!session) {
     return (
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/viewQuote" element={<ViewQuote />} />
         {/* <Route path="*" element={<Navigate to="/" />} /> */}
       </Routes>
@@ -51,6 +52,7 @@ function AppContent() {
             {/* Protected Routes for agents */}
             {session && (
               <>
+
                 <Route path="/ideas" element={<Ideas />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/designs" element={<Designs />} />
@@ -60,9 +62,11 @@ function AppContent() {
                 <Route path="/prices" element={<MetalPrices />} />
                 <Route path="/vendors" element={<Vendors />} />
                 <Route path="/designQuote" element={<DesignQuote />} />
+                <Route path="/images" element={<ImageManager />} />
+                <Route path="/" element={<Navigate to="/Ideas" />} />
               </>
             )}
-            <Route path="*" element={<Navigate to="/" />} />
+            <Route path="/" element={<Navigate to="/login" />} />
           </Routes>
         </main>
       </div>

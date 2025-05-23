@@ -12,13 +12,13 @@ import { useSupabase } from '../SupaBaseProvider';
 const AddDesignModal = ({ isOpen, onClose,onSave }) => {
     const {supabase} = useSupabase();
     const [formData, setFormData] = useState({
-        title: '',
+        name: '',
         description: '',
         link:'',
         collection: '',
         category: '',
         images: [],
-        status: 'working_on_it',
+        status: 'Working_on_it:yellow',
     })
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -49,7 +49,7 @@ const AddDesignModal = ({ isOpen, onClose,onSave }) => {
         link:'',
         collection: '',
         category: '',
-        status: 'working_on_it',
+        status: 'Working_on_it:yellow',
     })
 }
 // const handleFileChange = (e) => {
@@ -120,11 +120,19 @@ const handleCustomSelect = (option) => {
                                 <div className='flex flex-col '>
                                     <label htmlFor="status" className='self-start'>Status:</label>
                                     <select name="status" onChange={(e) => setFormData({...formData,status:e.target.value})} value={formData.status} className={`${getStatusColor(formData.status)} mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}>
-                                        <option value="working_on_it">Working on it</option>
-                                        <option value="waiting_on_cads">Waiting on cads</option>
-                                        <option value="sample_created">Sample created</option>
-                                        <option value="received_quote">Receieved quote</option>
-                                        <option value="dead">Dead</option>
+                                    <option value="Working_On_It:yellow">
+                                Working on it
+                              </option>
+                              <option value="Waiting_On_Cads:grey">
+                                Waiting on cads
+                              </option>
+                              <option value="Sample_Created:green">
+                                Sample created
+                              </option>
+                              <option value="Received_Quote:blue">
+                                Receieved quote
+                              </option>
+                              <option value="Dead:red">Dead</option>
                                     </select>
                                 </div>
                             </div>

@@ -10,7 +10,7 @@ const SampleCard = ({
     selected = false,
     selectable = false,
   }) => {
-    console.log(sample, 'sample from sample card');
+    // console.log(sample, 'sample from sample card');
     const handleClick = (e) => {
       e.preventDefault();
       onClick(sample);
@@ -67,7 +67,7 @@ const SampleCard = ({
                      sample.status
                    )}`}
                  >
-                   {sample.status.replaceAll('_', ' ')}
+                   {sample.status.replaceAll('_', ' ').split(':')[0]}
                  </span>
                </div>
                {/* <label htmlFor="">name:</label> */}

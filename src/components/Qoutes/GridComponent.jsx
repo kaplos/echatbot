@@ -5,7 +5,8 @@ import { faFilePdf, faFileExcel } from "@fortawesome/free-solid-svg-icons";
 import EditableCell from "./EditableCell";
 import { useNavigate } from "react-router-dom";
 import { useSupabase } from "../SupaBaseProvider";
-
+import QuotePDFGenerator from "../Pdf/QuotePDFGenerator";
+import { exportToCsv } from "../../utils/exportToExcel";
 const EditableGrid = ({ quotes, setQuotes }) => {
   const navigate = useNavigate();
   const { supabase } = useSupabase();
@@ -14,6 +15,7 @@ const EditableGrid = ({ quotes, setQuotes }) => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [copiedRowId, setCopiedRowId] = useState(null); // State to track which row was copied
+  const [rowType, setRowType] = useState(null); // State to track the type of row copied
 
   useEffect(() => {
     fetchQuotes(0);
@@ -37,6 +39,28 @@ const EditableGrid = ({ quotes, setQuotes }) => {
     updatedData[index][field] = value;
     setQuotes(updatedData);
   };
+  const handleExportToExcel = async (quoteNumber,quoteId) => {
+    const { data, error } = await supabase
+      .from("lineItems")
+      .select(`
+        *,product:samples(*,starting_info(*,stones(*)))`)
+      .eq("quoteNumber", quoteNumber);
+    if (error) {
+
+      console.error("Error fetching quote for Excel export:", error);
+      return;
+    }
+    const processedLineItems = data.map((item) => {
+      const { starting_info, ...productData } = item.product; // Extract startingInfo and product data
+      const { id,...startingInfoData } = starting_info; // Extract id and other properties from startingInfo
+      return {
+          ...productData, // Spread the product data into the top-level object
+          ...startingInfoData, // Spread the startingInfo data into the top-level object
+      };
+  });    
+      console.log(processedLineItems, "sample data");
+      exportToCsv(processedLineItems, `Quote_${quoteId}`);
+  }
 
   const handleEditQuote = (quoteNumber) => {
     navigate(`/newQuote?quote=${quoteNumber}`);
@@ -50,6 +74,7 @@ const EditableGrid = ({ quotes, setQuotes }) => {
     navigator.clipboard.writeText(
       `${window.location.origin}/viewQuote?quote=${quoteNumber}`
     );
+    setRowType("link");
     setCopiedRowId(rowId); // Set the copied row ID
     setTimeout(() => setCopiedRowId(null), 2000); // Reset after 2 seconds
   };
@@ -66,7 +91,7 @@ const EditableGrid = ({ quotes, setQuotes }) => {
       * 
     `
       )
-      .order("created_at", { ascending: true }) // or by ID
+      .order("created_at", { ascending: false }) // or by ID
       .range(from, to);
 
     if (error) {
@@ -86,7 +111,7 @@ const EditableGrid = ({ quotes, setQuotes }) => {
     (a, b) => new Date(a.created_at) - new Date(b.created_at)
   );
   const ascendingQuotesById = [...quotes].sort((a, b) =>
-    a.id < b.id ? -1 : 1
+    a.id > b.id ? 1 : -1
   );
 
   return (
@@ -107,7 +132,7 @@ const EditableGrid = ({ quotes, setQuotes }) => {
             <th className="border border-gray-300 p-2 w-20">Quote Date</th>
             <th className="border border-gray-300 p-2 w-20">Quote Number</th>
             <th className="border border-gray-300 p-2 w-20">Quote Total</th>
-            <th className="border border-gray-300 p-2 w-20">Prepared By</th>
+            {/* <th className="border border-gray-300 p-2 w-20">Prepared By</th> */}
             <th className="border border-gray-300 p-2 w-20">For</th>
             <th className="border border-gray-300 p-2 w-20">
               Customer Ref / Labels
@@ -117,7 +142,7 @@ const EditableGrid = ({ quotes, setQuotes }) => {
           </tr>
         </thead>
         <tbody>
-          {ascendingQuotesById.map((row, index) => {
+          {quotes.map((row, index) => {
             return (
               <tr key={index}>
                 <td className="border border-gray-300 p-2 text-center">
@@ -140,9 +165,9 @@ const EditableGrid = ({ quotes, setQuotes }) => {
                 <td className="border border-gray-300 p-2 text-center">
                   ${row.quoteTotal}
                 </td>
-                <td className="border border-gray-300 p-2 text-center">
+                {/* <td className="border border-gray-300 p-2 text-center">
                   {row.agent}
-                </td>
+                </td> */}
                 <td className="border border-gray-300 p-2 text-center">
                   {row.buyer}
                 </td>
@@ -166,7 +191,7 @@ const EditableGrid = ({ quotes, setQuotes }) => {
                   <div className="flex w-full h-full justify-around">
                     <div className="relative group z-5">
                       {/* Label for Copy to Clipboard */}
-                      {copiedRowId === row.id ? (
+                      {copiedRowId === row.id && rowType === 'link' ? (
                         <label
                           htmlFor=""
                           className="absolute z-40 bottom-full mb-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 bg-white px-2 py-1 rounded-md shadow-md"
@@ -192,11 +217,57 @@ const EditableGrid = ({ quotes, setQuotes }) => {
                         <Link className="text-black hover:text-blue-700" />
                       </div>
                     </div>
-                    <div onClick={() => ""} className="cursor-pointer">
-                      <FontAwesomeIcon icon={faFilePdf} size="lg" />
+                    <div onClick={() =>{
+                            setCopiedRowId(row.id); // Set the copied row ID
+                            setRowType("pdf");
+                            setTimeout(() => {setCopiedRowId(null); setRowType(null)}, 2000);
+                            }} className="cursor-pointer">
+                      {/* <FontAwesomeIcon icon={faFilePdf} size="lg" /> */}
+                    <div className="relative group z-5">
+
+                      {copiedRowId === row.id && rowType ==='pdf' ? (
+                        <label
+                          htmlFor=""
+                          className="absolute z-40 bottom-full mb-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 bg-white px-2 py-1 rounded-md shadow-md"
+                        >
+                          Downloading PDF...
+                        </label>
+                      ) : (
+                        <label
+                          htmlFor=""
+                          className="absolute z-40 bottom-full mb-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 bg-white px-2 py-1 rounded-md hidden group-hover:block"
+                        >
+                          Download PDF
+                        </label>
+                      )}
+                      <QuotePDFGenerator quoteId={row.id} quoteNumber={row.quoteNumber}/>
+                      </div>
                     </div>
-                    <div onClick={() => ""} className="cursor-pointer">
-                      <FontAwesomeIcon icon={faFileExcel} size="lg" />
+                    <div onClick={() => {
+                            setCopiedRowId(row.id); // Set the copied row ID
+                            setRowType("excel");
+                            setTimeout(() => {setCopiedRowId(null); setRowType(null)}, 2000);
+                            handleExportToExcel(row.quoteNumber,row.id);
+                            
+                    }} className="cursor-pointer">
+                      <div className="relative group z-5">
+                        {copiedRowId === row.id && rowType ==='excel' ? (
+                          <label
+                            htmlFor=""
+                            className="absolute z-40 bottom-full mb-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 bg-white px-2 py-1 rounded-md shadow-md"
+                          >
+                            Downloading Excel...
+                          </label>
+                        ) : (
+                          <label
+                            htmlFor=""
+                            className="absolute z-40 bottom-full mb-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 bg-white px-2 py-1 rounded-md hidden group-hover:block"
+                          >
+                            Export to Excel
+                          </label>
+                        )}
+                        <FontAwesomeIcon icon={faFileExcel} size="lg" className="hover:text-blue-700" />
+                      </div>
                     </div>
                   </div>
                 </td>

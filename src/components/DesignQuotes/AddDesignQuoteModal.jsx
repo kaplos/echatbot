@@ -41,7 +41,7 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
     plating: 0,
     karat: "10K",
     designId: designId,
-    status: "working_on_it",
+    status: "Working_on_it:yellow",
   });
   useEffect(() => {
       // const { data, error } = await supabase.from("vendors").select("*");
@@ -85,7 +85,7 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
   //     link: "",
   //     collection: "",
   //     category: "",
-  //     status: "working_on_it",
+  //     status: "Working_on_it:yellow",
   //   });
   // };
   const handleSubmit = async (e) => {
@@ -126,7 +126,7 @@ onSave(data[0]);
       vendor: null,
       plating: 0,
       karat: "10K",
-      status: "working_on_it",
+      status: "Working_on_it:yellow",
   })
 }
   // const handleFileChange = (e) => {
@@ -225,19 +225,19 @@ onSave(data[0]);
                                 formData.status
                               )} mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
                             >
-                              <option value="working_on_it">
+                              <option value="Working_On_It:yellow">
                                 Working on it
                               </option>
-                              <option value="waiting_on_cads">
+                              <option value="Waiting_On_Cads:grey">
                                 Waiting on cads
                               </option>
-                              <option value="sample_created">
+                              <option value="Sample_Created:green">
                                 Sample created
                               </option>
-                              <option value="received_quote">
+                              <option value="Received_Quote:blue">
                                 Receieved quote
                               </option>
-                              <option value="dead">Dead</option>
+                              <option value="Dead:red">Dead</option>
                             </select>
                           </div>
                         </div>

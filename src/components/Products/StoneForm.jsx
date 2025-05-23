@@ -3,12 +3,14 @@ import React, { useState } from 'react';
 const StoneForm = ({ onSubmit, onCancel }) => {
 
     const [stone, setStone] = useState({
-        type: 'diamond-cz',
+        type: 'cz',
+        color: 'white',
+        customType: '',
         shape: 'round',
-        size: '6',
+        size: '',
         quantity: 1,
         cost: 0,
-        notes: '',
+        // notes: '',
       });
       const handleSubmit = (e) => {
         e.preventDefault();
@@ -35,13 +37,38 @@ const StoneForm = ({ onSubmit, onCancel }) => {
                 onChange={(e) => setStone({ ...stone, type: e.target.value  })}
                 className="mt-1 block w-full input rounded-md border-gray-300 shadow-sm focus:ring-chabot-gold focus:border-chabot-gold"
               >
-                <option value="diamond-cz">Diamond (CZ)</option>
-                <option value="ruby-cz">Ruby (CZ)</option>
-                <option value="sapphire-cz">Sapphire (CZ)</option>
-                <option value="emerald-cz">Emerald (CZ)</option>
+                <option value="cz">CZ</option>
+                <option value="other">Other</option>
               </select>
+              {stone.type === 'other' && (
+                  <input
+                    type="text"
+                    value={stone.customType || ''}
+                    onChange={(e) => setStone({ ...stone, customType: e.target.value })}
+                    placeholder="Enter stone type"
+                    className="mt-2 block w-full input rounded-md border-gray-300 shadow-sm focus:ring-chabot-gold focus:border-chabot-gold"
+                  />
+                )}
             </div>
     
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Color</label>
+              <select
+                value={stone.color}
+                onChange={(e) => setStone({ ...stone, color: e.target.value  })}
+                className="mt-1 block w-full input rounded-md border-gray-300 shadow-sm focus:ring-chabot-gold focus:border-chabot-gold"
+              >
+                <option value="white">White</option>
+                <option value="red">Black</option>
+                <option value="orange">Orange</option>
+                <option value="green">Green</option>
+                <option value="blue">Blue</option>    
+                <option value="pink">Pink</option>
+                <option value="yellow">Yellow</option>
+                <option value="purple">Purple</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Size (mm)</label>
               <input

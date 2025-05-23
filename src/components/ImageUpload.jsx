@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Upload } from 'lucide-react';
 import { useSupabase } from './SupaBaseProvider';
 
-const ImageUpload = ({ images, onChange, type = "image" }) => {
+const ImageUpload = ({ images, onChange, type = "image",forDisplay}) => {
   const {supabase} = useSupabase();
 
   const [imageToShow, setImageToShow] = useState(images[0] || null);
@@ -78,7 +78,9 @@ const ImageUpload = ({ images, onChange, type = "image" }) => {
       {/* Thumbnails for preview */}
       <div className="flex flex-wrap gap-2 pt-4 pr-4">
         {Array.isArray(images) &&
-          images.map((image, index) => (
+          images.map((image, index) => 
+          (
+            
             <div
               key={index}
               className="relative"
@@ -89,19 +91,20 @@ const ImageUpload = ({ images, onChange, type = "image" }) => {
                 alt={`Upload Preview ${index}`}
                 className="w-24 h-24 object-contain rounded-md border-2 border-gray-300 cursor-pointer"
               />
+              {!forDisplay ?
               <button
                 type="button"
                 onClick={() => removeImage(index)}
                 className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
               >
                 &times;
-              </button>
+              </button>:''}
             </div>
           ))}
       </div>
 
       {/* Drag and drop area */}
-      <div
+     {!forDisplay ? <div
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         className="border-2 border-dashed border-gray-300 p-4 rounded-md"
@@ -129,7 +132,7 @@ const ImageUpload = ({ images, onChange, type = "image" }) => {
             We recommend using high quality .jpg files less than 20 MB or .mp4 files less than 200 MB.
           </p>
         </label>
-      </div>
+      </div>:''}
     </div>
   );
 };

@@ -14,11 +14,11 @@ const StonePropertiesForm = ({ stones, onChange }) => {
         onChange(stones);
     }
     const handleAddStone = (newStone) => {
-        const stone = {
-            id: stones.length + 1,
-            ...newStone,
-        };
-        stones = [...stones, stone];
+        // const stone = {
+        //     id: stones.length + 1,
+        //     ...newStone,
+        // };
+        stones = [...stones, newStone];
 
         setPrice((price) => price+newStone.cost)
         onChange(stones);

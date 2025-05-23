@@ -19,13 +19,16 @@
     "@supabase/auth-ui-react": "^0.4.7",
     "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/supabase-js": "^2.47.16",
+    "html2pdf.js": "^0.10.3",
     "lucide-react": "^0.473.0",
+    "papaparse": "^5.5.3",
     "react": "^18.3.1",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.1.2",
     "uuid": "^11.1.0",
+    "xlsx": "^0.18.5",
     "zustand": "^5.0.4"
   },
   "devDependencies": {

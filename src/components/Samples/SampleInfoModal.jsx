@@ -21,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { useVendorStore } from "../../store/VendorStore";
 const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
   const navigate = useNavigate();
-  const {getVendorById,vendors}= useVendorStore()
+  const { getVendorById, vendors } = useVendorStore();
 
   console.log(sample, "sample from design info modal");
   const { supabase } = useSupabase();
@@ -51,7 +51,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
 
   useEffect(() => {
     if (!sample) return; // Ensure sample is defined
-    console.log(sample.images, "sample images from useeffect");
+    console.log(sample, "sample images from useeffect");
     setFormDataOriginal({
       ...passedFormData,
       cad: passedFormData.cad ? passedFormData.cad : [],
@@ -71,28 +71,28 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
       ...passedStartingInfo,
       images: passedStartingInfo.images ? passedStartingInfo.images : [],
     });
-  }, [ isOpen]);
+  }, [isOpen]);
 
   useEffect(() => {
     const fetchQuoteNumber = async () => {
       const { data, error } = await supabase
-      .from("lineItems")
-      .select(`
+        .from("lineItems")
+        .select(
+          `
         quote:quoteNumber(id, quoteNumber,updated_at)
-        `)
+        `
+        )
         .eq("productId", sample.formData.id);
-        
-        if (error) {
-          console.log(error);
-        }
-        setRelatedQuotes(data);
-      };
-      
-      fetchQuoteNumber();
-      setLossPercent(vendors[0].pricingsetting.lossPercentage);
-      
-  }, [isOpen]);
 
+      if (error) {
+        console.log(error);
+      }
+      setRelatedQuotes(data);
+    };
+
+    fetchQuoteNumber();
+    setLossPercent(vendors[0].pricingsetting.lossPercentage);
+  }, [isOpen]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -114,7 +114,10 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
         [e.target.name]: parseFloat(value.slice(0, value.indexOf(".") + 3)),
       });
     } else {
-      setStarting_info({ ...starting_info, [e.target.name]: parseFloat(value) });
+      setStarting_info({
+        ...starting_info,
+        [e.target.name]: parseFloat(value),
+      });
     }
   };
 
@@ -122,7 +125,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
     return originalImages.filter((image) => !currentImages.includes(image));
   };
   const getObjectDifferences = (formData, originalData) => {
-    const changes = {updated_at: new Date().toISOString()}; // Initialize changes with updated_at
+    const changes = { updated_at: new Date().toISOString() }; // Initialize changes with updated_at
 
     Object.keys(formData).forEach((key) => {
       if (JSON.stringify(formData[key]) !== JSON.stringify(originalData[key])) {
@@ -136,6 +139,31 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
   const areObjectsEqual = (obj1, obj2) => {
     return JSON.stringify(obj1) === JSON.stringify(obj2);
   };
+  // Utility to compare stones by id
+  const getStoneDifferences = (current, original) => {
+    const updated = [];
+    const added = [];
+    const deleted = [];
+
+    const originalMap = new Map(original.map((stone) => [stone.id, stone]));
+    const currentMap = new Map(current.map((stone) => [stone.id, stone]));
+
+    for (const stone of current) {
+      if (!stone.id) {
+        added.push({...stone,starting_info_id: starting_info.id}); // new stone
+      } else if (!areObjectsEqual(stone, originalMap.get(stone.id))) {
+        updated.push({...stone,starting_info_id: starting_info.id}); // changed stone
+      }
+    }
+
+    for (const stone of original) {
+      if (!currentMap.has(stone.id)) {
+        deleted.push(stone.id); // removed stone
+      }
+    }
+
+    return { added, updated, deleted };
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -148,8 +176,9 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
       return;
     }
     console.log("Changes detected");
+    const { stones, ...rest } = starting_info;
     const starting_info_changes = getObjectDifferences(
-      starting_info,
+      rest,
       starting_info_original
     );
     const sampleUpdates = getObjectDifferences(formData, formDataOriginal);
@@ -164,15 +193,55 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
 
       if (error) {
         console.error("Error updating sample:", error);
-      } 
+      }
     }
-    let images
+    const { added, updated, deleted } = getStoneDifferences(
+      stones,
+      starting_info_original.stones
+    );
+    console.log(added,stones,'added stones in smapleInfoModal')
+    // INSERT new stones
+    if (added.length > 0) {
+      const { error: insertError } = await supabase.from("stones").insert(
+        added.map((stone) => ({
+          ...stone,
+          starting_info_id: starting_info.id,
+        }))
+      );
+      if (insertError) {
+        console.error("Error inserting stones:", insertError);
+      }
+    }
+
+    // UPDATE modified stones
+    for (const stone of updated) {
+      const { error: updateError } = await supabase
+        .from("stones")
+        .update(stone)
+        .eq("id", stone.id);
+      if (updateError) {
+        console.error(`Error updating stone ID ${stone.id}:`, updateError);
+      }
+    }
+
+    // DELETE removed stones
+    if (deleted.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("stones")
+        .delete()
+        .in("id", deleted);
+      if (deleteError) {
+        console.error("Error deleting stones:", deleteError);
+      }
+    }
+
+    let images;
     if (Object.keys(starting_info_changes).length !== 0) {
       console.log(" changes in starting_info");
       const { data, error } = await supabase
         .from("starting_info")
         .update(starting_info_changes)
-        .eq("id", passedStartingInfo.id)
+        .eq("id", passedStartingInfo.id);
 
       if (error) {
         console.error(
@@ -181,27 +250,26 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
         );
       }
     }
-    
+
     const removedImages = getRemovedImages(
       starting_info_original.images,
       starting_info.images
     );
-    
-      
-    console.log("sample updated:",formData);
-    
-    updateSample({...formData, starting_info:starting_info });
+
+    console.log("sample updated:", formData);
+
+    updateSample({ ...formData, starting_info: starting_info });
     setFormData({
-      cad:[],
+      cad: [],
       category: "",
       collection: "",
       name: "",
       styleNumber: "",
-      salesWeight:0,
-      status: 'working_on_it',
-    })
-  setStarting_info({
-    description: "",
+      salesWeight: 0,
+      status: "Working_on_it:yellow",
+    });
+    setStarting_info({
+      description: "",
       images: [],
       color: "Yellow",
       height: 0,
@@ -215,9 +283,9 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
       vendor: null,
       plating: 0,
       karat: "10K",
-      status: "working_on_it",
-  })
-  
+      status: "Working_on_it:yellow",
+    });
+
     onClose();
   };
 
@@ -271,7 +339,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                           </label>
                           <ImageUpload
                             // images={formData.images || []}
-                            images={formData.images || []}
+                            images={starting_info.images || []}
                             onChange={async (images) => {
                               setStarting_info({
                                 ...starting_info,
@@ -300,51 +368,79 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                                   ...formData,
                                   status: e.target.value,
                                 })
+
                               }
                               value={formData.status}
                               className={`${getStatusColor(
                                 formData.status
                               )} mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
                             >
-                              <option value="working_on_it:yellow">
+                              <option value="Working_on_it:yellow">
                                 Working on it
                               </option>
-                              <option value="quote_created:blue">
+                              <option value="Quote_created:blue">
                                 Quote Created
                               </option>
-                              <option value="running_line:green">
+                              <option value="Running_line:green">
                                 Running Line
                               </option>
-                              <option value="dead:red">Dead</option>
+                              <option value="Dead:red">Dead</option>
                             </select>
                           </div>
+                          
                           <div className="flex flex-col w-full overflow-hidden">
-                            <span className="text-black text-sm">Related Quotes</span>
+                            <span className="text-black text-sm">
+                              Related Quotes
+                            </span>
                             <div className="overflow-y-auto max-h-[200px] border border-gray-300 rounded-md p-2">
-                              {relatedQuotes.length > 0 ? (
-                                relatedQuotes.map((quote, index) => {
-                                  return (
-                                    <div key={index} className="flex flex-col items-center">
-                                      <div className="flex justify-evenly items-center gap-2">
-                                        <span>#{quote.quote.id}</span>
-                                        <span>Last Updated: {formatShortDate(quote.quote.updated_at)}</span>
-                                        <button
-                                          onClick={() => navigate(`/newQuote?quote=${quote.quote.quoteNumber}`)}
-                                          className="bg-chabot-gold text-white px-1 rounded-lg flex items-center hover:bg-gray-300 hover:rounded transition-colors"
-                                        >
-                                          Go to quote
-                                        </button>
+                              {relatedQuotes.length > 0
+                                ? relatedQuotes.map((quote, index) => {
+                                    return (
+                                      <div
+                                        key={index}
+                                        className="flex flex-col items-center"
+                                      >
+                                        <div className="flex justify-evenly items-center gap-2">
+                                          <span>#{quote.quote.id}</span>
+                                          <span>
+                                            Last Updated:{" "}
+                                            {formatShortDate(
+                                              quote.quote.updated_at
+                                            )}
+                                          </span>
+                                          <button
+                                            onClick={() =>
+                                              navigate(
+                                                `/newQuote?quote=${quote.quote.quoteNumber}`
+                                              )
+                                            }
+                                            className="bg-chabot-gold text-white px-1 rounded-lg flex items-center hover:bg-gray-300 hover:rounded transition-colors"
+                                          >
+                                            Go to quote
+                                          </button>
+                                        </div>
+                                        <hr className="border-t border-gray-500 w-full my-1" />
                                       </div>
-                                      <hr className="border-t border-gray-500 w-full my-1" />
-                                    </div>
-                                  );
-                                })
-                              ) : (
-                                "No quotes found for this sample"
-                              )}
+                                    );
+                                  })
+                                : "No quotes found for this sample"}
                             </div>
                           </div>
                         </div>
+                        <div className="w-full">
+                                                  <TotalCost
+                                                    metalCost={metalCost}
+                                                    miscCost={starting_info.miscCost}
+                                                    laborCost={starting_info.laborCost}
+                                                    stones={starting_info.stones}
+                                                    updateTotalCost={(cost) =>
+                                                      setStarting_info({
+                                                        ...starting_info,
+                                                        totalCost: cost,
+                                                      })
+                                                    }
+                                                  />
+                                                </div>
                       </div>
                     </div>
 
@@ -414,9 +510,10 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                                   ...starting_info,
                                   vendor: e.target.value,
                                 });
-                                setLossPercent(getVendorById(Number(e.target.value)).pricingsetting.lossPercentage)
-
-                                
+                                setLossPercent(
+                                  getVendorById(Number(e.target.value))
+                                    .pricingsetting.lossPercentage
+                                );
                               }}
                               value={starting_info.vendor}
                               className={` mt-1 border input  p-2 appearance-none `}
@@ -457,76 +554,86 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
 
                         <div className="flex flex-col">
                           <label htmlFor=""> Metal Type</label>
-                          <select
-                            name="metalType"
-                            id=""
-                            onChange={(e) =>
-                              setStarting_info({
-                                ...starting_info,
-                                metalType: e.target.value,
-                              })
-                            }
-                            value={starting_info.metalType}
-                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          >
-                            {metalTypes.map((metalType, index) => {
-                              return (
-                                <option key={index} value={metalType.type}>
-                                  {metalType.type}
-                                </option>
-                              );
-                            })}
-                          </select>
+                          <div className="relative w-full">
+                            <select
+                              name="metalType"
+                              id=""
+                              onChange={(e) =>
+                                setStarting_info({
+                                  ...starting_info,
+                                  metalType: e.target.value,
+                                })
+                              }
+                              value={starting_info.metalType}
+                              className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+                            >
+                              {metalTypes.map((metalType, index) => {
+                                return (
+                                  <option key={index} value={metalType.type}>
+                                    {metalType.type}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                          </div>
                         </div>
                         <div className="flex flex-col">
                           <label htmlFor=""> Karat</label>
-                          <select
-                            name="karat"
-                            id=""
-                            onChange={(e) =>
-                              setStarting_info({
-                                ...starting_info,
-                                karat: e.target.value,
-                              })
-                            }
-                            value={starting_info.karat}
-                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          >
-                            {getMetalType(starting_info.metalType).karat.map(
-                              (karat, index) => {
-                                return (
-                                  <option key={index} value={karat}>
-                                    {karat}
-                                  </option>
-                                );
+
+                          <div className="relative w-full">
+                            <select
+                              name="karat"
+                              id=""
+                              onChange={(e) =>
+                                setStarting_info({
+                                  ...starting_info,
+                                  karat: e.target.value,
+                                })
                               }
-                            )}
-                          </select>
+                              value={starting_info.karat}
+                              className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+                            >
+                              {getMetalType(starting_info.metalType).karat.map(
+                                (karat, index) => {
+                                  return (
+                                    <option key={index} value={karat}>
+                                      {karat}
+                                    </option>
+                                  );
+                                }
+                              )}
+                            </select>
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                          </div>
                         </div>
                         <div className="flex flex-col">
                           <label htmlFor=""> Color</label>
-                          <select
-                            name="color"
-                            id=""
-                            onChange={(e) =>
-                              setStarting_info({
-                                ...starting_info,
-                                color: e.target.value,
-                              })
-                            }
-                            value={formData.color}
-                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          >
-                            {getMetalType(starting_info.metalType).color.map(
-                              (color, index) => {
-                                return (
-                                  <option key={index} value={color}>
-                                    {color}
-                                  </option>
-                                );
+                          <div className="relative w-full">
+                            <select
+                              name="color"
+                              id=""
+                              onChange={(e) =>
+                                setStarting_info({
+                                  ...starting_info,
+                                  color: e.target.value,
+                                })
                               }
-                            )}
-                          </select>
+                              value={formData.color}
+                              className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+                            >
+                              {getMetalType(starting_info.metalType).color.map(
+                                (color, index) => {
+                                  return (
+                                    <option key={index} value={color}>
+                                      {color}
+                                    </option>
+                                  );
+                                }
+                              )}
+                            </select>
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                          </div>
                         </div>
                       </div>
                       {/*this is weight sectiion  */}
@@ -633,7 +740,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                         <StonePropertiesForm
                           stones={starting_info.stones || []}
                           onChange={(stones) => {
-                            setStarting_info({ ...starting_info, stones });
+                            setStarting_info({ ...starting_info, stones:stones });
                           }}
                         />
                       </div>
@@ -682,7 +789,83 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                           </div>
                         </div>
                       </div>
-
+                       <div className="flex flex-col ">
+                                              <label htmlFor="back_type">Back Type</label>
+                                              <div className="flex flex-row gap-2">
+                                                <div className="relative w-full">
+                                                  <select
+                                                    name="back_type"
+                                                    id=""
+                                                    className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                                                    value={formData.back_type}
+                                                    onChange={(e) =>
+                                                      setFormData({
+                                                        ...formData,
+                                                        back_type: e.target.value,
+                                                      })
+                                                    }
+                                                  >
+                                                    <option value="none">None</option>
+                                                    <option value="silicone">Silicone</option>f
+                                                    <option value="screw">Screw</option>
+                                                    <option value="flat">Flat</option>
+                                                    <option value="other">Other</option>
+                                                  </select>
+                                                  <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                                                  {formData.back_type === "other" && (
+                                                    <input
+                                                      type="text"
+                                                      className="mt-1  input pr-7 pl-3 py-2"
+                                                      placeholder="Enter custom back type"
+                                                      value={formData.custom_back_type}
+                                                      onChange={(e) =>
+                                                        setFormData({
+                                                          ...formData,
+                                                          custom_back_type: e.target.value,
+                                                        })
+                                                      }
+                                                    />
+                                                  )}
+                                                </div>
+                                                <div className=" w-full">
+                                                  <label htmlFor="back_type_quantity">Back Type Quantity</label>  
+                                                  <input
+                                                    type="number"
+                                                    className="mt-1  input pr-7 pl-3 py-2"
+                                                    value={formData.back_type_quantity}
+                                                    onChange={(e) =>
+                                                      setFormData({
+                                                        ...formData,
+                                                        back_type_quantity: e.target.value,
+                                                      })
+                                                    }
+                                                  />
+                                                </div>
+                                                  
+                                              </div>
+                                              
+                                            </div>
+                      <div className="flex flex-col ">
+                        <label htmlFor="selling_pair">Selling type</label>
+                        <div className="relative w-full">
+                          <select
+                            name="selling_pair"
+                            id=""
+                            className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                            value={formData.selling_pair}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                selling_pair: e.target.value,
+                              })
+                            }
+                          >
+                            <option value="pair">Pair</option>
+                            <option value="single">Single</option>
+                          </select>
+                          <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                        </div>
+                      </div>
                       <div>
                         <label htmlFor="dims">Dimensions</label>
                         <div className="flex flex-row gap-2 ">
@@ -758,7 +941,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                           className="mt-1 input w-full "
                         />
                       </div>
-                      <TotalCost
+                      {/* <TotalCost
                         metalCost={metalCost}
                         miscCost={starting_info.miscCost}
                         laborCost={starting_info.laborCost}
@@ -769,7 +952,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                             totalCost: cost,
                           })
                         }
-                      />
+                      /> */}
                     </div>
                   </div>
 

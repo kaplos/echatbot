@@ -69,7 +69,7 @@ const EditableText = ({ elementId, content, currentSlide, currentSlideId, setSli
 };
 
 // Create a wrapper component that provides the DndProvider
-function SlideEditorWrapper({ onSave, initialData, setIdeaForm, readOnly=false }) {
+function SlideEditorWrapper({ onSave, initialData, setIdeaForm, readOnly=false,onExport }) {
   const [slides, setSlides] = useState([]);
 
   useEffect(() =>{
@@ -91,7 +91,7 @@ function SlideEditorWrapper({ onSave, initialData, setIdeaForm, readOnly=false }
   
   return (
     <DndProvider backend={HTML5Backend}>
-      <SlideEditor onSave={onSave} initialData={initialData} slides={slides} setSlides={setSlides} readOnly={readOnly} />
+      <SlideEditor onSave={onSave} initialData={initialData} slides={slides} setSlides={setSlides} readOnly={readOnly} onExport={onExport} />
     </DndProvider>
   );
 }
@@ -178,7 +178,7 @@ function DraggableElement(props) {
 }
 
 // Main SlideEditor component
-function SlideEditor({ onSave, slides, setSlides,readOnly }) {
+function SlideEditor({ onSave, slides, setSlides,readOnly,onExport }) {
   // console.log(readOnly)
   
   // const [slides, setSlides] = useState([]);
@@ -501,6 +501,7 @@ function SlideEditor({ onSave, slides, setSlides,readOnly }) {
     setShowConfirmationModal(false);
     setSlideToRemove(null);
   };
+  
   return (
     <div className="slideshow-editor p-4 flex flex-col h-screen max-h-full">
       {/* Controls */}

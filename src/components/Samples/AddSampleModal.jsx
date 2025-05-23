@@ -4,7 +4,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { metalTypes, getMetalType } from "../../utils/MetalTypeUtil";
 import CalculatePrice from "./CalculatePrice";
 import TotalCost from "./TotalCost";
-import { getStatusColor } from '../../utils/designUtils';
+import { getStatusColor } from "../../utils/designUtils";
 import CustomSelect from "../CustomSelect";
 import ImageUpload from "../ImageUpload";
 import { useSupabase } from "../SupaBaseProvider";
@@ -13,7 +13,7 @@ import { useVendorStore } from "../../store/VendorStore";
 const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   const { supabase } = useSupabase();
   const vendorLossRef = useRef();
-  const {getVendorById,vendors}= useVendorStore()
+  const { getVendorById, vendors } = useVendorStore();
   const [lossPercent, setLossPercent] = useState(0);
   const [metalCost, setMetalCost] = useState(0);
 
@@ -37,17 +37,22 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   //         notes: '',
   //         images: [],
   //         cad: [],
-  //         status: 'working_on_it',
+  //         status: 'Working_on_it:yellow',
   //     })
+
   const [formData, setFormData] = useState({
     cad: [],
     category: "",
     collection: "",
+    selling_pair: "pair",
+    back_type: "none",
+    custom_back_type: "",
+    back_type_quantity: 0,
     // cost: 0,
     name: "",
     styleNumber: "",
     salesWeight: 0,
-    status: "working_on_it",
+    status: "Working_on_it:yellow",
   });
   const [starting_info, setStarting_info] = useState({
     description: "",
@@ -62,38 +67,51 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     platingCharge: 0,
     stones: [],
     vendor: null,
-    plating: 0,
+    plating: 1,
     karat: "10K",
-    status: "working_on_it",
+    status: "Working_on_it:yellow",
   });
 
   useEffect(() => {
-      setLossPercent(vendors[0].pricingsetting.lossPercentage);
-      // vendorLossRef.current.textContent = data[0].pricingsetting.lossPercentage
-
+    setLossPercent(vendors[0].pricingsetting.lossPercentage);
+    // vendorLossRef.current.textContent = data[0].pricingsetting.lossPercentage
   }, [isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log(formData);
+    const { stones, ...startingInfo } = starting_info;
+
     const { data: starting_infoData, error: starting_infoError } =
-      await supabase.from("starting_info").insert([starting_info]).select("id");
+      await supabase
+        .from("starting_info")
+        .insert([startingInfo])
+        .select("id,images");
 
     if (starting_infoError) {
       console.log(starting_infoError);
+    }
+    const { error: stoneError } = await supabase.from("stones").insert(
+      stones.map((stone) => ({
+        ...stone,
+        starting_info_id: starting_infoData[0].id,
+      }))
+    );
+
+    if (stoneError) {
+      console.log(stoneError);
     }
 
     const { data, error } = await supabase
       .from("samples")
       .insert([{ ...formData, starting_info_id: starting_infoData[0].id }])
-      .select();
+      .select("*, starting_info(*)");
 
     if (error) {
       console.log(error);
     }
     console.log(data, "data from insert samples ");
-
-    onSave({ ...data[0], ...starting_infoData[0] });
+    onSave(data[0]);
     setFormData({
       cad: [],
       category: "",
@@ -102,7 +120,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
       name: "",
       styleNumber: "",
       salesWeight: 0,
-      status: "working_on_it",
+      status: "Working_on_it:yellow",
     });
     setStarting_info({
       description: "",
@@ -119,7 +137,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
       vendor: null,
       plating: 0,
       karat: "10K",
-      status: "working_on_it",
+      status: "Working_on_it:yellow",
     });
   };
   const handleCustomSelect = (option) => {
@@ -215,37 +233,51 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                           />
                         </div>
                         {/* this is the status function */}
-                         <div className="mt-6 mb-2 flex justify-center w-full ">
-                                                  <div className="flex flex-col ">
-                                                    <label htmlFor="status" className="self-start">
-                                                      Status:
-                                                    </label>
-                                                    <select
-                                                      name="status"
-                                                      onChange={(e) =>
-                                                        setFormData({
-                                                          ...formData,
-                                                          status: e.target.value,
-                                                        })
-                                                      }
-                                                      value={formData.status}
-                                                      className={`${getStatusColor(
-                                                        formData.status
-                                                      )} mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                                                    >
-                                                      <option value="working_on_it:yellow">
-                                                        Working on it
-                                                      </option>
-                                                      <option value="quote_created:blue">
-                                                        Quote Created
-                                                      </option>
-                                                      <option value="running_line:green">
-                                                        Running Line
-                                                      </option>
-                                                      <option value="dead:red">Dead</option>
-                                                    </select>
-                                                  </div>
-                                                </div>
+                        <div className="mt-6 mb-2 flex justify-center w-full ">
+                          <div className="flex flex-col ">
+                            <label htmlFor="status" className="self-start">
+                              Status:
+                            </label>
+                            <select
+                              name="status"
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  status: e.target.value,
+                                })
+                              }
+                              value={formData.status}
+                              className={`${getStatusColor(
+                                formData.status
+                              )} mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                            >
+                              <option value="Working_on_it:yellow">
+                                Working on it
+                              </option>
+                              <option value="Quote_created:blue">
+                                Quote Created
+                              </option>
+                              <option value="Running_line:green">
+                                Running Line
+                              </option>
+                              <option value="Dead:red">Dead</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="w-full">
+                          <TotalCost
+                            metalCost={metalCost}
+                            miscCost={starting_info.miscCost}
+                            laborCost={starting_info.laborCost}
+                            stones={starting_info.stones}
+                            updateTotalCost={(cost) =>
+                              setStarting_info({
+                                ...starting_info,
+                                totalCost: cost,
+                              })
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -315,9 +347,10 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                                   ...starting_info,
                                   vendor: e.target.value,
                                 });
-                                setLossPercent(getVendorById(Number(e.target.value)).pricingsetting.lossPercentage)
-
-
+                                setLossPercent(
+                                  getVendorById(Number(e.target.value))
+                                    .pricingsetting.lossPercentage
+                                );
                               }}
                               value={starting_info.vendor}
                               className={` mt-1 border input  p-2 appearance-none `}
@@ -358,76 +391,85 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
 
                         <div className="flex flex-col">
                           <label htmlFor=""> Metal Type</label>
-                          <select
-                            name="metalType"
-                            id=""
-                            onChange={(e) =>
-                              setStarting_info({
-                                ...starting_info,
-                                metalType: e.target.value,
-                              })
-                            }
-                            value={starting_info.metalType}
-                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          >
-                            {metalTypes.map((metalType, index) => {
-                              return (
-                                <option key={index} value={metalType.type}>
-                                  {metalType.type}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-                        <div className="flex flex-col">
-                          <label htmlFor=""> Karat</label>
-                          <select
-                            name="karat"
-                            id=""
-                            onChange={(e) =>
-                              setStarting_info({
-                                ...starting_info,
-                                karat: e.target.value,
-                              })
-                            }
-                            value={formData.karat}
-                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          >
-                            {getMetalType(starting_info.metalType).karat.map(
-                              (karat, index) => {
+                          <div className="relative w-full">
+                            <select
+                              name="metalType"
+                              id=""
+                              onChange={(e) =>
+                                setStarting_info({
+                                  ...starting_info,
+                                  metalType: e.target.value,
+                                })
+                              }
+                              value={starting_info.metalType}
+                              className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+                            >
+                              {metalTypes.map((metalType, index) => {
                                 return (
-                                  <option key={index} value={karat}>
-                                    {karat}
+                                  <option key={index} value={metalType.type}>
+                                    {metalType.type}
                                   </option>
                                 );
+                              })}
+                            </select>
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                          </div>
+                        </div>
+                        <div className="flex flex-col w-full">
+                          <label htmlFor=""> Karat</label>
+                          <div className="relative w-full">
+                            <select
+                              name="karat"
+                              id=""
+                              onChange={(e) =>
+                                setStarting_info({
+                                  ...starting_info,
+                                  karat: e.target.value,
+                                })
                               }
-                            )}
-                          </select>
+                              value={starting_info.karat}
+                              className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+                            >
+                              {getMetalType(starting_info.metalType).karat.map(
+                                (karat, index) => {
+                                  return (
+                                    <option key={index} value={karat}>
+                                      {karat}
+                                    </option>
+                                  );
+                                }
+                              )}
+                            </select>
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                          </div>
                         </div>
                         <div className="flex flex-col">
                           <label htmlFor=""> Color</label>
-                          <select
-                            name="color"
-                            id=""
-                            onChange={(e) =>
-                              setStarting_info({
-                                ...starting_info,
-                                color: e.target.value,
-                              })
-                            }
-                            value={formData.color}
-                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          >
-                            {getMetalType(starting_info.metalType).color.map(
-                              (color, index) => {
-                                return (
-                                  <option key={index} value={color}>
-                                    {color}
-                                  </option>
-                                );
+                          <div className="relative w-full">
+                            <select
+                              name="color"
+                              id=""
+                              onChange={(e) =>
+                                setStarting_info({
+                                  ...starting_info,
+                                  color: e.target.value,
+                                })
                               }
-                            )}
-                          </select>
+                              value={formData.color}
+                              className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+                            >
+                              {getMetalType(starting_info.metalType).color.map(
+                                (color, index) => {
+                                  return (
+                                    <option key={index} value={color}>
+                                      {color}
+                                    </option>
+                                  );
+                                }
+                              )}
+                            </select>
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                          </div>
                         </div>
                       </div>
                       {/*this is weight sectiion  */}
@@ -584,6 +626,83 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                         </div>
                       </div>
 
+                      <div className="flex flex-col ">
+                        <label htmlFor="back_type">Back Type</label>
+                        <div className="flex flex-row gap-2">
+                          <div className="relative w-full">
+                            <select
+                              name="back_type"
+                              id=""
+                              className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                              value={formData.back_type}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  back_type: e.target.value,
+                                })
+                              }
+                            >
+                              <option value="none">None</option>
+                              <option value="silicone">Silicone</option>f
+                              <option value="screw">Screw</option>
+                              <option value="flat">Flat</option>
+                              <option value="other">Other</option>
+                            </select>
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                            {formData.back_type === "other" && (
+                              <input
+                                type="text"
+                                className="mt-1  input pr-7 pl-3 py-2"
+                                placeholder="Enter custom back type"
+                                value={formData.custom_back_type}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    custom_back_type: e.target.value,
+                                  })
+                                }
+                              />
+                            )}
+                          </div>
+                          <div className=" w-full">
+                            <label htmlFor="back_type_quantity">Back Type Quantity</label>  
+                            <input
+                              type="number"
+                              className="mt-1  input pr-7 pl-3 py-2"
+                              value={formData.back_type_quantity}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  back_type_quantity: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                            
+                        </div>
+                        
+                      </div>
+                      <div className="flex flex-col ">
+                        <label htmlFor="selling_pair">Selling type</label>
+                        <div className="relative w-full">
+                          <select
+                            name="selling_pair"
+                            id=""
+                            className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                            value={formData.selling_pair}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                selling_pair: e.target.value,
+                              })
+                            }
+                          >
+                            <option value="pair">Pair</option>
+                            <option value="single">Single</option>
+                          </select>
+                          <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                        </div>
+                      </div>
                       <div>
                         <label htmlFor="dims">Dimensions</label>
                         <div className="flex flex-row gap-2 ">
@@ -659,7 +778,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                           className="mt-1 input w-full "
                         />
                       </div>
-                      <TotalCost
+                      {/* <TotalCost
                         metalCost={metalCost}
                         miscCost={starting_info.miscCost}
                         laborCost={starting_info.laborCost}
@@ -670,7 +789,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                             totalCost: cost,
                           })
                         }
-                      />
+                      /> */}
                     </div>
                   </div>
 

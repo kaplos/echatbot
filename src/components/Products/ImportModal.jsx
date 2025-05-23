@@ -2,9 +2,18 @@ import React, { useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { Upload, X, FileQuestion } from 'lucide-react';
-import { parseCSV } from '../../utils/importUtils';
+import { parseCSV,handleImportFile } from '../../utils/importUtils';
+import { useSupabase } from '../SupaBaseProvider';
+import { useMetalPriceStore } from '../../store/MetalPrices';
+import { useVendorStore } from '../../store/VendorStore';
+import { getTotalCost } from '../Samples/TotalCost';
+import { getMetalCost } from '../Samples/CalculatePrice';
+// import headers from '../../utils/exportUtils';
 
-const ImportModal = ({ isOpen, onClose }) => {
+const ImportModal = ({ isOpen, onClose,type }) => {
+const {supabase} = useSupabase();
+const {getVendorByName,getVendorById} = useVendorStore();
+  const {prices} = useMetalPriceStore();
 const [isDragging, setIsDragging] = useState(false);
 const [error, setError] = useState(null);
 
@@ -22,6 +31,7 @@ const handleDrop = async (e) => {
             console.log('Product to be added (in import modal):', product);
         }
         onClose();
+        setError('')
       } catch (err) {
         setError('Error parsing CSV file. Please check the format.');
         console.error('Import error:', err);
@@ -31,16 +41,148 @@ const handleDrop = async (e) => {
     }
   };
   const handleFileChange = async (e) => {
+    setError('')
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const products = await parseCSV(file);
-        for (const product of products) {
-            console.log('Product to be added (in import modal):', product);
+        const products = await handleImportFile(file,type);
+        const formatted = products.map( (row, index) => {
+          const vendor = Number.isInteger(row['Vendor'])? getVendorById(row['Vendor']):getVendorByName(row['Vendor'])
+        console.log(getVendorByName(row['Vendor']))
+          const stones = [];
+            for (let i = 1; i <= 10; i++) {
+              if (row[`Stone ${i} Type`] || row[`Stone ${i} Color`] || row[`Stone ${i} Size`]) {
+                stones.push({
+                  id: row[`Stone ${i} ID`],
+                  type: row[`Stone ${i} Type`] || '',
+                  color: row[`Stone ${i} Color`] || '',
+                  size: row[`Stone ${i} Size`] || '',
+                  shape: row[`Stone ${i} Shape`] || '',
+                  cost: parseFloat(row[`Stone ${i} Cost`] || 0),
+                  customType: row[`Stone ${i} Custom Type`] || '',
+                  quantity: parseInt(row[`Stone ${i} Quantity`] || 0),
+                  notes: row[`Stone ${i} Notes`] || '',
+                });
+              }
+            }
+            console.log(stones)
+            const starting_info = {
+              description: row['Quote Description'] || '',
+              images: (row['Sample Images'] || '').split('|') || [row['Sample Images']],
+              color: row['Color'] || 'Yellow',
+              height: parseFloat(row['Height'] || 0),
+              length: parseFloat(row['Length'] || 0),
+              width: parseFloat(row['Width'] || 0),
+              weight: parseFloat(row['Weight'] || 0),
+              manufacturerCode: row['Manufacturer Code'] || '',
+              metalType: row['Metal Type'] || 'Gold',
+              platingCharge: parseFloat(row['Plating Charge'] || 0),
+              stones:stones || [],
+              vendor: vendor.id|| null,
+              plating: parseFloat(row['Plating']) || 0,
+              karat: row['Karat'] || '10K',
+              designId: row['ID (Design)'] || null,
+              miscCost: parseFloat(row['Misc Cost'] || 0),
+              laborCost: parseFloat(row['Labor Cost'] || 0),
+              totalCost: parseFloat(row['Total Cost'] ||  getTotalCost(getMetalCost(prices[row['Metal Type'].toLowerCase()].price,row['Weight']||0,row['Karat'],vendor.pricingsetting.lossPercentage),parseFloat(row['Misc Cost'] || 0),parseFloat(row['Labor Cost'] || 0),stones)||0)
+            };
+          if (type === 'designs') {
+            return {
+              id: row["ID (Design)"] || null,
+              title: row['Title'] || '',
+              description: row['Description'] || '',
+              link: row['Link'] || '',
+              collection: row['Collection'] || '',
+              category: row['Category'] || '',
+              images: (row['Design Images'] || '').split('|') ||[row['Design Images']] ,
+              status: row['Status'] || 'Working_on_it:yellow',
+              starting_info:{...starting_info}
+            };
+          }
+      
+          if (type === 'samples') {
+            
+      
+            return {
+              id: row['ID (Sample)'] || null,
+              cad: (row['CAD Files'] || '').split('|'),
+              category: row['Category'] || '',
+              collection: row['Collection'] || '',
+              selling_pair: row['Selling Pair'] || 'pair',
+              back_type: row['Back Type'] || 'none',
+              custom_back_type: row['Custom Back Type'] || '',
+              back_type_quantity: parseInt(row['Back Type Quantity'] || 0),
+              name: row['Name'] || '',
+              styleNumber: row['Style Number'] || '',
+              salesWeight: parseFloat(row['Sales Weight'] || 0),
+              starting_info_id: row['Starting Info ID'] || '',
+              status: row['Sample Status'] || 'Working_on_it:yellow',
+              starting_info:{...starting_info} ,
+              designId:row['Design Id'] || null
+            };
+          }
+      
+        });
+        const uploadedItems = []
+        // console.log(formatted,'products to upload')
+        for (const item of formatted) {
+      
+          try {
+            const {starting_info, ...formData} = item;
+            const {stones, ...restStartingInfo} = starting_info;
+           if(type === 'designs'){
+             const { data: formData_database } = await supabase
+             .from(type)
+             .insert([formData])
+             .select();
+             const { data: starting_info_database } = await supabase
+             .from(type)
+             .insert([restStartingInfo])
+             .select();
+             const { data: stones_database } = await supabase
+             .from('stones')
+             .insert(stones.map(stone => ({ ...stone, starting_info_id: starting_info_database[0].id })))
+             .select();
+             uploadedItems.push({
+              formData: {...formData_database, starting_info:{...starting_info_database, stones: stones_database}},
+             })
+            }
+           if(type === 'samples'){
+            const {data:starting_info_id } = await supabase
+            .from('samples')
+            .select('starting_info_id')
+            .eq('id',formData.id)
+            .single()
+            if(starting_info_id){
+              restStartingInfo.id = starting_info_id.starting_info_id
+            }
+             const { data: starting_info_database } = await supabase
+              .from('starting_info')
+              .upsert([restStartingInfo], { onConflict: ['id'] })
+              .eq('id',restStartingInfo.id)
+              .select();
+             const { data: formData_database } = await supabase
+              .from(type)
+              .upsert([{...formData, starting_info_id: starting_info_database[0].id}], { onConflict: ['id'] })
+              .select();
+             const { data: stones_database } = await supabase
+              .from('stones')
+              .upsert(stones.map(stone => ({ ...stone, starting_info_id: starting_info_database[0].id })), { onConflict: ['id'] })
+              .select();
+             uploadedItems.push({
+               formData: {...formData_database, starting_info:{...starting_info_database, stones: stones_database}},
+              })
+            }
+              
+          } catch (err) {
+            console.error(`Upload failed for item at index :`, err);
+          }
         }
+        
         onClose();
       } catch (err) {
-        setError('Error parsing CSV file. Please check the format.');
+        
+        setError('Error parsing file. Please check the format.');
         console.error('Import error:', err);
       }
     }
@@ -59,6 +201,7 @@ const handleDrop = async (e) => {
     link.click();
     document.body.removeChild(link);
   };
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -88,7 +231,7 @@ const handleDrop = async (e) => {
               <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex justify-between items-center mb-4">
                   <Dialog.Title className="text-lg font-medium text-gray-900">
-                    Import Products
+                    Import {`${type[0].toUpperCase()}${type.slice(1)}`}
                   </Dialog.Title>
                   <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
                     <X className="w-5 h-5" />
@@ -117,7 +260,8 @@ const handleDrop = async (e) => {
                       <input
                         type="file"
                         className="hidden"
-                        accept=".csv"
+                        accept=".csv, .xlsx"
+                        multiple={false}
                         onChange={handleFileChange}
                       />
                     </label>
@@ -128,7 +272,7 @@ const handleDrop = async (e) => {
                   <p className="mt-2 text-sm text-red-600">{error}</p>
                 )}
 
-                <div className="mt-4">
+                {/* <div className="mt-4">
                   <button
                     type="button"
                     onClick={downloadSample}
@@ -137,14 +281,13 @@ const handleDrop = async (e) => {
                     <FileQuestion className="w-4 h-4 mr-2" />
                     Download sample CSV file
                   </button>
-                </div>
+                </div> */}
 
                 <div className="mt-4 text-xs text-gray-500">
-                  <p className="font-medium mb-1">CSV Format Requirements:</p>
+                  <p className="font-medium mb-1">CSV/Excel Format Requirements:</p>
                   <ul className="list-disc pl-4 space-y-1">
-                    <li>File must be in CSV format</li>
-                    <li>First row must contain column headers</li>
-                    <li>Required columns: Item#, ITEMS CODE, STONE DESCRIPTION, GOLD (K)</li>
+                    <li>File must be in CSV or Xlxs format</li>
+                    <li>First row must contain column headers (Do Not Modify)</li>
                     <li>Weights should be in grams</li>
                     <li>Prices should be in USD</li>
                   </ul>

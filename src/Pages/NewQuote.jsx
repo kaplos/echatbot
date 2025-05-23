@@ -36,15 +36,15 @@ export default function NewQuote() {
   const userId = session?.user?.id; // User ID
 
   const { formData, updateFormField, resetForm } = useFormUpdater({
-    agent: '',
     buyer: '',
     tags: '',
-    status: "Created",
+    status: "Created:grey",
     agent: userId,
     gold: parseFloat(prices.gold.price),
     silver: parseFloat(prices.silver.price),
     quoteTotal: 0
   });
+
   const {getVendorById,vendors}= useVendorStore()
 
   const [isLoading,setIsLoading] = useState(false)
@@ -73,26 +73,35 @@ export default function NewQuote() {
                   `)
                   .eq('quoteNumber', quote)
                   .single();
+                    // const productInfo = data.lineItems.map((lineItem)=>{
+                    //   const{ startingInfo, ...rest} = lineItem.product
+                    //   return {
+
+                    //   }
+                    // })
+                    // console.log(data)
                   const processedLineItems = data.lineItems.map((item) => {
                     const { startingInfo, ...productData } = item.product; // Extract startingInfo and product data
                     const { id,...startingInfoData } = startingInfo; // Extract id and other properties from startingInfo
+                    console.log()
                     return {
                         ...productData, // Spread the product data into the top-level object
                         ...startingInfoData, // Spread the startingInfo data into the top-level object
+                        retailPrice: parseFloat(item.retailPrice.toFixed(2)) || 0,
+                        salesPrice: parseFloat(item.retailPrice.toFixed(2)) || 0,
+                        
                     };
                 });                // delete data.lineItems
-                  console.log(processedLineItems)
+                  console.log(processedLineItems,"processed line items")
                   setlineItems(data.lineItems)
                   setProductInfo(processedLineItems)
-                console.log(data)
+                console.log(data,'data from supabase');
 
                 if (error) {
                 console.error('Error fetching samples:', error);
                 return;
                 }
                 resetForm(data);
-                // setProductInfo(data)
-                // console.log(data);
                 setIsLoading(false);
 
             };
@@ -149,7 +158,7 @@ export default function NewQuote() {
       agent: '',
       buyer: '',
       tags: '',
-      status: "Created",
+      status: "Created:grey",
       gold: parseFloat(prices.gold.price),
       silver: parseFloat(prices.silver.price),
       items: []
@@ -241,11 +250,17 @@ export default function NewQuote() {
           // If margin was updated, calculate new salesPrice
           if (field === 'margin') {
             const weight = productInfo.find(item => item.productId === productId)?.weight || 0;
-            const totalCost = parseFloat(item.totalCost) || 0;
+            const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
             const margin = parseInt(value) || 0;
-    
-            updatedItem.salesPrice = parseFloat((totalCost + weight * margin).toFixed(2));
+            console.log(+(totalCost / (1 - margin / 100)).toFixed(2),parseFloat(+(totalCost / (1 - margin / 100)).toFixed(2)),margin, 'total cost after margin')
+            updatedItem.salesPrice = parseFloat(+(totalCost / (1 - margin / 100)).toFixed(2));
           }
+          if (field === 'salesPrice') {
+            const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
+            const salesPrice = parseFloat(value) || 0;
+            updatedItem.margin = parseFloat(+(((salesPrice - totalCost) / salesPrice) * 100).toFixed(2))
+          }
+
           // If salesPrice was updated, optionally recalc margin? (Only if needed)
           return updatedItem;
         })
@@ -264,7 +279,7 @@ export default function NewQuote() {
         internalNote: '',
         margin: 0,
         totalCost: parseFloat(totalCost(item, getVendorById( item.vendor).pricingsetting?.lossPercentage).toFixed(2)),
-        salesPrice: totalCost(item, getVendorById( item.vendor).pricingsetting?.lossPercentage)
+        salesPrice:  parseFloat(totalCost(item, getVendorById( item.vendor).pricingsetting?.lossPercentage).toFixed(2))
       })
       
     
@@ -372,10 +387,10 @@ export default function NewQuote() {
                     {
 
                       let productInfoObject = productInfo.find((item) => item.id === product.productId)  
-                      console.log(productInfo,productInfoObject.styleNumber,'product info object')
+                      console.log(productInfo,productInfoObject,'product info object',product.productId)
                     return (
                         
-                      <tr key={index}>
+                      <tr key={index} className='h-32'>
                         <td className="border border-gray-300 p-2 text-center">{productInfoObject.styleNumber}</td>
                         <td className="border border-gray-300 p-2 text-center">
                           <img src={productInfoObject.images[0]} alt={productInfoObject.styleNumber} />
@@ -409,7 +424,14 @@ export default function NewQuote() {
                           />
                           <span className="ml-1">%</span>
                         </td>
-                        <td className="border border-gray-300 p-2 text-center">${parseFloat((product.totalCost + (productInfoObject.weight * product.margin)).toFixed(2))}</td>
+                        <EditableCellWithGenerics 
+                            handleChange={handleLineChange} 
+                            setEditingCell={setEditingCell}
+                            editingCell={editingCell}
+                            id={productInfoObject.id}
+                            cellType={'salesPrice'}
+                            data={ product.salesPrice} // Placeholder for actual data
+                        />
                         {/* <td className="border border-gray-300 p-2 text-center">{product.retailPrice}</td> */}
                         {/* <td className="border border-gray-300 p-2 text-center">{productInfoObject.styleNumber}</td> */}
                         <EditableCellWithGenerics 
@@ -418,7 +440,7 @@ export default function NewQuote() {
                             editingCell={editingCell}
                             id={productInfoObject.id}
                             cellType={'retailPrice'}
-                            data={parseFloat(product.retailPrice)} // Placeholder for actual data
+                            data={product.retailPrice} // Placeholder for actual data
                         />
                         <EditableCellWithGenerics 
                             handleChange={handleLineChange} 
@@ -428,10 +450,12 @@ export default function NewQuote() {
                             cellType={'internalNote'}
                             data={product.internalNote} // Placeholder for actual data
                         />
-                        <td className="border border-gray-300 p-2 text-center">{product.BuyerComment}</td>
-                          <button  onClick={(event)=> deleteLineItem(event,product)} className="border border-gray-300 p-2 text-center">
-                            Delete
-                          </button>
+                        <td className="border border-gray-300 p-2 text-center  ">{product.BuyerComment}</td>
+                          <td className=" flex justify-center items-center">
+                            <button  onClick={(event)=> deleteLineItem(event,product)} className="border border-gray-300 p-2 text-center bg-red-500 text-white rounded-md hover:bg-red-600 ">
+                              Delete
+                            </button>
+                          </td>
                       </tr>
                     )
                     })}

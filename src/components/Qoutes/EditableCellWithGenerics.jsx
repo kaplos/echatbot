@@ -44,7 +44,7 @@ export default function EditableCellWithGeneric({
                     />
                 
             ) : (
-                !customValue || customValue ==='' ?  "Click to edit":customValue 
+                !customValue || customValue ==='' ?  "Click to edit": cellType.toLowerCase().includes('price') ? `$${customValue}` : customValue 
             )}
         </td>
     );

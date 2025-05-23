@@ -67,7 +67,7 @@ return (
                   design.status
                 )}`}
               >
-                {design.status.replace('_', ' ')}
+                {design.status.split(':')[0].replaceAll('_', ' ')}
               </span>
             </div>
               {/* <div>

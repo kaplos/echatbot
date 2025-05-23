@@ -53,9 +53,9 @@ export default function Quote (){
         </div>
         
         <div>
-            <span>
+            {/* <span>
                 filter goes here
-            </span>
+            </span> */}
         </div>
         <GridComponenet 
             quotes={quotes}

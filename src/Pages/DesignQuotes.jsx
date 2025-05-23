@@ -54,13 +54,17 @@ const DesignQuote = () =>{
       .from('starting_info')
       .select('*')
       .eq('id', design.id);
+    const{data:stones,error:stones_error} = await supabase
+        .from('stones')
+        .select('*')
+        .eq('starting_info_id',data[0].id)
 
-      if (error) {
-        console.error('Error fetching design:', error);
+      if (error||stones_error) {
+        console.error('Error fetching design:', error||stones_error);
         return;
       }
       console.log(data,'data from click');
-        setDesign(data[0]);
+        setDesign({...data[0],stones});
         setIsDetailsOpen(true);
     }
     const updateDesign = (updatedDesigns) => {

@@ -2,11 +2,10 @@ import React, { useState, Fragment,useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import ImageUpload from '../ImageUpload';
 import { useSupabase } from '../SupaBaseProvider';
-import { ChevronDown, X,Upload } from 'lucide-react';
+import { X } from 'lucide-react';
 import { getStatusColor } from '../../utils/designUtils';
 import CustomSelect from '../CustomSelect';
 import { useNavigate } from 'react-router-dom';
-import { use } from 'react';
 
 const DesignInfoModal = ({ isOpen, onClose, design,updateDesign }) => {
     console.log(design, 'design in modal');
@@ -179,11 +178,19 @@ const DesignInfoModal = ({ isOpen, onClose, design,updateDesign }) => {
       value={formData.status}
       className={`${getStatusColor(formData.status)} mt-1 border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
     >
-      <option value="working_on_it">Working on it</option>
-      <option value="waiting_on_cads">Waiting on cads</option>
-      <option value="sample_created">Sample created</option>
-      <option value="received_quote">Received quote</option>
-      <option value="dead">Dead</option>
+      <option value="Working_On_It:yellow">
+                                Working on it
+                              </option>
+                              <option value="Waiting_On_Cads:grey">
+                                Waiting on cads
+                              </option>
+                              <option value="Sample_Created:green">
+                                Sample created
+                              </option>
+                              <option value="Received_Quote:blue">
+                                Receieved quote
+                              </option>
+                              <option value="Dead:red">Dead</option>
     </select>
   </div>
   <div className=" flex flex-col">

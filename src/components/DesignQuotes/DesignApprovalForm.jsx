@@ -7,26 +7,33 @@ import { ChevronDown, X,Upload } from 'lucide-react';
 import { useSupabase } from "../SupaBaseProvider";
 import { useVendorStore } from "../../store/VendorStore";
 import { useMetalPriceStore } from "../../store/MetalPrices";
+import { useMessage } from "../Messages/MessageContext";
 export default function DesignApprovalForm({ design, openEditModal, isOpen, onClose,updateDesign }) {
   const {getVendorById,vendors}= useVendorStore()
   const {prices}=useMetalPriceStore()
   const { supabase } = useSupabase();
+  const {showMessage } =useMessage()
   let totalCost = 0
   useEffect(() => {
     console.log("design in design approval form", design);
   }, [design]);
  const handleUpdateStatus = async (status) => {
-    if(status === "approved") {
+    if(status === "Approved:green") {
       const { data, error } = await supabase
         .from("samples")
         .insert([{
           starting_info_id: design.id,
-          status: "working_on_it:yellow",
+          status: "Working_on_it:yellow",
           totalCost: totalCost
         }])
+        const {error:designUpdateError} = await supabase
+        .from('designs')
+        .update({ sample_id: sampleId })
+        .eq('id', data[0].designId);
 
-      if (error) {
-        console.error("Error updating design status:", error);
+      if (error||designUpdateError) {
+        console.error("Error updating design status:", error||designUpdateError);
+        showMessage('A Sample Already Exists With This Quote')
         return;
       }
     }
@@ -84,7 +91,7 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
                 <div className="mb-4 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Status</span>
-                    <span className="bg-gray-200 text-xs px-2 py-0.5 rounded">{design.status}</span>
+                    <span className="bg-gray-200 text-xs px-2 py-0.5 rounded">{design.status.split(':')[0].replaceAll('_',' ')}</span>
                   </div>
                   <div className="flex justify-between mt-1">
                     <span className="text-gray-500">Description</span>
@@ -120,7 +127,7 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
                 <div className="mb-4">
                   <h3 className="text-sm font-semibold mb-2">Images</h3>
                   <img
-                    src="https://via.placeholder.com/100x100"
+                    src={design.images}
                     alt="Sample"
                     className="w-20 h-20 object-contain"
                   />
@@ -129,13 +136,13 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
                 {/* Action Buttons */}
                 <div className="flex gap-2 justify-end text-sm font-medium mt-6">
                 <button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                    onClick={() => {handleUpdateStatus("declined:red")
+                    onClick={() => {handleUpdateStatus("Declined:red")
                       onClose()
                     }}>
                     Decline
                   </button>
                   <button className="bg-yellow-400 text-black px-3 py-1 rounded hover:bg-yellow-500"
-                  onClick={() => {handleUpdateStatus("revision_requested:yellow")
+                  onClick={() => {handleUpdateStatus("Revision_Requested:yellow")
                     onClose()
                   }}>
 
@@ -143,7 +150,7 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
                   </button>
                   
                   <button className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-                    onClick={() => {handleUpdateStatus("approved")
+                    onClick={() => {handleUpdateStatus("Approved:green")
                         onClose()
                     }}
                   >
