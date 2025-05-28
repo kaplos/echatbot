@@ -57,8 +57,13 @@ const AddVendorForm = ({ isOpen, onClose, onSave}) => {
         .insert([formData])
         .select()
 
-        localStorage.setItem('vendors', JSON.stringify(data));
-        if(error) {
+        const existingVendors = JSON.parse(localStorage.getItem('vendors')) || [];
+
+        // Append the new vendor(s) to the existing array
+        const updatedVendors = [...existingVendors, ...data];
+      
+        // Save the updated array back to localStorage
+        localStorage.setItem('vendors', JSON.stringify(updatedVendors));        if(error) {
           console.log(error);
       }
        console.log(data, 'data from insert vendors ');
@@ -78,6 +83,7 @@ const AddVendorForm = ({ isOpen, onClose, onSave}) => {
           paymentterms: '',
           notes: '',
         })
+        window.location.reload()
 
     }
     return (

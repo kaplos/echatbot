@@ -21,7 +21,6 @@ const Vendors = () => {
             const { data, error } = await supabase
             .from('vendors')
             .select('*')
-            .limit(12);
             if (error) {
                 console.error('Error fetching vendors:', error);
                 return;

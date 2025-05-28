@@ -20,8 +20,23 @@ import { MessageProvider } from './components/Messages/MessageContext';
 import MessageBox from './components/Messages/MessageBox';
 import { Navigate } from 'react-router-dom';
 import ImageManager from './components/ImageManager';
+import { useVendorStore } from './store/VendorStore';
 
 function AppContent() {
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key === 'vendors') {
+        // Sync the store with the updated localStorage data
+        useVendorStore.getState().syncVendorsFromLocalStorage();
+      }
+    };
+  
+    window.addEventListener('storage', handleStorageChange);
+  
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
   const { session } = useSupabase(); // Get the current session from Supabase
 
   // If no session exists, show the login screen
