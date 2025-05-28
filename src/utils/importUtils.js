@@ -8,6 +8,8 @@ export const parseCSV = async (file, type) => {
       return extractDesignData(lines, headers);
     case 'product':
       return extractProductData(lines, headers);
+    case 'designQuote':
+      return extractDesignQuote(lines, headers);
     default:
       return new Error('Unknown Error');
   }

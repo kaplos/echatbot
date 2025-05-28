@@ -7,6 +7,7 @@ import { useSupabase } from "../SupaBaseProvider";
 import IdeasExportButton from "../Pdf/IdeasExportButton";
 
 const IdeaBoard = ({ ideas, handleClick }) => {
+  // console.log(ideas)
   const [selectedIdeas, setSelectedIdeas] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const {supabase} = useSupabase();
@@ -89,8 +90,8 @@ const IdeaBoard = ({ ideas, handleClick }) => {
         )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...ideas].sort((a,b)=> a.id>b.id ? 1 : -1).map((idea) => (
-          <IdeaCard
+      {[...ideas].sort((a, b) => b.id - a.id).map((idea) => (          
+        <IdeaCard
             key={idea.id}
             idea={idea}
             // handleClick={handleClick}

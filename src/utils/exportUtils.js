@@ -92,7 +92,6 @@ export const exportToCSV = (products,type) => {
         case 'designs':
           return flattenDesignOnly(product);
           break;
-        
       }
     });
    const headers = headersExport[type];

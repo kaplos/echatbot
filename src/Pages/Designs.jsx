@@ -47,20 +47,42 @@ const Designs = () =>{
         }
     },[designId])
     
-    const handleClick = async (design) => {
-        const { data, error } = await supabase
-      .from('designs')
-      .select('*')
-      .eq('id', design.id);
+    // const handleClick = async (design) => {
+    //     const { data, error } = await supabase
+    //   .from('designs')
+    //   .select('*')
+    //   .eq('id', design.id);
 
-      if (error) {
-        console.error('Error fetching design:', error);
-        return;
-      }
-      console.log(data,'data from click');
-        setDesign(data[0]);
+    //   if (error) {
+    //     console.error('Error fetching design:', error);
+    //     return;
+    //   }
+    //   console.log(data,'data from click');
+    //     setDesign(data[0]);
+    //     setIsDetailsOpen(true);
+    // }
+    const handleClick = async (design) => {
+        // Open the modal immediately
         setIsDetailsOpen(true);
-    }
+      
+        // Show a loading state in the modal
+        setDesign(null);
+      
+        // Fetch the design data
+        const { data, error } = await supabase
+          .from('designs')
+          .select('*')
+          .eq('id', design.id);
+      
+        if (error) {
+          console.error('Error fetching design:', error);
+          setIsDetailsOpen(false); // Close the modal if there's an error
+          return;
+        }
+      
+        // Update the design data in the modal
+        setDesign(data[0]);
+      };
     const updateDesign = (updatedDesigns) => {
         setDesigns((previousDesign) =>
             previousDesign.map((design) => (design.id === updatedDesigns.id ? updatedDesigns : design))

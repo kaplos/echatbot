@@ -256,6 +256,7 @@ export default function NewQuote() {
             updatedItem.salesPrice = parseFloat(+(totalCost / (1 - margin / 100)).toFixed(2));
           }
           if (field === 'salesPrice') {
+
             const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
             const salesPrice = parseFloat(value) || 0;
             updatedItem.margin = parseFloat(+(((salesPrice - totalCost) / salesPrice) * 100).toFixed(2))
@@ -308,6 +309,27 @@ export default function NewQuote() {
     const metalCost = getMetalCost(metalPrice, product.weight, product.karat, lossPercentage);
     return getTotalCost(metalCost, product.miscCost, product.laborCost, product.stones);
   };
+  useEffect(() => {
+    // Recalculate totalCost for each line item when metal prices change
+    setlineItems((prevItems) =>
+      prevItems.map((item) => {
+        const productInfoObject = productInfo.find((p) => p.id === item.productId);
+        if (!productInfoObject) return item;
+  
+        const lossPercentage = getVendorById(productInfoObject.vendor)?.pricingsetting?.lossPercentage || 0;
+  
+        return {
+          ...item,
+          totalCost: parseFloat(
+            totalCost(productInfoObject, lossPercentage).toFixed(2)
+          ),
+          salesPrice: parseFloat(
+            totalCost(productInfoObject, lossPercentage).toFixed(2)
+          ), // Optionally update salesPrice if needed
+        };
+      })
+    );
+  }, [formData.gold, formData.silver]);
   console.log(productInfo,lineItems,'line items')
 
 

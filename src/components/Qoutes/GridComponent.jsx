@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef,useEffect } from "react";
 import { Link } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilePdf, faFileExcel } from "@fortawesome/free-solid-svg-icons";
@@ -6,7 +6,7 @@ import EditableCell from "./EditableCell";
 import { useNavigate } from "react-router-dom";
 import { useSupabase } from "../SupaBaseProvider";
 import QuotePDFGenerator from "../Pdf/QuotePDFGenerator";
-import { exportToCsv } from "../../utils/exportToExcel";
+import { exportToCsv, exportToExcel } from "../../utils/exportToExcel";
 const EditableGrid = ({ quotes, setQuotes }) => {
   const navigate = useNavigate();
   const { supabase } = useSupabase();
@@ -16,9 +16,13 @@ const EditableGrid = ({ quotes, setQuotes }) => {
   const [hasMore, setHasMore] = useState(true);
   const [copiedRowId, setCopiedRowId] = useState(null); // State to track which row was copied
   const [rowType, setRowType] = useState(null); // State to track the type of row copied
-
+  const hasFetchedQuotes = useRef(false);
+             
   useEffect(() => {
-    fetchQuotes(0);
+    if (!hasFetchedQuotes.current) {
+      fetchQuotes(0); // Fetch quotes only once
+      hasFetchedQuotes.current = true;
+    }
   }, []);
 
   // Handle cell value change
@@ -51,6 +55,7 @@ const EditableGrid = ({ quotes, setQuotes }) => {
       return;
     }
     const processedLineItems = data.map((item) => {
+      console.log(item)
       const { starting_info, ...productData } = item.product; // Extract startingInfo and product data
       const { id,...startingInfoData } = starting_info; // Extract id and other properties from startingInfo
       return {
@@ -59,7 +64,7 @@ const EditableGrid = ({ quotes, setQuotes }) => {
       };
   });    
       console.log(processedLineItems, "sample data");
-      exportToCsv(processedLineItems, `Quote_${quoteId}`);
+      exportToExcel(processedLineItems, `Quote_${quoteId}`);
   }
 
   const handleEditQuote = (quoteNumber) => {

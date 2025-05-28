@@ -2,22 +2,24 @@ import { useEffect, useState } from 'react';
 import { Upload } from 'lucide-react';
 import { useSupabase } from './SupaBaseProvider';
 
-const ImageUpload = ({ images, onChange, type = "image",forDisplay}) => {
+const ImageUpload = ({ images:inital, onChange, type = "image",forDisplay}) => {
+  console.log(inital, 'images from ImageUpload');
   const {supabase} = useSupabase();
 
-  const [imageToShow, setImageToShow] = useState(images[0] || null);
+  const [imageToShow, setImageToShow] = useState(inital[0] || null);
+  const [images, setImages] = useState(inital.filter(image => image !== '') || []);
   useEffect(() => {
+    setImages(inital.filter(image => image !== '' ));
     setImageToShow(images[0] || null);
-  }, [images]);
+  }, [inital]);
 
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
     const imageUrls = await handleImageUpload(files);
     console.log(imageUrls, 'imageUrls from upload');
     // console.log('Calling onChange with:', [...images, ...imageUrls]);
-    onChange([...images, ...imageUrls]);
+    onChange([...inital, ...imageUrls]);
     setImageToShow(imageUrls[0]); // Show the first uploaded image
-
   };
 
   const handleImageUpload = async (files) => {
@@ -39,6 +41,9 @@ const ImageUpload = ({ images, onChange, type = "image",forDisplay}) => {
       }
       console.log(data, 'data from upload');
       imageUrls.push(publicURL.publicUrl);
+      if( !imageToShow){
+        setImageToShow(publicURL.publicUrl)
+      }
       console.log(imageUrls, 'imageUrls');
     }
     return imageUrls;
@@ -60,18 +65,19 @@ const ImageUpload = ({ images, onChange, type = "image",forDisplay}) => {
     onChange([...images, ...files]);
   };
 
-  console.log('imageToShow', Array.isArray(images));
+  // console.log('imageToShow', );
 
   return (
     <div className="space-y-4 flex flex-col">
       {/* Fixed size container for the big image with a max size */}
       <div className="flex flex-wrap gap-2 w-full mb-4">
-        <div className="relative w-full max-w-md max-h-64 min-h-64 mx-auto overflow-hidden"> {/* Slightly wider container */}
+        <div className="relative w-full max-w-md max-h-64 min-h-64 mx-auto overflow-hidden "> {/* Slightly wider container */}
+          {imageToShow? 
           <img
             src={imageToShow}
             alt="Selected Image"
             className="object-contain w-full h-full rounded-lg" // Ensures image fits without distortion, cropping if necessary
-          />
+          />: "No Images Uploaded Yet"}
         </div>
       </div>
 

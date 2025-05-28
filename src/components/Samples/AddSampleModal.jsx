@@ -323,10 +323,10 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                       <div className="flex flex-row gap-2 w-full">
                         <div className="w-full">
                           <label className="block text-sm font-medium text-gray-700">
-                            Product Name
+                            Product Sku
                           </label>
                           <input
-                            required
+                            // required
                             type="text"
                             className="mt-1 block input shadow-sm  flex-1"
                             value={formData.name}

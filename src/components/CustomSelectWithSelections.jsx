@@ -23,7 +23,7 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
   // Reset new selection each time modal opens
   useEffect(() => {
     if (isOpen) {
-      setSelectedOptions([] )
+      setSelectedOptions([])
     }
   }, [selected,isOpen]);
 
@@ -45,10 +45,11 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
   }, []);
 
   const handleCheckboxChange = (option) => {
+    console.log(option,selectedOptions)
     setSelectedOptions(prev => {
-      if (prev.some(selected => selected.productId === option.id)) {
+      if (prev.some(selected => selected.id  === option.id)) {
         // console.log(selected.productId,option.id)
-        return prev.filter(selected => selected.productId !== option.id);
+        return prev.filter(selected => selected.id !== option.id);
       } else {
         return [...prev, option];
       }
@@ -72,11 +73,12 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
     if(version==="samples"){
       data = data.map(item=> {
         let {startingInfo} =item;
-        delete startingInfo.id
-        delete item.startingInfo
+        let {id,...rest} = startingInfo
+        // delete startingInfo.id
+        // delete item.startingInfo
         return {
           ...item,
-          ...startingInfo
+          ...rest
       }
     })
     }

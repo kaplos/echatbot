@@ -7,7 +7,7 @@ import DesignQuoteInfoModal from '../components/DesignQuotes/DesignQuoteInfoModa
 import DesignApprovalForm from '../components/DesignQuotes/DesignApprovalForm';
 import { useSupabase } from '../components/SupaBaseProvider';
 import { useLocation } from 'react-router-dom';
-
+import ImportModal from '../components/Products/ImportModal';
 const DesignQuote = () =>{
     const {supabase} = useSupabase();
     const location = useLocation(); // Access the current URL
@@ -15,6 +15,7 @@ const DesignQuote = () =>{
     const designId = queryParams.get('designId'); 
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [selectedDesign, setSelectedDesign] = useState(null);
     const [design,setDesign] = useState(null);
@@ -22,7 +23,9 @@ const DesignQuote = () =>{
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [designs, setDesigns] = useState(null);
-
+    useEffect(() => {
+        console.log("isEditOpen:", isEditOpen,design);
+      }, [isEditOpen]);
     // console.log(selectedDesign, 'designs');    
     useEffect(()=>{
         const fetchDesignQuote = async () => {
@@ -49,24 +52,51 @@ const DesignQuote = () =>{
     },[])
             
     
-    const handleClick = async (design) => {
-        const { data, error } = await supabase
-      .from('starting_info')
-      .select('*')
-      .eq('id', design.id);
-    const{data:stones,error:stones_error} = await supabase
-        .from('stones')
-        .select('*')
-        .eq('starting_info_id',data[0].id)
+    // const handleClick = async (design) => {
+    //     const { data, error } = await supabase
+    //   .from('starting_info')
+    //   .select('*')
+    //   .eq('id', design.id);
+    // const{data:stones,error:stones_error} = await supabase
+    //     .from('stones')
+    //     .select('*')
+    //     .eq('starting_info_id',data[0].id)
 
-      if (error||stones_error) {
-        console.error('Error fetching design:', error||stones_error);
-        return;
-      }
-      console.log(data,'data from click');
-        setDesign({...data[0],stones});
+    //   if (error||stones_error) {
+    //     console.error('Error fetching design:', error||stones_error);
+    //     return;
+    //   }
+    //   console.log(data,'data from click');
+    //     setDesign({...data[0],stones});
+    //     setIsDetailsOpen(true);
+    // }
+    const handleClick = async (design) => {
+        // Open the modal immediately
         setIsDetailsOpen(true);
-    }
+      
+        // Show a loading state in the modal
+        setDesign(null);
+      
+        // Fetch the design quote data
+        const { data, error } = await supabase
+          .from('starting_info')
+          .select('*')
+          .eq('id', design.id);
+      
+        const { data: stones, error: stonesError } = await supabase
+          .from('stones')
+          .select('*')
+          .eq('starting_info_id', design.id);
+      
+        if (error || stonesError) {
+          console.error('Error fetching design quote:', error || stonesError);
+          setIsDetailsOpen(false); // Close the modal if there's an error
+          return;
+        }
+      
+        // Update the design quote data in the modal
+        setDesign({ ...data[0], stones });
+      };
     const updateDesign = (updatedDesigns) => {
         setDesigns((previousDesign) =>
             previousDesign.map((design) => (design.id === updatedDesigns.id ? updatedDesigns : design))
@@ -84,13 +114,13 @@ const DesignQuote = () =>{
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900">Design Quotes</h1>
                 <div className="flex space-x-3">
-                        {/* <button 
+                        <button 
                             className="bg-white text-gray-700 px-4 py-2 rounded-lg flex items-center hover:bg-gray-50 border border-gray-300"
                             onClick={() => setIsImportModalOpen(true)}
                         >
                             <Upload className="w-5 h-5 mr-2" />
                             Import
-                        </button> */}
+                        </button>
                         <button 
                             className="bg-chabot-gold text-white px-4 py-2 rounded-lg flex items-center hover:bg-opacity-90 transition-colors"
                             onClick={() => setIsAddModalOpen(true)}
@@ -128,10 +158,11 @@ const DesignQuote = () =>{
                         isOpen={isDetailsOpen}
                         updateDesign={updateDesign}
                         onClose={() =>{ setIsDetailsOpen(false);
-                            setDesign(null)
+                            // setDesign(null)
                         }}
                         design={design}
-                        openEditModal={() => {setIsAddModalOpen(true)
+                        openEditModal={(design) => {setIsEditOpen(true)
+                            setDesign(design)
 
                         }} 
                     />
@@ -139,12 +170,17 @@ const DesignQuote = () =>{
                 {design&&
 
                     <DesignQuoteInfoModal 
-                    isOpen={isAddModalOpen}
-                    onClose={() => setIsAddModalOpen(false)}
+                    isOpen={isEditOpen}
+                    onClose={() => setIsEditOpen(false)}
                     design={design}
                     updateDesign={updateDesign}
                     />
                 }
+                 <ImportModal
+                    isOpen={isImportModalOpen}
+                    onClose={() => setIsImportModalOpen(false)}
+                    type="designQuotes"
+                />
         </div>
     )
 }

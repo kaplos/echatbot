@@ -13,7 +13,7 @@ export default function AddIdeaModal({ isOpen, onClose, onSave }) {
   const [ideaForm, setIdeaForm] = useState({
     title: '',
     description: '',
-    status: 'Active',
+    status: 'In_Review:yellow',
     slides: [],
     created_at: new Date().toISOString(),
     tags: []
@@ -33,7 +33,7 @@ export default function AddIdeaModal({ isOpen, onClose, onSave }) {
         slides: ideaForm.slides ? ideaForm.slides : [],
       };
 
-      const { error } = await supabase.from('Ideas').insert(newIdea);
+      const { data,error } = await supabase.from('Ideas').insert(newIdea).select();
       
       if (error) throw error;
       
@@ -41,13 +41,13 @@ export default function AddIdeaModal({ isOpen, onClose, onSave }) {
       setIdeaForm({
         title: '',
         description: '',
-        status: 'Active',
+        status: 'In_Review:yellow',
         slides: [],
         created_at: new Date().toISOString(),
         tags: []
       });
 
-      onSave(newIdea); // Notify parent component
+      onSave(data[0]); // Notify parent component
       // Refresh ideas list
     } catch (error) {
       console.error('Error adding idea:', error);
@@ -198,9 +198,9 @@ export default function AddIdeaModal({ isOpen, onClose, onSave }) {
                 onChange={handleFormChange}
                 className="w-full p-2 border border-gray-300 rounded-lg"
               >
-                  <option value="in_review">In Review</option> 
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option> 
+                  <option value="In_Review:yellow">In Review</option> 
+                  <option value="Approved:green">Approved</option>
+                  <option value="Rejected:red">Rejected</option> 
               </select>
             </div>
             

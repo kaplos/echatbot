@@ -4,7 +4,7 @@ import React, { useState,useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import {useSupabase} from "./SupaBaseProvider";
 
-function CustomSelect({onSelect,version,setNewOption ,informationFromDataBase,hidden=false}) {
+function CustomSelect({onSelect,version,setNewOption ,informationFromDataBase,hidden=false,required=false}) {
   const {supabase} = useSupabase();
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -102,7 +102,7 @@ function CustomSelect({onSelect,version,setNewOption ,informationFromDataBase,hi
           ref={inputRef}
           defaultValue={item? item.name:''}
           onFocus={() => setIsOpen(true)}
-          required={version==='category'}
+          required={version==='category'|| required}
           // onBlur={() => setIsOpen(false)}
           className="input text-left"
         />

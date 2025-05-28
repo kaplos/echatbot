@@ -44,41 +44,85 @@ export default function Samples(){
             handleClick({id:sampleId})
         }
     },[sampleId])
-    const handleClick = async (sample) => {
+    // const handleClick = async (sample) => {
      
 
-        const { data, error } = await supabase
-      .from('samples')
-      .select('*, starting_info(*)')
-      .eq('id', sample.id);
+    //     const { data, error } = await supabase
+    //   .from('samples')
+    //   .select('*, starting_info(*)')
+    //   .eq('id', sample.id);
 
-      if (error) {
-        console.error('Error fetching sample:', error);
-        return;
-      }
-      const {data:stones,error:stonesError} = await supabase
-      .from('stones')
-      .select('*')
-      .eq('starting_info_id', data[0].starting_info.id);
-        if (stonesError) {
-            console.error('Error fetching stones:', stonesError);
-            return;
-        }
+    //   if (error) {
+    //     console.error('Error fetching sample:', error);
+    //     return;
+    //   }
+    //   const {data:stones,error:stonesError} = await supabase
+    //   .from('stones')
+    //   .select('*')
+    //   .eq('starting_info_id', data[0].starting_info.id);
+    //     if (stonesError) {
+    //         console.error('Error fetching stones:', stonesError);
+    //         return;
+    //     }
 
-      console.log(data,stones,'data from click');
+    //   console.log(data,stones,'data from click');
 
-        const startingInfo = data[0].starting_info;
-        delete data[0].starting_info
-        const restructuredData = {
-            formData: data[0],
-            starting_info: {...startingInfo,
-                stones: stones
-            }
+    //     const startingInfo = data[0].starting_info;
+    //     delete data[0].starting_info
+    //     const restructuredData = {
+    //         formData: data[0],
+    //         starting_info: {...startingInfo,
+    //             stones: stones
+    //         }
 
-        }
-        setSample(restructuredData);
+    //     }
+    //     setSample(restructuredData);
+    //     setIsDetailsOpen(true);
+    // }
+    const handleClick = async (sample) => {
+        // Open the modal immediately
         setIsDetailsOpen(true);
-    }
+      
+        // Show a loading state in the modal
+        setSample(null);
+      
+        // Fetch the sample data
+        const { data, error } = await supabase
+          .from('samples')
+          .select('*, starting_info(*)')
+          .eq('id', sample.id);
+      
+        if (error) {
+          console.error('Error fetching sample:', error);
+          setIsDetailsOpen(false); // Close the modal if there's an error
+          return;
+        }
+      
+        const { data: stones, error: stonesError } = await supabase
+          .from('stones')
+          .select('*')
+          .eq('starting_info_id', data[0].starting_info.id);
+      
+        if (stonesError) {
+          console.error('Error fetching stones:', stonesError);
+          setIsDetailsOpen(false); // Close the modal if there's an error
+          return;
+        }
+      
+        const startingInfo = data[0].starting_info;
+        delete data[0].starting_info;
+      
+        const restructuredData = {
+          formData: data[0],
+          starting_info: {
+            ...startingInfo,
+            stones: stones,
+          },
+        };
+      
+        // Update the sample data in the modal
+        setSample(restructuredData);
+      };
     const updateSample = (updatedSamples) => {
         setIsDetailsOpen(false);
         setSamples((previousSample) =>

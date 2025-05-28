@@ -57,7 +57,7 @@ export default function CalculateMetalCost({ type: originalType, weight, karat, 
     // Compute metal price dynamically
     const metalCost = useMemo(() => {
         if (prices[type].price && weight && purity[karat] && lossPercent) {
-            return parseFloat(((weight * parseFloat(prices[type].price) * buyingFee) / 31.1035) *lossPercentFormated).toFixed(2);        }
+            return parseFloat(((weight * parseFloat(prices[type].price * purity[karat]) * buyingFee) / 31.1035) *lossPercentFormated).toFixed(2);        }
         return 0.00;
     }, [prices, type, weight, karat, lossPercent]);
     // Update PricingContext when metal cost changes
@@ -85,7 +85,7 @@ const getMetalCost = (metalPrice, weight, karat, lossPercent) => {
 
     if (metalPrice && weight && lossPercentFormatted) {
         console.log('calculated price', Number((((weight * metalPrice * buyingFee) / 31.1035) * lossPercentFormatted).toFixed(2)))
-        return Number((((weight * metalPrice * buyingFee) / 31.1035) * lossPercentFormatted).toFixed(2));
+        return Number((((weight * metalPrice *purity[karat] * buyingFee) / 31.1035) * lossPercentFormatted).toFixed(2));
     }
     return 0.00;
 };

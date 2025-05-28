@@ -106,7 +106,7 @@ function DraggableElement(props) {
   const { id, left, top, type, content, src, onDelete, currentSlide, currentSlideId, setSlides, readOnly } = props;
   const ref = useRef(null);
 
-  const [{ isDragging }, drag] = useDrag({
+  const [{ isDragging }, drag, preview] = useDrag({
     type: ItemTypes.ELEMENT,
     item: { id, left, top, type, content, src },
     collect: (monitor) => ({
@@ -114,9 +114,15 @@ function DraggableElement(props) {
     }),
     canDrag: !readOnly,
   });
+
+  useEffect(() => {
+    // Disable the default drag preview
+    preview(null);
+  }, [preview]);
+
   useEffect(() => {
     if (!readOnly) {
-      drag(ref);
+      drag(ref); // Attach drag behavior to the actual DOM element
     }
   }, [readOnly, drag]);
 
@@ -138,19 +144,18 @@ function DraggableElement(props) {
   return (
     <div ref={ref} style={style} className="group">
       {/* Delete button - show on hover */}
-      {
-        !readOnly ? null :
-        <button 
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onDelete(id);
-          }}
-          className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-30"
-          style={{ fontSize: '12px' }}
-        >
-          ×
-        </button>
+      {readOnly?null:
+      <button 
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDelete(id);
+      }}
+      className="absolute right-0 top-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-30"
+      style={{ fontSize: '12px' }}
+      >
+        ×
+      </button>
       }
 
       {type === 'image' ? (
@@ -158,13 +163,13 @@ function DraggableElement(props) {
           src={src}
           alt={content || 'Draggable Image'}
           style={{
-            width: '250px', // Set a fixed width
-            height: '250px', // Set a fixed height
-            objectFit: 'contain', // Ensure the image fits within the container
+            width: '250px',
+            height: '250px',
+            objectFit: 'cover',
             display: 'block',
           }}
         />
-      ): (
+      ) : (
         <EditableText 
           elementId={id} 
           content={content} 
@@ -209,27 +214,20 @@ function SlideEditor({ onSave, slides, setSlides,readOnly,onExport }) {
   // Element Movement Function
   const moveElement = useCallback((id, left, top) => {
     if (!currentSlide) return;
-
-    // Calculate bounds
-    let clampedLeft = left;
-    let clampedTop = top;
-    if (slideContainerRef.current) {
-      const bounds = slideContainerRef.current.getBoundingClientRect();
-      clampedLeft = Math.max(0, Math.min(left, bounds.width - 50));
-      clampedTop = Math.max(0, Math.min(top, bounds.height - 50));
-    }
-
-    // Update element position
-    const updatedElements = (currentSlide.elements || []).map(element =>
-      element.id === id ? { ...element, left: clampedLeft, top: clampedTop } : element
+  
+    // Update element position without clamping
+    const updatedElements = (currentSlide.elements || []).map((element) =>
+      element.id === id ? { ...element, left, top } : element
     );
-
+  
     const updatedSlide = { ...currentSlide, elements: updatedElements };
-
+  
     // Update state
-    setSlides(slides.map(slide =>
-      slide.id === currentSlideId ? updatedSlide : slide
-    ));
+    setSlides(
+      slides.map((slide) =>
+        slide.id === currentSlideId ? updatedSlide : slide
+      )
+    );
   }, [currentSlide, currentSlideId, slides]);
 
   // Drop target handler
@@ -402,76 +400,9 @@ function SlideEditor({ onSave, slides, setSlides,readOnly,onExport }) {
     ));
   };
 
-  // Update DraggableElement to support editable text
-  function DraggableElementWithEdit(props) {
-    const { id, left, top, type, content, src, onDelete } = props;
-    const ref = useRef(null);
-  
-    const [{ isDragging }, drag] = useDrag({
-      type: ItemTypes.ELEMENT,
-      item: { id, left, top, type, content, src },
-      collect: (monitor) => ({
-        isDragging: monitor.isDragging(),
-      }),
-    });
-  
-    drag(ref);
-  
-    // Give text elements a higher z-index than images
-    const zIndexValue = type === 'text' ? 20 : 10;
-  
-    const style = {
-      position: 'absolute',
-      left: `${left}px`,
-      top: `${top}px`,
-      cursor: 'move',
-      opacity: isDragging ? 0.5 : 1,
-      padding: '8px',
-      border: type === 'text' ? '1px dashed gray' : 'none',
-      backgroundColor: type === 'text' ? 'rgba(255, 255, 0, 0.7)' : 'transparent',
-      minWidth: '50px',
-      minHeight: '20px',
-      zIndex: zIndexValue,
-      borderRadius: '4px',
-    };
 
-    return (
-      <div ref={ref} style={style} className="group">
-        {/* Delete button - show on hover */}
-        <button 
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation(); // Prevent drag from being triggered
-            onDelete(id);
-          }}
-          className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-30"
-          style={{ fontSize: '12px' }}
-        >
-          ×
-        </button>
-  
-        {type === 'image' ? (
-          <img src={src} alt={content || 'Draggable Image'} style={{ maxWidth: '150px', display: 'block' }} />
-        ) : (
-          <EditableText elementId={id} content={content} />
-        )}
-      </div>
-    );
-  }
 
   // Export current design as a JSON object
-  const exportDesign = (e) => {
-    e.preventDefault();
-    if (slides.length === 0) {
-      console.error("No slides to export");
-      return;
-    }
-    
-    const designData = {
-      slides: slides,
-      exportedAt: new Date().toISOString()
-    };
-  };
 
 
   //confirmation messeage on delete
@@ -616,6 +547,7 @@ function SlideEditor({ onSave, slides, setSlides,readOnly,onExport }) {
                 currentSlide={currentSlide}
                 currentSlideId={currentSlideId}
                 setSlides={setSlides}
+                readOnly={readOnly}
               />
               ))}
             </div>

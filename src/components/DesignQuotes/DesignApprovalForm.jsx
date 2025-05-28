@@ -17,23 +17,50 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
   useEffect(() => {
     console.log("design in design approval form", design);
   }, [design]);
+  console.log(getVendorById(design.vendor)?.pricingsetting?.lossPercentage,design)
  const handleUpdateStatus = async (status) => {
     if(status === "Approved:green") {
+
+      const { data: existingSample, error: sampleCheckError } = await supabase
+      .from("samples")
+      .select("*")
+      .eq("designId", design.designId)
+      .single();
+
+    if (sampleCheckError && sampleCheckError.code !== "PGRST116") {
+      // Handle unexpected errors (e.g., database issues)
+      console.error("Error checking for existing sample:", sampleCheckError);
+      showMessage("An error occurred while checking for existing samples.");
+      return;
+    }
+
+    if (existingSample) {
+      // If a sample already exists, prevent further approval
+      showMessage("A sample already exists for this design. Approval denied.");
+      return;
+    }
+
       const { data, error } = await supabase
         .from("samples")
         .insert([{
-          starting_info_id: design.id,
+          designId:design.designId,
+          starting_info_id: parseInt(design.id),
           status: "Working_on_it:yellow",
-          totalCost: totalCost
+          // totalCost: totalCost
         }])
+        .select()
+        const {data:updateStartingInfoCost} = await supabase
+        .from('starting_info')
+        .update({totalCost:totalCost,status:'Approved:green'})
+        .eq('id',design.id)
         const {error:designUpdateError} = await supabase
         .from('designs')
-        .update({ sample_id: sampleId })
+        .update({ sample_id: data[0].id })
         .eq('id', data[0].designId);
 
       if (error||designUpdateError) {
         console.error("Error updating design status:", error||designUpdateError);
-        showMessage('A Sample Already Exists With This Quote')
+        // showMessage('A Sample Already Exists With This Quote')
         return;
       }
     }
@@ -85,7 +112,15 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
                                                 <X className="w-5 h-5" />
                                               </button>
                                             </div>
-                  <div className="p-2 flex"> <button onClick={()=>{openEditModal();onClose()}} className="hover:text-black text-gray-500 text-sm self-end justify-self-end">✏️</button></div>
+                  <div className="p-2 flex"> <button
+  onClick={() => {
+    openEditModal(design); // Open the edit modal
+    onClose(); // Close the approval form
+  }}
+  className="hover:text-black text-gray-500 text-sm self-end justify-self-end"
+>
+  ✏️
+</button></div>
 
                 {/* Status & Description */}
                 <div className="mb-4 text-sm">
@@ -127,7 +162,7 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
                 <div className="mb-4">
                   <h3 className="text-sm font-semibold mb-2">Images</h3>
                   <img
-                    src={design.images}
+                    src={design.images[0]|| ''}
                     alt="Sample"
                     className="w-20 h-20 object-contain"
                   />

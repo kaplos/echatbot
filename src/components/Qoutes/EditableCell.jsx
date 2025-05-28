@@ -68,7 +68,7 @@ export default function EditableCell({
               handleChange(row.id, "status", e.target.value);
             }}
             onBlur={() => setEditingCell(null)}
-            className={`border border-gray-300 p-1 w-full text-center `}
+            className={`border border-gray-300 p-1 w-full text-center text-black `}
             autoFocus
           >
             <option value="Created:grey">Created</option>

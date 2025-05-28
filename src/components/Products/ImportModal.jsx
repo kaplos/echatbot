@@ -40,6 +40,7 @@ const handleDrop = async (e) => {
       setError('Please upload a CSV file.');
     }
   };
+  
   const handleFileChange = async (e) => {
     setError('')
     const file = e.target.files?.[0];
@@ -99,7 +100,6 @@ const handleDrop = async (e) => {
               starting_info:{...starting_info}
             };
           }
-      
           if (type === 'samples') {
             
       
@@ -120,6 +120,12 @@ const handleDrop = async (e) => {
               starting_info:{...starting_info} ,
               designId:row['Design Id'] || null
             };
+          }
+          if(type === 'designQuote'){
+            return{
+              ...starting_info,
+              id: row['ID (Design Quote)'] || null,
+            }
           }
       
         });
@@ -173,6 +179,18 @@ const handleDrop = async (e) => {
                formData: {...formData_database, starting_info:{...starting_info_database, stones: stones_database}},
               })
             }
+            if(type==='designQuote'){
+              const { data: starting_info_database } = await supabase
+              .from('starting_info')
+              .upsert([restStartingInfo], { onConflict: ['id'] })
+              .eq('id',restStartingInfo.id)
+              .select();
+              const { data: stones_database } = await supabase
+              .from('stones')
+              .upsert(stones.map(stone => ({ ...stone, starting_info_id: starting_info_database[0].id })), { onConflict: ['id'] })
+              .select();
+
+            }
               
           } catch (err) {
             console.error(`Upload failed for item at index :`, err);
@@ -180,6 +198,7 @@ const handleDrop = async (e) => {
         }
         
         onClose();
+        window.location.reload();
       } catch (err) {
         
         setError('Error parsing file. Please check the format.');

@@ -19,7 +19,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
   const location = useLocation();
   const { showMessage } = useMessage();
   const quote =
-    new URLSearchParams(location.search).get("quote") || quoteId || null;
+    new URLSearchParams(location.search).get("quote") || quoteId || null; 
   const [formData, setFormData] = useState({
     agent: "",
     buyer: "",
@@ -29,6 +29,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
     silver: 32,
     items: [],
   });
+
   const [productInfo, setProductInfo] = useState();
   const [lineItems, setlineItems] = useState([]);
   const [isImageModelOpen, setImageModelOpen] = useState(false);
@@ -100,9 +101,11 @@ export default function ViewQuote({ quoteId, forPdf }) {
             ...startingInfoData, // Spread the startingInfo data into the top-level object
           };
         }); // delete data.lineItems
+        const { lineItems,...quoteInfo} = data
         console.log(processedLineItems);
         setlineItems(data.lineItems);
         setProductInfo(processedLineItems);
+        setFormData(quoteInfo)
         console.log(data);
 
         if (error) {
@@ -329,9 +332,12 @@ export default function ViewQuote({ quoteId, forPdf }) {
                     </thead>
                     <tbody>
                       {lineItems.map((lineItem, index) => {
+                        console.log(lineItem.productId, 'lineItem.productId in view Quote');
+
                         let product = productInfo.find(
                           (product) => product.id === lineItem.productId
                         );
+                        console.log(product,'product in view Quote')
                         // console.log(product,'product')
                         return (
                           <tr key={index}>
@@ -343,7 +349,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
                             <td className="border border-gray-300 p-2 text-center">
                               <div className="flex flex-col">
                                 <img
-                                  src={product.images[0]} 
+                                  src={product.images[0]}
                                   alt={product.styleNumber}
                                 />
                                 {product.images.length >1 ? (
@@ -482,13 +488,13 @@ export default function ViewQuote({ quoteId, forPdf }) {
                   <div className="flex flex-row gap-2">
                     {/* <span className="self-center">Metal Prices At:</span> */}
                     <div className="flex flex-col mb-1">
-                      <label htmlFor="gold_price">Gold Price</label>
+                      <label htmlFor="gold_price">Gold Price:</label>
                       <span className="border-2 border-black p-2 rounded">
                         ${formData.gold}
                       </span>
                     </div>
                     <div className="flex flex-col mb-1">
-                      <label htmlFor="silver_price">Silver Price</label>
+                      <label htmlFor="silver_price">Silver Price:</label>
                       <span className="border-2 border-black p-2 rounded">
                         {" "}
                         ${formData.silver}
@@ -523,7 +529,8 @@ export default function ViewQuote({ quoteId, forPdf }) {
                         let product = productInfo.find(
                           (product) => product.id === lineItem.productId
                         );
-                        // console.log(product,'product')
+
+                        console.log(product,'product')
                         return (
                           <tr key={index}>
                             <td className="border border-gray-300 p-2 text-center">

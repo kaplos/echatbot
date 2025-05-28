@@ -11,7 +11,7 @@ import { useVendorStore } from "../../store/VendorStore";
 
 const DesignQuoteInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
   const {getVendorById,vendors}=useVendorStore()
-
+  console.log(design.images ? design.images : [], "design images from props");
   console.log(design, "design in modal");
   const { supabase } = useSupabase();
   // const [vendors, setVendors] = useState([]);
@@ -19,35 +19,29 @@ const DesignQuoteInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
   const [lossPercent, setLossPercent] = useState(0);
   const [originalData, setOriginalData] = useState({
     ...design,
-    images: design.images ? design.images : [],
+    images: design.images || [],
   });
   const [formData, setFormData] = useState({
     ...design,
-    images: design.images ? design.images : [],
+    images: design.images || [],
   });
 
-  useEffect(() => {
-    if (!design) return; // Ensure design is defined
-    console.log(design.images, "design images from useeffect");
-    setOriginalData({
-      ...design,
-      images: design.images ? design.images : [],
-    });
+  // useEffect(() => {
+  //   if (!design) return; // Ensure design is defined
+  //   setOriginalData({
+  //     ...design,
+  //   });
+  
+  //   setFormData({
+  //     ...design,
+  //   });
 
-    setFormData({
-      ...design,
-      images: design.images ? design.images : [],
-    });
+  // }, [design, isOpen]);
+  
+useEffect(() => {
+      console.log(formData.images, "formData images");  
 
-    // setCosts([
-    //   {name:"Metal Value:",value: formData.cost},
-    //   {name:'Misc Charge:',value: formData.miscCost },
-    //   {name:'Labor Charge:',value: formData.laborCost },
-    //   {name:"stone(s) Charge:",value: 0}
-    // ])
-
-    console.log(formData, "formdata from use effect upon click ",originalData);
-  }, [design, isOpen]);
+  }, [formData.images]);
 
   useEffect(() => {
       setLossPercent(vendors[0].pricingsetting.lossPercentage);
@@ -207,7 +201,7 @@ const DesignQuoteInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
                             Images
                           </label>
                           <ImageUpload
-                            images={formData.images || []}
+                            images={formData.images}
                             onChange={(images) =>
                               setFormData({ ...formData, images })
                               // console.log(images, "images from onchange") 

@@ -37,8 +37,8 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
     metalType: "Gold",
     platingCharge: 0,
     stones: [],
-    vendor: null,
-    plating: 0,
+    vendor: '',
+    plating: '',
     karat: "10K",
     designId: designId,
     status: "Working_on_it:yellow",
@@ -54,65 +54,43 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
       console.log(vendors, "vendors from store");
 
       setLossPercent(vendors[0].pricingsetting.lossPercentage);
+      setFormData({...formData,vendor:vendors[0].id})
       // vendorLossRef.current.textContent = data[0].pricingsetting.lossPercentage
   }, [isOpen]);
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   const newDesign = {
-  //     title: formData.title,
-  //     description: formData.description,
-  //     link: formData.link,
-  //     collection: formData.collection,
-  //     category: formData.category,
-  //     images: JSON.stringify(formData.images),
-  //     status: formData.status,
-  //   };
-  //   const { data, error } = await supabase
-  //     .from("designs")
-  //     .insert([newDesign])
-  //     .select();
-
-  //   if (error) {
-  //     console.log(error);
-  //   }
-  //   console.log(data, "data from insert designs ");
-
-  //   onSave(data);
-  //   setFormData({
-  //     title: "",
-  //     description: "",
-  //     link: "",
-  //     collection: "",
-  //     category: "",
-  //     status: "Working_on_it:yellow",
-  //   });
-  // };
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const {stones,...rest} = formData;
     console.log(formData);
     const { data, error } = await supabase
       .from('starting_info')
-      .insert([formData])
-      .select();
+      .insert([{...rest}])
+      .select()
+    const {  error: stoneError } = await supabase
+      .from('stones')
+      .insert(stones.map((stone) => ({
+        ...stone,
+        starting_info_id: data[0].id,
+        }))) ;
 
-if(error) {
-    console.log(error);
+if(error || stoneError){
+    console.log('error inserting stones or starting info ', error);
 }
 
 console.log(data, 'data from insert samples ');
-  // const {error:designIdError}=await supabase
-  //   .from('designs')
-  //   .update('starting_info_id',data[0].id)
-  //   .eq('id',designId)
-  //   .select()
+const {error:designIdError}= await supabase
+  .from('designs')
+  .update({starting_info_id: data[0].id})
+  .eq('id', designId)
+  .select()
 
-  // if(designIdError){
-  //   console.log(designIdError)
-  // }
-onSave(data[0]);
-  setFormData({
-    description: "",
+    if(designIdError){
+      console.log(designIdError)
+    }
+    onSave(data[0]);
+    setFormData({
+      description: "",
       images: [],
       color: "Yellow",
       height: 0,
@@ -123,8 +101,8 @@ onSave(data[0]);
       metalType: "Gold",
       platingCharge: 0,
       stones: [],
-      vendor: null,
-      plating: 0,
+      vendor: '',
+      plating: '',
       karat: "10K",
       status: "Working_on_it:yellow",
   })
@@ -253,6 +231,7 @@ onSave(data[0]);
                           <div className="relative w-full">
                             <select
                               name="vendor"
+                              required
                               onChange={(e) => {
                                 setFormData({
                                   ...formData,
@@ -266,7 +245,7 @@ onSave(data[0]);
                                 // vendorLossRef.current.textContent =
                                 //   getVendorById(Number(e.target.value)).pricingsetting.lossPercent;
                               }}
-                              value={formData.vendor}
+                              value={formData.vendor || ""}
                               className={` mt-1 border input  p-2 appearance-none `}
                             >
                               {vendors.map((vendor, index) => {
@@ -399,6 +378,7 @@ onSave(data[0]);
                           <span className="w-full relative">
                             <input
                               type="text"
+                              required
                               placeholder="Enter Weight"
                               className="mt-1 block input shadow-sm focus:border-blue-500 focus:ring-blue-500 w-full "
                               value={formData.weight}
@@ -438,6 +418,7 @@ onSave(data[0]);
                               onSelect={handleCustomSelect}
                               version={"plating"}
                               informationFromDataBase={formData.plating}
+                              required
                             />
                           </div>
                           <div className="flex-1">
