@@ -57,7 +57,7 @@ export const useVendorStore = create((set, get) => ({
     }
   
     // Check if the last fetch was more than 24 hours ago
-    if (!lastFetchTime || now - new Date(lastFetchTime) >= 24 * 60 * 60 * 1000) {
+    if (!lastFetchTime || now - new Date(lastFetchTime) >= 5 * 60 * 1000) {
       if (isLoading) return; // Prevent duplicate loads
   
       console.log('Fetching vendors from the database');

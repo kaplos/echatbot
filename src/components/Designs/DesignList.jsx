@@ -48,6 +48,16 @@ const DesignList = ({ onDesignClick }) => {
       hasFetchedDesigns.current = true;
     }
   }, []);
+  const getDataToExport = async (arrayOfProducts) => {
+       
+    const {data:designsData,error:designDataError}= await supabase.from('designs').select("*").in('id',arrayOfProducts.map((design) => design.id))
+    
+  
+    if(designDataError){
+        console.error(designDataError,'error in getting data for export');
+    }
+    return designsData
+  }
 
   const handleExport = async () => {
     const designsToExport = designs.filter((p) => selectedDesigns.has(p.id));

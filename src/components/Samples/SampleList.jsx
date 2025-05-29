@@ -48,7 +48,86 @@ const SampleList = ({ onSampleClick }) => {
       hasFetchedSamples.current = true;
     }
   }, []);
+  const getDataToExport = async (arrayOfProducts) => {
+    try {
+      // Fetch samples and their starting_info
+      const { data: samplesData, error: sampleDataError } = await supabase
+        .from('samples')
+        .select('*, starting_info:starting_info_id(*)')
+        .in('id', arrayOfProducts.map((sample) => sample.id));
+  
+      if (sampleDataError) {
+        console.error('Error fetching samples:', sampleDataError);
+        return [];
+      }
+  
+      // Fetch stones for each sample
+      const samplesWithStones = await Promise.all(
+        samplesData.map(async (sample) => {
+          const { data: stones, error: stonesError } = await supabase
+          .from('stones')
+          .select('*')
+          .eq('starting_info_id', sample.starting_info.id); // Query stones by starting_info_id
+          
+          if (stonesError) {
+            console.error(`Error fetching stones for sample ${sample.id}:`, stonesError);
+            return { ...sample, stones: [] }; // Return sample without stones if there's an error
+          }
+          // console.log({...sample,stones})
+          return { ...sample, stones }; // Attach stones to the sample
+        })
+      );
+      console.log(samplesWithStones)
+      return samplesWithStones; // Return samples with their stones
+    } catch (error) {
+      console.error('Error in getDataToExport:', error);
+      console.error('Error in getDataToExport:', error);
+      return [];
+    }
+  //   designsData.map(async (design) => {
+  //     const { data: starting_info, error: starting_infoError } = await supabase
+  //       .from('starting_info')
+  //       .select('*')
+  //       .eq('designId', design?.id);
+  
+  //     const info = starting_info?.[0];
+  
+  //     const { data: stones, error: stone_error } = await supabase
+  //       .from('stones')
+  //       .select('*')
+  //       .eq('starting_info_id', info?.id);
+  
+  //     return {
+  //       design: {
+  //         ...design,
+  //         starting_info: info ?? {},
+  //       },
+  //       stones: stones ?? [],
+  //     };
+  //   })
+  // );
+  
 
+  // if(sampleDataError){
+  //     console.error(sampleDataError,'error in getting data for export');
+  // }
+  // const combinedExport = designsData.map((design) => {
+  //   const relatedStartings = starting_info.filter(
+  //     (s) => s.designId === design.id
+  //   );
+  
+  //   return {
+  //     ...design,
+  //     starting_info: relatedStartings.map((s) => ({
+  //       ...s,
+  //       stones: stones.filter((stone) => stone.starting_info_id === s.id),
+  //     })),
+  //   };
+  // });
+  // console.log(combinedExport, 'combined export data');
+  // console.log(designsData, 'designs data for export');
+  // return samplesData
+}
   const handleExport = async () => {
     const samplesToExport = samples.filter((p) => selectedSamples.has(p.id));
     let dataToExport = await getDataToExport(samplesToExport);

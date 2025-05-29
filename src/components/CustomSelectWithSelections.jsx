@@ -140,7 +140,7 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
                 <ul className="max-h-40 overflow-y-auto gap-1 flex flex-col mt-2">
                   {options
                     .filter((option) =>
-                      option.name.toLowerCase().includes(searchQuery.toLowerCase())
+                      option.styleNumber.toLowerCase().includes(searchQuery.toLowerCase())
                     )
                     .map((option, index) => {
                       const wasPreviouslySelected = selected?.some((s) => s.productId === option.id);  
@@ -171,7 +171,7 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
                             className="mt-1"
                           />
                           <span className="flex flex-col">
-                            {option.name}
+                            {option.styleNumber}
                             {wasPreviouslySelected && (
                               <p className="text-sm text-gray-500">Already added</p>
                             )}

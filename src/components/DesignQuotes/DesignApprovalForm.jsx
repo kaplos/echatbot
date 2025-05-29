@@ -1,4 +1,4 @@
-import React, { useEffect, Fragment } from "react";
+import React, { useEffect, Fragment, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import {getMetalCost} from "../Samples/CalculatePrice";
 import TotalCost from "../Samples/TotalCost";
@@ -10,6 +10,7 @@ import { useMetalPriceStore } from "../../store/MetalPrices";
 import { useMessage } from "../Messages/MessageContext";
 export default function DesignApprovalForm({ design, openEditModal, isOpen, onClose,updateDesign }) {
   const {getVendorById,vendors}= useVendorStore()
+  const [styleNumber,setStyleNumber] = useState('')
   const {prices}=useMetalPriceStore()
   const { supabase } = useSupabase();
   const {showMessage } =useMessage()
@@ -19,7 +20,11 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
   }, [design]);
   console.log(getVendorById(design.vendor)?.pricingsetting?.lossPercentage,design)
  const handleUpdateStatus = async (status) => {
-    if(status === "Approved:green") {
+   if(status === "Approved:green") {
+     if(styleNumber===''){
+       showMessage('Style Number is required')
+       return
+     }
 
       const { data: existingSample, error: sampleCheckError } = await supabase
       .from("samples")
@@ -46,6 +51,7 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
           designId:design.designId,
           starting_info_id: parseInt(design.id),
           status: "Working_on_it:yellow",
+          styleNumber: styleNumber
           // totalCost: totalCost
         }])
         .select()
@@ -167,6 +173,17 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
                     className="w-20 h-20 object-contain"
                   />
                 </div>
+                <form action="">
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold mb-2">Style Number (Required)</h3>
+                    <input type="text"
+                              className="mt-1 block input shadow-sm "
+                              required={true}
+                      value={styleNumber}
+                      onChange={(e)=> setStyleNumber(e.target.value)}
+                    />
+                  </div>
+                </form>
 
                 {/* Action Buttons */}
                 <div className="flex gap-2 justify-end text-sm font-medium mt-6">
@@ -184,10 +201,12 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
                     Request Revision
                   </button>
                   
-                  <button className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
+                  <button className={` text-white px-3 py-1 rounded  ${styleNumber.length===0? 'bg-gray-500 hover:cursor-not-allowed ': 'bg-green-500 hover:bg-green-600'}`}
                     onClick={() => {handleUpdateStatus("Approved:green")
+                      
                         onClose()
                     }}
+                    disabled={styleNumber.length===0}
                   >
                     Approve And Create Sample
                   </button>

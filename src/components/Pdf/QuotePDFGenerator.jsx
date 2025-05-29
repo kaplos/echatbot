@@ -61,7 +61,7 @@ export default function QuotePDFGenerator({ quoteNumber, quoteId }) {
       if (quoteRef.current) {
         // Wait for all images to load
         await waitForImagesToLoad(quoteRef.current);
-        await new Promise((resolve) => setTimeout(resolve, 10000));        // Generate the PDF
+        // await new Promise((resolve) => setTimeout(resolve, 10000));        // Generate the PDF
         console.log(quoteRef.current.innerHTML); // Log the content of the container
         const pdfOptions = {
           filename: `quote${quoteId}.pdf`,

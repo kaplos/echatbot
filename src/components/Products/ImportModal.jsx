@@ -12,7 +12,7 @@ import { getMetalCost } from '../Samples/CalculatePrice';
 
 const ImportModal = ({ isOpen, onClose,type }) => {
 const {supabase} = useSupabase();
-const {getVendorByName,getVendorById} = useVendorStore();
+const {getVendorByName,getVendorById,vendors} = useVendorStore();
   const {prices} = useMetalPriceStore();
 const [isDragging, setIsDragging] = useState(false);
 const [error, setError] = useState(null);
@@ -40,69 +40,102 @@ const handleDrop = async (e) => {
       setError('Please upload a CSV file.');
     }
   };
-  
+  const hasStartingInfo = (startingInfo) => {
+    // Exclude `designId` from the check
+    const {designId,images,plating,...rest} = startingInfo;
+  console.log(rest,'hasStartingInfo')
+    // Check if any remaining fields are provided
+    return Object.values(rest).some((value) => value !== null && value !== '' && value !== 0&& JSON.stringify(['']) !== JSON.stringify(value)&& JSON.stringify([]) !== JSON.stringify(value)) 
+  };
   const handleFileChange = async (e) => {
-    setError('')
+    setError('');
     const file = e.target.files?.[0];
     if (file) {
       try {
-        const products = await handleImportFile(file,type);
-        const formatted = products.map( (row, index) => {
-          const vendor = Number.isInteger(row['Vendor'])? getVendorById(row['Vendor']):getVendorByName(row['Vendor'])
-        console.log(getVendorByName(row['Vendor']))
+        const products = await handleImportFile(file, type);
+  
+        // for (const [index, product] of products.entries()) {
+        //   if (!product.weight || isNaN(product.weight) || product.weight <= 0) {
+        //     setError(`Error: Product at line ${index + 1} is missing a valid weight.`);
+        //     return;
+        //   }
+        // }
+  
+        const formatted = products.map((row) => {
+          const vendor = Number.isInteger(row['Vendor'])
+            ? getVendorById(row['Vendor'])
+            : getVendorByName(row['Vendor']);
+  
           const stones = [];
-            for (let i = 1; i <= 10; i++) {
-              if (row[`Stone ${i} Type`] || row[`Stone ${i} Color`] || row[`Stone ${i} Size`]) {
-                stones.push({
-                  id: row[`Stone ${i} ID`],
-                  type: row[`Stone ${i} Type`] || '',
-                  color: row[`Stone ${i} Color`] || '',
-                  size: row[`Stone ${i} Size`] || '',
-                  shape: row[`Stone ${i} Shape`] || '',
-                  cost: parseFloat(row[`Stone ${i} Cost`] || 0),
-                  customType: row[`Stone ${i} Custom Type`] || '',
-                  quantity: parseInt(row[`Stone ${i} Quantity`] || 0),
-                  notes: row[`Stone ${i} Notes`] || '',
-                });
-              }
+          for (let i = 1; i <= 10; i++) {
+            if (row[`Stone ${i} Type`] || row[`Stone ${i} Color`] || row[`Stone ${i} Size`]) {
+              stones.push({
+                id: row[`Stone ${i} ID`],
+                type: row[`Stone ${i} Type`] || '',
+                color: row[`Stone ${i} Color`] || '',
+                size: row[`Stone ${i} Size`] || '',
+                shape: row[`Stone ${i} Shape`] || '',
+                cost: parseFloat(row[`Stone ${i} Cost`] || 0),
+                customType: row[`Stone ${i} Custom Type`] || '',
+                quantity: parseInt(row[`Stone ${i} Quantity`] || 0),
+                notes: row[`Stone ${i} Notes`] || '',
+              });
             }
-            console.log(stones)
-            const starting_info = {
-              description: row['Quote Description'] || '',
-              images: (row['Sample Images'] || '').split('|') || [row['Sample Images']],
-              color: row['Color'] || 'Yellow',
-              height: parseFloat(row['Height'] || 0),
-              length: parseFloat(row['Length'] || 0),
-              width: parseFloat(row['Width'] || 0),
-              weight: parseFloat(row['Weight'] || 0),
-              manufacturerCode: row['Manufacturer Code'] || '',
-              metalType: row['Metal Type'] || 'Gold',
-              platingCharge: parseFloat(row['Plating Charge'] || 0),
-              stones:stones || [],
-              vendor: vendor.id|| null,
-              plating: parseFloat(row['Plating']) || 0,
-              karat: row['Karat'] || '10K',
-              designId: row['ID (Design)'] || null,
-              miscCost: parseFloat(row['Misc Cost'] || 0),
-              laborCost: parseFloat(row['Labor Cost'] || 0),
-              totalCost: parseFloat(row['Total Cost'] ||  getTotalCost(getMetalCost(prices[row['Metal Type'].toLowerCase()].price,row['Weight']||0,row['Karat'],vendor.pricingsetting.lossPercentage),parseFloat(row['Misc Cost'] || 0),parseFloat(row['Labor Cost'] || 0),stones)||0)
-            };
+          }
+  
+          const starting_info = {
+            description: row['Quote Description'] || '',
+            images: (row['Sample Images'] || '').split('|') || [row['Sample Images']] || [],
+            color: row['Color'] || '',
+            height: parseFloat(row['Height'] || 0),
+            length: parseFloat(row['Length'] || 0),
+            width: parseFloat(row['Width'] || 0),
+            weight: parseFloat(row['Weight'] || 0),
+            manufacturerCode: row['Manufacturer Code'] || '',
+            metalType: row['Metal Type'] || '',
+            platingCharge: parseFloat(row['Plating Charge'] || 0),
+            stones: stones || [],
+            vendor: vendor?.id || null,
+            plating: parseFloat(row['Plating']) || 1,
+            karat: row['Karat'] || '',
+            designId: row['ID (Design)'] || null,
+            miscCost: parseFloat(row['Misc Cost'] || 0),
+            laborCost: parseFloat(row['Labor Cost'] || 0),
+            totalCost: parseFloat(
+              row['Total Cost'] ||
+                getTotalCost(
+                  getMetalCost(
+                    prices[row['Metal Type'].toLowerCase()]?.price || 0,
+                    row['Weight'] || 0,
+                    row['Karat'],
+                    vendor?.pricingsetting?.lossPercentage
+                  ),
+                  parseFloat(row['Misc Cost'] || 0),
+                  parseFloat(row['Labor Cost'] || 0),
+                  stones
+                ) || 0
+            ),
+          };
+  
+          // Check if starting_info has any valid fields
+          const includeStartingInfo = hasStartingInfo(starting_info);
+  
           if (type === 'designs') {
             return {
-              id: row["ID (Design)"] || null,
-              title: row['Title'] || '',
+              id: row['ID (Design)'] || null,
+              name: row['Name'] || '',
               description: row['Description'] || '',
               link: row['Link'] || '',
               collection: row['Collection'] || '',
               category: row['Category'] || '',
-              images: (row['Design Images'] || '').split('|') ||[row['Design Images']] ,
+              images: (row['Design Images'] || '').split('|') || [row['Design Images']],
               status: row['Status'] || 'Working_on_it:yellow',
-              starting_info:{...starting_info}
+              starting_info: includeStartingInfo ? { ...starting_info } : null, // Include only if valid
             };
           }
+  
+          // Handle other types (e.g., samples, designQuote)
           if (type === 'samples') {
-            
-      
             return {
               id: row['ID (Sample)'] || null,
               cad: (row['CAD Files'] || '').split('|'),
@@ -117,41 +150,47 @@ const handleDrop = async (e) => {
               salesWeight: parseFloat(row['Sales Weight'] || 0),
               starting_info_id: row['Starting Info ID'] || '',
               status: row['Sample Status'] || 'Working_on_it:yellow',
-              starting_info:{...starting_info} ,
-              designId:row['Design Id'] || null
+              starting_info: includeStartingInfo ? { ...starting_info } : null, // Include only if valid
+              designId: row['Design Id'] || null,
             };
           }
-          if(type === 'designQuote'){
-            return{
+  
+          if (type === 'designQuote') {
+            return {
               ...starting_info,
               id: row['ID (Design Quote)'] || null,
-            }
+            };
           }
-      
         });
+  
+        console.log('Formatted products:', formatted);
         const uploadedItems = []
         // console.log(formatted,'products to upload')
         for (const item of formatted) {
       
           try {
             const {starting_info, ...formData} = item;
-            const {stones, ...restStartingInfo} = starting_info;
-           if(type === 'designs'){
-             const { data: formData_database } = await supabase
-             .from(type)
-             .insert([formData])
-             .select();
-             const { data: starting_info_database } = await supabase
-             .from(type)
-             .insert([restStartingInfo])
-             .select();
-             const { data: stones_database } = await supabase
-             .from('stones')
-             .insert(stones.map(stone => ({ ...stone, starting_info_id: starting_info_database[0].id })))
-             .select();
-             uploadedItems.push({
-              formData: {...formData_database, starting_info:{...starting_info_database, stones: stones_database}},
-             })
+            const {stones, ...restStartingInfo} = starting_info||{};
+            if(type === 'designs'){
+            let stones_database 
+            const { data: formData_database } = await supabase
+            .from(type)
+            .upsert(formData)
+            // .select();
+            if(starting_info){
+               const { data: starting_info_database } = await supabase
+               .from(type)
+               .insert([restStartingInfo])
+              //  .select();
+               const { data: stones_database } = await supabase
+               .from('stones')
+               .insert(stones.map(stone => ({ ...stone, starting_info_id: starting_info_database[0].id })))
+              //  .select();
+               stones_database = stones_database
+              }
+            //    uploadedItems.push({
+            //   formData: {...formData_database, starting_info:{...starting_info_database, stones: stones_database}},
+            //  })
             }
            if(type === 'samples'){
             const {data:starting_info_id } = await supabase
@@ -191,35 +230,19 @@ const handleDrop = async (e) => {
               .select();
 
             }
-              
           } catch (err) {
             console.error(`Upload failed for item at index :`, err);
           }
         }
-        
-        onClose();
-        window.location.reload();
+          onClose();
+          // window.location.reload();
       } catch (err) {
-        
         setError('Error parsing file. Please check the format.');
         console.error('Import error:', err);
       }
     }
   };
 
-  const downloadSample = () => {
-    const sampleCSV = `No,Item#,ITEMS CODE,PHOTO,STONE DESCRIPTION,GOLD (K),GOLD COLOR,REMARK,Q\`ty,Unit,TOTAL WEIGHT(GR),GOLD WEIGHT(GR),GOLD AMOUNT ($/PC),LABOR ($/PC),STONE ($/PC),U/PRICE(U$),Rhodium Plating Charge,REMARK
-1,BJ7317,GPFB108-10KYG,,CZ/3.0 * 1 PC,10K,YG,Thickness: 0.95mm,1,PCS,0.21,0.169,5.86,2.60,0.05,9.51,0,Sample Item
-2,BJ7318,GPFB109-14KYG,,CZ/4.0 * 2 PC,14K,YG,Thickness: 1.05mm,1,PCS,0.25,0.198,7.92,3.20,0.10,12.22,0,Sample Item`;
-
-    const blob = new Blob([sampleCSV], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'sample_import.csv';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
