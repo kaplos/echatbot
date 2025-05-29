@@ -172,7 +172,7 @@ const handleDrop = async (e) => {
             const {starting_info, ...formData} = item;
             const {stones, ...restStartingInfo} = starting_info||{};
             if(type === 'designs'){
-            let stones_database 
+            let stones_databaseVar 
             const { data: formData_database } = await supabase
             .from(type)
             .upsert(formData)
@@ -186,7 +186,7 @@ const handleDrop = async (e) => {
                .from('stones')
                .insert(stones.map(stone => ({ ...stone, starting_info_id: starting_info_database[0].id })))
               //  .select();
-               stones_database = stones_database
+               stones_databaseVar = stones_database
               }
             //    uploadedItems.push({
             //   formData: {...formData_database, starting_info:{...starting_info_database, stones: stones_database}},
