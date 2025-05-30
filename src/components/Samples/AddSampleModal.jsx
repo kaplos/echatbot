@@ -66,7 +66,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     metalType: "Gold",
     platingCharge: 0,
     stones: [],
-    vendor: null,
+    vendor: "",
     plating: 1,
     karat: "10K",
     status: "Working_on_it:yellow",
@@ -74,9 +74,43 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
 
   useEffect(() => {
     setLossPercent(vendors[0].pricingsetting.lossPercentage);
+    setStarting_info({...starting_info,vendor:vendors[0].id})
     // vendorLossRef.current.textContent = data[0].pricingsetting.lossPercentage
-  }, [isOpen]);
-
+  }, [isOpen,vendors]);
+const handleClose = ()=>{
+  setFormData({
+    cad: [],
+    category: "",
+    collection: "",
+    selling_pair: "pair",
+    back_type: "none",
+    custom_back_type: "",
+    back_type_quantity: 0,
+    // cost: 0,
+    name: "",
+    styleNumber: "",
+    salesWeight: 0,
+    status: "Working_on_it:yellow",
+  })
+  setStarting_info({
+    description: "",
+    images: [],
+    color: "Yellow",
+    height: 0,
+    length: 0,
+    width: 0,
+    weight: 0,
+    manufacturerCode: "",
+    metalType: "Gold",
+    platingCharge: 0,
+    stones: [],
+    vendor: "",
+    plating: 1,
+    karat: "10K",
+    status: "Working_on_it:yellow",
+  })
+  onClose()
+}
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log(formData);
@@ -168,7 +202,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   );
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-50" onClose={handleClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -198,7 +232,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                     Add Sample
                   </Dialog.Title>
                   <button
-                    onClick={onClose}
+                    onClick={handleClose}
                     className="text-gray-400 hover:text-gray-500"
                   >
                     <X className="w-5 h-5" />
@@ -796,7 +830,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                   <div className="mt-6 flex justify-end space-x-3">
                     <button
                       type="button"
-                      onClick={onClose}
+                      onClick={handleClose}
                       className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-md"
                     >
                       Cancel

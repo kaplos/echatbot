@@ -85,7 +85,7 @@ const handleDrop = async (e) => {
   
           const starting_info = {
             description: row['Quote Description'] || '',
-            images: (row['Sample Images'] || '').split('|') || [row['Sample Images']] || [],
+            images: ( row['Quote Images']||'').split('|').filter(image => image !== '') || [row['Quote Images'] ] || [],
             color: row['Color'] || '',
             height: parseFloat(row['Height'] || 0),
             length: parseFloat(row['Length'] || 0),
@@ -128,7 +128,7 @@ const handleDrop = async (e) => {
               link: row['Link'] || '',
               collection: row['Collection'] || '',
               category: row['Category'] || '',
-              images: (row['Design Images'] || '').split('|') || [row['Design Images']],
+              images: (row['Design Images'] || '').split('|').filter(image => image !== '') || [row['Design Images']],
               status: row['Status'] || 'Working_on_it:yellow',
               starting_info: includeStartingInfo ? { ...starting_info } : null, // Include only if valid
             };
@@ -138,7 +138,7 @@ const handleDrop = async (e) => {
           if (type === 'samples') {
             return {
               id: row['ID (Sample)'] || null,
-              cad: (row['CAD Files'] || '').split('|'),
+              cad: (row['CAD Files'] || '').split('|').filter(image => image !== '')|| row["CAD Files"],
               category: row['Category'] || '',
               collection: row['Collection'] || '',
               selling_pair: row['Selling Pair'] || 'pair',
@@ -172,6 +172,7 @@ const handleDrop = async (e) => {
             const {starting_info, ...formData} = item;
             const {stones, ...restStartingInfo} = starting_info||{};
             if(type === 'designs'){
+              console.log('hitting designs')
             let stones_databaseVar 
             const { data: formData_database } = await supabase
             .from(type)
@@ -193,6 +194,8 @@ const handleDrop = async (e) => {
             //  })
             }
            if(type === 'samples'){
+            console.log('hitting samples')
+
             const {data:starting_info_id } = await supabase
             .from('samples')
             .select('starting_info_id')
@@ -218,7 +221,9 @@ const handleDrop = async (e) => {
                formData: {...formData_database, starting_info:{...starting_info_database, stones: stones_database}},
               })
             }
-            if(type==='designQuote'){
+            if(type==='designQuote' ){
+              console.log('hitting designQuote')
+
               const { data: starting_info_database } = await supabase
               .from('starting_info')
               .upsert([restStartingInfo], { onConflict: ['id'] })

@@ -10,35 +10,36 @@ import ImportModal from '../components/Products/ImportModal';
 import { useLocation } from 'react-router-dom';
 export default function Samples(){
     const {supabase} = useSupabase();
+    
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [sample,setSample] = useState(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [samples, setSamples] = useState(null);
+    // const [isLoading, setIsLoading] = useState(true);
+    const [samples, setSamples] = useState([]);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const location = useLocation(); // Access the current URL
     const queryParams = new URLSearchParams(location.search); // Parse the query string
     const sampleId = queryParams.get('sampleId') || null;
-    useEffect(()=>{
-        const fetchSamples = async () => {
-            setIsLoading(true);
-            const { data, error } = await supabase
-            .from('samples')
-            .select('*, starting_info(*)')
-            .order('created_at', { ascending: false }) // Replace 'created_at' with your timestamp column
-            .limit(12);
+    // useEffect(()=>{
+    //     const fetchSamples = async () => {
+    //         setIsLoading(true);
+    //         const { data, error } = await supabase
+    //         .from('samples')
+    //         .select('*, starting_info(*)')
+    //         .order('created_at', { ascending: false }) // Replace 'created_at' with your timestamp column
+    //         .limit(12);
             
-            console.log(data[0],'data from samples')
-            if (error) {
-              console.error('Error fetching samples:', error);
-              return;
-            }
-            setSamples(data);
-            // console.log(data);
-            setIsLoading(false);
-          };
-           fetchSamples(); 
-    },[])
+    //         console.log(data[0],'data from samples')
+    //         if (error) {
+    //           console.error('Error fetching samples:', error);
+    //           return;
+    //         }
+    //         setSamples(data);
+    //         // console.log(data);
+    //         setIsLoading(false);
+    //       };
+    //        fetchSamples(); 
+    // },[])
     useEffect(()=>{
         if(sampleId){
             handleClick({id:sampleId})
@@ -131,9 +132,9 @@ export default function Samples(){
       };
       
       
-    if(isLoading){
-        return <Loading />
-    }
+    // if(isLoading){
+    //     return <Loading />
+    // }
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">
@@ -158,7 +159,8 @@ export default function Samples(){
                 <SampleList
                     samples={samples}
                     // onDesignClick={(design) => {
-
+                    setSamples={setSamples}
+                    // setIsLoading={setIsLoading}
                     // setIsDetailsOpen(true);
                     // setSelectedDesign(design);
                     // }}
@@ -168,7 +170,7 @@ export default function Samples(){
                     isOpen={isAddModalOpen}
                     onSave={((sample)=>{
                         setIsAddModalOpen(false)
-                        setSamples((prev)=> [...prev, sample])
+                        setSamples((prev)=> [sample,...prev])
                     })}
                     onClose={()=> {
                         setIsAddModalOpen(false)

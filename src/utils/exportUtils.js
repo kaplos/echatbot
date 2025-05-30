@@ -193,6 +193,7 @@ export const exportToCSV = (products,type) => {
     };
   }
   function flattenSampleOnly(sample) {
+
     console.log(sample, 'sample data for export');
     return {
       id:sample.id,
@@ -210,7 +211,7 @@ export const exportToCSV = (products,type) => {
 
       // sampleId: sample.id ?? "",
       manufacturerCode: sample.startingInfo.manufacturerCode ?? "",
-      images: sample.startingInfo.images?.join(" | ") ?? "",
+      s_images:sample.s_images,
       description: sample.startingInfo.description ?? "",
       metalType: sample.startingInfo.metalType ?? "",
       karat: sample.startingInfo.karat ?? "",
@@ -284,7 +285,7 @@ export function exportData(data, type) {
     return {
       ...rest,
       startingInfo:startingInfo,
-      s_images: startingInfo?.images?.join(' | ') ?? '',
+      s_images: startingInfo.images?.length>1? startingInfo.images?.join(" | ") : startingInfo?.images?.[0] || "" ,
       stones: stones ?? [],
     };
   })

@@ -3,13 +3,13 @@ import { Download } from "lucide-react";
 import { exportData } from "../../utils/exportUtils";
 import SampleCard from "../Samples/SampleCard";
 import { useSupabase } from "../SupaBaseProvider";
+import Loading from "../Loading";
 
-const SampleList = ({ onSampleClick }) => {
-  const [samples, setSamples] = useState([]);
+const SampleList = ({ samples,setSamples,setIsLoading,onSampleClick }) => {
   const [selectedSamples, setSelectedSamples] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [page, setPage] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [ loading,setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true);
   const { supabase } = useSupabase();
   const PAGE_SIZE = 20;
@@ -196,7 +196,9 @@ const SampleList = ({ onSampleClick }) => {
           />
         ))}
       </div>
-      {loading && <div className="text-center py-4">Loading...</div>}
+      <div className="flex justify-center items-center mt-6">
+    {loading && <Loading />}
+  </div>
     </div>
   );
 };

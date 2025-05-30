@@ -3,9 +3,9 @@ import { Download } from 'lucide-react';
 import { exportData } from '../../utils/exportUtils';
 import DesignCard from './DesignCard';
 import { useSupabase } from '../SupaBaseProvider';
+import Loading from '../Loading';
 
-const DesignList = ({ onDesignClick }) => {
-  const [designs, setDesigns] = useState([]);
+const DesignList = ({ designs,setDesigns,isLoading,setIsLoading, onDesignClick }) => {
   const [selectedDesigns, setSelectedDesigns] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [page, setPage] = useState(0);
@@ -18,7 +18,9 @@ const DesignList = ({ onDesignClick }) => {
 
   // Fetch designs from Supabase
   const fetchDesigns = async (pageNumber) => {
-    setLoading(true);
+    // if (isLoading) return; // Prevent duplicate fetches
+    setLoading(true)
+    // setIsLoading(true);
     const from = pageNumber * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
@@ -30,7 +32,8 @@ const DesignList = ({ onDesignClick }) => {
 
     if (error) {
       console.error('Error fetching designs:', error);
-      setLoading(false);
+      setLoading(false)
+      // setIsLoading(false);
       return;
     }
 
@@ -38,7 +41,8 @@ const DesignList = ({ onDesignClick }) => {
 
     setDesigns((prevDesigns) => [...prevDesigns, ...data]);
     setPage(pageNumber + 1);
-    setLoading(false);
+    setLoading(false)
+    // setIsLoading(false);
   };
 
   // Initial fetch
@@ -127,7 +131,9 @@ const DesignList = ({ onDesignClick }) => {
           />
         ))}
       </div>
-      {loading && <div className="text-center py-4">Loading...</div>}
+      <div className="flex justify-center items-center mt-6">
+    {loading && <Loading />}
+  </div>
     </div>
   );
 };

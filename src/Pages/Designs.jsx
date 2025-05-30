@@ -17,35 +17,35 @@ const Designs = () =>{
     const [design,setDesign] = useState(null);
     const [designToShow, setDesignToShow] = useState(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [designs, setDesigns] = useState(null);
+    // const [isLoading, setIsLoading] = useState(true);
+    const [designs, setDesigns] = useState([]);
     const location = useLocation(); // Access the current URL
     const queryParams = new URLSearchParams(location.search); // Parse the query string
     const designId = queryParams.get('designId') || null;
     // console.log(selectedDesign, 'designs');    
-    useEffect(()=>{
-        const fetchIdeas = async () => {
-            setIsLoading(true);
-            const { data, error } = await supabase.from('designs')
-            .select('*')
-            .order('created_at', { ascending: false }) // Replace 'created_at' with your timestamp column
-            .limit(12);
+    // useEffect(()=>{
+    //     const fetchIdeas = async () => {
+    //         setIsLoading(true);
+    //         const { data, error } = await supabase.from('designs')
+    //         .select('*')
+    //         .order('created_at', { ascending: false }) // Replace 'created_at' with your timestamp column
+    //         .limit(12);
             
-            if (error) {
-              console.error('Error fetching designs:', error);
-              return;
-            }
-            setDesigns(data);
-            // console.log(data);
-            setIsLoading(false);
-          };
-           fetchIdeas(); 
-    },[])
-    useEffect(()=>{
-        if(designId){
-            handleClick({id:designId})
+    //         if (error) {
+    //           console.error('Error fetching designs:', error);
+    //           return;
+    //         }
+    //         setDesigns(data);
+    //         // console.log(data);
+    //         setIsLoading(false);
+    //       };
+    //        fetchIdeas(); 
+    // },[])
+    useEffect(() => {
+        if (designId && !design) { // Only fetch if designId exists and design is not already set
+            handleClick({ id: designId });
         }
-    },[designId])
+    }, [designId, design]);
     
     // const handleClick = async (design) => {
     //     const { data, error } = await supabase
@@ -89,9 +89,12 @@ const Designs = () =>{
         );
       };
 
-    if(isLoading){
-        return <Loading />
-    }
+    // if(isLoading){
+    //     return <Loading />
+    // }
+    // useEffect(()=>{
+    //     console.log(isLoading,'is loading')
+    // },[isLoading])
 
     return (
         <div className="p-6">
@@ -116,6 +119,9 @@ const Designs = () =>{
                 </div>
                 <DesignList
                     designs={designs}
+                    setDesigns={setDesigns}
+                    // setIsLoading={setIsLoading}
+                    // isLoading={isLoading}
                     onDesignClick={handleClick}
                 />
 
@@ -125,7 +131,7 @@ const Designs = () =>{
                     isOpen={isAddModalOpen}
                     onSave={(design) => {
                         setIsAddModalOpen(false)
-                        setDesigns((prev)=> [...prev, design])
+                        setDesigns((prev)=> [design,...prev])
                     }}
                     onClose={() => setIsAddModalOpen(false)}
                 />
