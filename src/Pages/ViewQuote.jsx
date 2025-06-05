@@ -19,7 +19,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
   const location = useLocation();
   const { showMessage } = useMessage();
   const quote =
-    new URLSearchParams(location.search).get("quote") || quoteId || null; 
+    new URLSearchParams(location.search).get("quote") || quoteId || null;
   const [formData, setFormData] = useState({
     agent: "",
     buyer: "",
@@ -101,11 +101,11 @@ export default function ViewQuote({ quoteId, forPdf }) {
             ...startingInfoData, // Spread the startingInfo data into the top-level object
           };
         }); // delete data.lineItems
-        const { lineItems,...quoteInfo} = data
+        const { lineItems, ...quoteInfo } = data;
         console.log(processedLineItems);
         setlineItems(data.lineItems);
         setProductInfo(processedLineItems);
-        setFormData(quoteInfo)
+        setFormData(quoteInfo);
         console.log(data);
 
         if (error) {
@@ -270,7 +270,9 @@ export default function ViewQuote({ quoteId, forPdf }) {
             <div className="flex flex-row gap-2 ">
               <span className="self-center">Metal Prices At:</span>
               <div className="flex flex-col items-evenly mb-1">
-                <label htmlFor="gold_price" className="mb-2">Gold Price</label>
+                <label htmlFor="gold_price" className="mb-2">
+                  Gold Price
+                </label>
                 <input
                   type="number"
                   className=" block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
@@ -325,19 +327,26 @@ export default function ViewQuote({ quoteId, forPdf }) {
                         <th className="border border-gray-300 p-2 w-20">
                           Internal Note
                         </th>
-                        {forPdf?"":<th className="border border-gray-300 p-2 w-20">
-                          Buyer Remark
-                        </th>}
+                        {forPdf ? (
+                          ""
+                        ) : (
+                          <th className="border border-gray-300 p-2 w-20">
+                            Buyer Remark
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
                       {lineItems.map((lineItem, index) => {
-                        console.log(lineItem.productId, 'lineItem.productId in view Quote');
+                        console.log(
+                          lineItem.productId,
+                          "lineItem.productId in view Quote"
+                        );
 
                         let product = productInfo.find(
                           (product) => product.id === lineItem.productId
                         );
-                        console.log(product,'product in view Quote')
+                        console.log(product, "product in view Quote");
                         // console.log(product,'product')
                         return (
                           <tr key={index}>
@@ -352,7 +361,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
                                   src={product.images[0]}
                                   alt={product.styleNumber}
                                 />
-                                {product.images.length >1 ? (
+                                {product.images.length > 1 ? (
                                   <button
                                     onClick={(e) => {
                                       e.preventDefault();
@@ -390,9 +399,13 @@ export default function ViewQuote({ quoteId, forPdf }) {
                               cellType={"internalNote"}
                               data={lineItem.internalNote} // Placeholder for actual data
                             />
-                            {forPdf? '':<td className="border border-gray-300 p-2 text-center">
-                              {formData.buyerComments || "No Remarks"}
-                            </td>}
+                            {forPdf ? (
+                              ""
+                            ) : (
+                              <td className="border border-gray-300 p-2 text-center">
+                                {formData.buyerComments || "No Remarks"}
+                              </td>
+                            )}
                           </tr>
                         );
                       })}
@@ -484,7 +497,9 @@ export default function ViewQuote({ quoteId, forPdf }) {
                 </div>
 
                 <div className="flex flex-row justify-between">
-                  <h1 className=" py-5 text-xl font-bold">Quote: {formData.id}</h1>
+                  <h1 className=" py-5 text-xl font-bold">
+                    Quote: {formData.id}
+                  </h1>
                   <div className="flex flex-row gap-2">
                     {/* <span className="self-center">Metal Prices At:</span> */}
                     <div className="flex flex-col gap-2 mb-1">
@@ -519,9 +534,13 @@ export default function ViewQuote({ quoteId, forPdf }) {
                           Price
                         </th>
                         {/* <th className="border border-gray-300 p-2 w-20">Internal Note</th> */}
-                        {forPdf? "":<th className="border border-gray-300 p-2 w-20">
-                          Remarks
-                        </th>}
+                        {forPdf ? (
+                          ""
+                        ) : (
+                          <th className="border border-gray-300 p-2 w-20">
+                            Remarks
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     {/* <tbody>
@@ -587,37 +606,62 @@ export default function ViewQuote({ quoteId, forPdf }) {
                         );
                       })}
                     </tbody> */}
-                 <tbody>
-  {lineItems.map((lineItem, index) => {
-    let product = productInfo.find(
-      (product) => product.id === lineItem.productId
-    );
+                    <tbody>
+                      {lineItems.map((lineItem, index) => {
+                        let product = productInfo.find(
+                          (product) => product.id === lineItem.productId
+                        );
 
-    return (
-      <tr
-        key={index}
-        className={`border border-gray-300 ${
-          index < 3 ? '':index % 10 === 0 ? "break-before-page" : "break-inside-avoid"
-        }`}
-      >
-        <td className="border border-gray-300 p-2 text-center">
-          <span className="flex flex-col">{product.styleNumber}</span>
-        </td>
-        <td className="border border-gray-300 p-2 text-center">
-          <div className="flex flex-col">
-            <img src={product.images[0]} alt={product.styleNumber} />
-          </div>
-        </td>
-        <td className="border border-gray-300 p-2 text-center">
-          {product.salesWeight}g
-        </td>
-        <td className="border border-gray-300 p-2 text-center">
-          ${lineItem.salesPrice}
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
+                        return (
+                          <tr
+                            key={index}
+                            className={`border border-gray-300 ${
+                              index < 3
+                                ? ""
+                                : index % 10 === 0
+                                ? "break-before-page"
+                                : "break-inside-avoid"
+                            }`}
+                          >
+                            <td className="border border-gray-300 p-2 text-center">
+                              <span className="flex flex-col">
+                                {product.styleNumber}
+                              </span>
+                            </td>
+                            <td className="border border-gray-300 p-2 text-center">
+                              <div className="flex flex-col">
+                                <img
+                                  src={product.images[0]}
+                                  alt={product.styleNumber}
+                                />
+                              </div>
+                            </td>
+                            <td className="border border-gray-300 p-2 text-center">
+                              {product.salesWeight}g
+                            </td>
+                            <td className="border border-gray-300 p-2 text-center">
+                              ${lineItem.salesPrice}
+                            </td>
+                            {!forPdf ? (
+                              <EditableCellWithGenerics
+                                handleChange={handleChangeUnauthenticated}
+                                setEditingCell={setEditingCell}
+                                editingCell={editingCell}
+                                id={lineItem.id}
+                                cellType={"BuyerComments"}
+                                data={
+                                  lineItem.BuyerComment.trim() === ""
+                                    ? null
+                                    : lineItem.buyerComment
+                                } // Placeholder for actual data
+                              />
+                            ) : (
+                              ""
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
                   </table>
                 </div>
 
@@ -641,10 +685,9 @@ export default function ViewQuote({ quoteId, forPdf }) {
     <div className="flex flex-col min-h-[80vh]">
       {forPdf
         ? isNotAuthenticatedRender()
-        : (isAuthenticated
+        : isAuthenticated
         ? isAuthenticatedRender()
-        : isNotAuthenticatedRender())
-      }
+        : isNotAuthenticatedRender()}
     </div>
   );
 }

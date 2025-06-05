@@ -539,7 +539,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                         <textarea
                           rows={2}
                           className="mt-1 block input shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={starting_info.description}
+                          value={starting_info.description || ''}
                           onChange={(e) =>
                             setStarting_info({
                               ...starting_info,
@@ -564,8 +564,8 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                                 const selectedMetalType = e.target.value;
                                 const metal = getMetalType(selectedMetalType);
 
-                                setFormData({
-                                  ...formData,
+                                setStarting_info({
+                                  ...starting_info,
                                   metalType: selectedMetalType,
                                   karat: metal.karat[0], // default to first karat
                                   color: metal.color[0], // default to first color
@@ -655,6 +655,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                                 placeholder="Enter Weight"
                                 className="mt-1 block input shadow-sm focus:border-blue-500 focus:ring-blue-500 w-full "
                                 value={starting_info.weight}
+                                required={true}
                                 onChange={(e) =>
                                   setStarting_info({
                                     ...starting_info,

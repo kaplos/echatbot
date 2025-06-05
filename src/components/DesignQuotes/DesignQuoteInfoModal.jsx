@@ -313,88 +313,101 @@ const DesignQuoteInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
                       </div>
                       {/* this is metal properties div */}
                       <div>
-                        <label htmlFor=""> Metal Propeties</label>
-                        <br className="border-2 border-gray-300 w-full" />
-
-                        <div className="flex flex-col">
-                          <label htmlFor=""> Metal Type</label>
-                          <select
-                            name="metalType"
-                            id=""
-                            onChange={(e) => {
-                              const selectedMetalType = e.target.value;
-                              const metal = getMetalType(selectedMetalType);
-
-                              setFormData({
-                                ...formData,
-                                metalType: selectedMetalType,
-                                karat: metal.karat[0], // default to first karat
-                                color: metal.color[0], // default to first color
-                              });
-                            }}
-                            value={formData.metalType}
-                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          >
-                            {metalTypes.map((metalType, index) => {
-                              return (
-                                <option key={index} value={metalType.type}>
-                                  {metalType.type}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </div>
-                        <div className="flex flex-col">
-                          <label htmlFor=""> Karat</label>
-                          <select
-                            name="karat"
-                            id=""
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                karat: e.target.value,
-                              })
-                            }
-                            value={formData.karat}
-                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          >
-                            {getMetalType(formData.metalType).karat.map(
-                              (karat, index) => {
-                                return (
-                                  <option key={index} value={karat}>
-                                    {karat}
-                                  </option>
-                                );
-                              }
-                            )}
-                          </select>
-                        </div>
-                        <div className="flex flex-col">
-                          <label htmlFor=""> Color</label>
-                          <select
-                            name="color"
-                            id=""
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                color: e.target.value,
-                              })
-                            }
-                            value={formData.color}
-                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          >
-                            {getMetalType(formData.metalType).color.map(
-                              (color, index) => {
-                                return (
-                                  <option key={index} value={color}>
-                                    {color}
-                                  </option>
-                                );
-                              }
-                            )}
-                          </select>
-                        </div>
-                      </div>
+                                              <label htmlFor=""> Metal Propeties</label>
+                                              <br className="border-2 border-gray-300 w-full" />
+                      
+                                              <div className="flex flex-col">
+                                                <label htmlFor=""> Metal Type</label>
+                                                <div className="relative w-full">
+                      
+                                                <select
+                                                  name="metalType"
+                                                  id=""
+                                                  onChange={(e) => {
+                                                    const selectedMetalType = e.target.value;
+                                                    const metal = getMetalType(selectedMetalType);
+                      
+                                                    setFormData({
+                                                      ...formData,
+                                                      metalType: selectedMetalType,
+                                                      karat: metal.karat[0], // default to first karat
+                                                      color: metal.color[0], // default to first color
+                                                    });
+                                                  }}
+                                                  value={formData.metalType}
+                                                  className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+                      
+                                                >
+                                                  {metalTypes.map((metalType, index) => {
+                                                    return (
+                                                      <option key={index} value={metalType.type}>
+                                                        {metalType.type}
+                                                      </option>
+                                                    );
+                                                  })}
+                                                </select>
+                                                <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                                                </div>
+                                              </div>
+                                              <div className="flex flex-col">
+                                                <label htmlFor=""> Karat</label>
+                                                <div className="relative w-full">
+                      
+                                                <select
+                                                  name="karat"
+                                                  id=""
+                                                  onChange={(e) =>
+                                                    setFormData({
+                                                      ...formData,
+                                                      karat: e.target.value,
+                                                    })
+                                                  }
+                                                  value={formData.karat}
+                                                  className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+                                                  >
+                                                  {getMetalType(formData.metalType).karat.map(
+                                                    (karat, index) => {
+                                                      return (
+                                                        <option key={index} value={karat}>
+                                                          {karat}
+                                                        </option>
+                                                      );
+                                                    }
+                                                  )}
+                                                </select>
+                                                <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                                                </div>
+                                              </div>
+                                              <div className="flex flex-col">
+                                                <label htmlFor=""> Color</label>
+                                                <div className="relative w-full">
+                      
+                                                <select
+                                                  name="color"
+                                                  id=""
+                                                  onChange={(e) =>
+                                                    setFormData({
+                                                      ...formData,
+                                                      color: e.target.value,
+                                                    })
+                                                  }
+                                                  value={formData.color}
+                                                  className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+                                                  >
+                                                  {getMetalType(formData.metalType).color.map(
+                                                    (color, index) => {
+                                                      return (
+                                                        <option key={index} value={color}>
+                                                          {color}
+                                                        </option>
+                                                      );
+                                                    }
+                                                  )}
+                                                </select>
+                                                <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                                                </div>
+                                              </div>
+                                            </div>
                       <div className="w-full">
                         <label htmlFor="">Weight</label>
                         <div className="flex items-center gap-1 ">

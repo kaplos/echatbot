@@ -305,6 +305,8 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
 
                         <div className="flex flex-col">
                           <label htmlFor=""> Metal Type</label>
+                          <div className="relative w-full">
+
                           <select
                             name="metalType"
                             id=""
@@ -320,7 +322,8 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
                               });
                             }}
                             value={formData.metalType}
-                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+
                           >
                             {metalTypes.map((metalType, index) => {
                               return (
@@ -330,9 +333,13 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
                               );
                             })}
                           </select>
+                          <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                          </div>
                         </div>
                         <div className="flex flex-col">
                           <label htmlFor=""> Karat</label>
+                          <div className="relative w-full">
+
                           <select
                             name="karat"
                             id=""
@@ -343,8 +350,8 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
                               })
                             }
                             value={formData.karat}
-                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          >
+                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+                            >
                             {getMetalType(formData.metalType).karat.map(
                               (karat, index) => {
                                 return (
@@ -355,9 +362,13 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
                               }
                             )}
                           </select>
+                          <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                          </div>
                         </div>
                         <div className="flex flex-col">
                           <label htmlFor=""> Color</label>
+                          <div className="relative w-full">
+
                           <select
                             name="color"
                             id=""
@@ -368,8 +379,8 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
                               })
                             }
                             value={formData.color}
-                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                          >
+                            className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+                            >
                             {getMetalType(formData.metalType).color.map(
                               (color, index) => {
                                 return (
@@ -380,6 +391,8 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
                               }
                             )}
                           </select>
+                          <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                          </div>
                         </div>
                       </div>
                       <div className="w-full">

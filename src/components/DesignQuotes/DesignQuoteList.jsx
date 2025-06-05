@@ -123,23 +123,6 @@ const DesignQuoteList = ({ onDesignClick }) => {
         }
       }}
     >
-      {/* <div className="flex justify-end mb-4 space-x-3">
-        <button
-          onClick={handleButtonSelections}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-        >
-          {isSelectionMode ? 'Cancel Selection' : 'Select Designs'}
-        </button>
-        {isSelectionMode && selectedDesigns.size > 0 && (
-          <button
-            onClick={handleExport}
-            className="px-4 py-2 text-sm font-medium text-white bg-chabot-gold rounded-lg hover:bg-opacity-90 inline-flex items-center"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export Selected ({selectedDesigns.size})
-          </button>
-        )}
-      </div> */}
       {
           designQuotes.length === 0 ? 
             <div className="flex justify-center items-center h-screen">No Design Quotes Found For This Design</div>

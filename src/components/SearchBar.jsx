@@ -50,12 +50,18 @@ const SearchBar = () => {
         .or(`buyer.ilike.%${searchTerm}%`);
 
       if (quotesError) throw quotesError;
-      const { data: quotesById, error: quotesError2 } = await supabase
-        .from('quotes')
-        .select('*')
-        .eq("id",Number(searchTerm));
+      let quotesById = [];
 
-      if (quotesError2) throw quotesError2;
+      if (!isNaN(parseInt(searchTerm))) {
+        const { data, error: quotesError2 } = await supabase
+          .from('quotes')
+          .select('*')
+          .eq("id", Number(searchTerm));
+
+        if (quotesError2) throw quotesError2;
+
+        quotesById = data || [];
+      }
 
       // const { data: vendors, error: vendorsError } = await supabase
       //   .from('vendors')
@@ -121,7 +127,12 @@ const SearchBar = () => {
 
   useEffect(() => {
     if (searchTerm.length === 0) return;
-    fetchItems(searchTerm);
+
+    const delayDebounce = setTimeout(() => {
+      fetchItems(searchTerm);
+    }, 300); // Adjust debounce delay (ms) as needed
+
+    return () => clearTimeout(delayDebounce);
   }, [searchTerm]);
 
   return (
@@ -145,6 +156,9 @@ const SearchBar = () => {
                 <li key={index}>
                   <Link
                     to={item.linkTo}
+                    onClick={(e)=>{
+                      setItems(null)
+                    }}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
                     {item.display}

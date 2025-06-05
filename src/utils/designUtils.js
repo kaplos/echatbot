@@ -1,7 +1,6 @@
 
 
 export const getStatusColor = (status) => {
-    console.log(status)
     const color= status.split(':')[1];
     const colors = {
         grey: 'bg-gray-500 text-white',

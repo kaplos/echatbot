@@ -85,9 +85,7 @@ const DesignQuote = () =>{
     if(isLoading){
         return <Loading />
     }
-    // if(designs.length === 0){
-    //     return <div className="flex justify-center items-center h-screen">No Design Quotes Found</div>
-    // }
+    
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-6">

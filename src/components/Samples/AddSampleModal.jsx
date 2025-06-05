@@ -17,28 +17,6 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   const [lossPercent, setLossPercent] = useState(0);
   const [metalCost, setMetalCost] = useState(0);
 
-  // const [formData, setFormData] = useState({
-  //         styleNumber:'',
-  //         manufacturerCode:'',
-  //         name: '',
-  //         description: '',
-  //         collection: '',
-  //         category: '',
-  //         karat: '10K',
-  //         metalType: 'Gold',
-  //         color: 'Yellow',
-  //         vendor: 1,
-  //         platingCharge:0.00,
-  //         stones:null,
-  //         cost: 0.00,
-  //         length: 0,
-  //         width: 0,
-  //         height: 0,
-  //         notes: '',
-  //         images: [],
-  //         cad: [],
-  //         status: 'Working_on_it:yellow',
-  //     })
 
   const [formData, setFormData] = useState({
     cad: [],
@@ -57,18 +35,18 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   const [starting_info, setStarting_info] = useState({
     description: "",
     images: [],
+    metalType: "Gold",
+    karat: "10K",
     color: "Yellow",
     height: 0,
     length: 0,
     width: 0,
     weight: 0,
     manufacturerCode: "",
-    metalType: "Gold",
     platingCharge: 0,
     stones: [],
     vendor: "",
     plating: 1,
-    karat: "10K",
     status: "Working_on_it:yellow",
   });
 
@@ -95,18 +73,18 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     setStarting_info({
       description: "",
       images: [],
+      metalType: "Gold",
+      karat: "10K",
       color: "Yellow",
       height: 0,
       length: 0,
       width: 0,
       weight: 0,
       manufacturerCode: "",
-      metalType: "Gold",
       platingCharge: 0,
       stones: [],
       vendor: "",
       plating: 1,
-      karat: "10K",
       status: "Working_on_it:yellow",
     });
     onClose();
@@ -433,8 +411,8 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                                 const selectedMetalType = e.target.value;
                                 const metal = getMetalType(selectedMetalType);
 
-                                setFormData({
-                                  ...formData,
+                                setStarting_info({
+                                  ...starting_info,
                                   metalType: selectedMetalType,
                                   karat: metal.karat[0], // default to first karat
                                   color: metal.color[0], // default to first color
@@ -523,6 +501,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                                 placeholder="Enter Weight"
                                 className="mt-1 block input shadow-sm focus:border-blue-500 focus:ring-blue-500 w-full "
                                 value={starting_info.weight}
+                                required={true}
                                 onChange={(e) =>
                                   setStarting_info({
                                     ...starting_info,
