@@ -65,7 +65,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
         const { data, error } = await supabase
           .from("quotes")
           .select(
-            `
+            `                       id,
                                     quoteNumber,
                                     agent,
                                     buyer,
@@ -269,8 +269,8 @@ export default function ViewQuote({ quoteId, forPdf }) {
           <div className="flex flex-col justify-between  items-center mb-6 flex-1 h-full">
             <div className="flex flex-row gap-2 ">
               <span className="self-center">Metal Prices At:</span>
-              <div className="flex flex-col mb-1">
-                <label htmlFor="gold_price">Gold Price</label>
+              <div className="flex flex-col items-evenly mb-1">
+                <label htmlFor="gold_price" className="mb-2">Gold Price</label>
                 <input
                   type="number"
                   className=" block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
@@ -283,7 +283,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
                   }
                 />
               </div>
-              <div className="flex flex-col mb-1">
+              <div className="flex flex-col gap-2 mb-1">
                 <label htmlFor="silver_price">Silver Price</label>
                 <input
                   type="number"
@@ -325,9 +325,9 @@ export default function ViewQuote({ quoteId, forPdf }) {
                         <th className="border border-gray-300 p-2 w-20">
                           Internal Note
                         </th>
-                        <th className="border border-gray-300 p-2 w-20">
+                        {forPdf?"":<th className="border border-gray-300 p-2 w-20">
                           Buyer Remark
-                        </th>
+                        </th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -377,7 +377,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
                               {product.description}
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
-                              {product.weight}g
+                              {product.salesWeight}g
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
                               ${lineItem.salesPrice}
@@ -390,9 +390,9 @@ export default function ViewQuote({ quoteId, forPdf }) {
                               cellType={"internalNote"}
                               data={lineItem.internalNote} // Placeholder for actual data
                             />
-                            <td className="border border-gray-300 p-2 text-center">
+                            {forPdf? '':<td className="border border-gray-300 p-2 text-center">
                               {formData.buyerComments || "No Remarks"}
-                            </td>
+                            </td>}
                           </tr>
                         );
                       })}
@@ -484,16 +484,16 @@ export default function ViewQuote({ quoteId, forPdf }) {
                 </div>
 
                 <div className="flex flex-row justify-between">
-                  <h1 className=" py-5 text-xl font-bold">Quote:</h1>
+                  <h1 className=" py-5 text-xl font-bold">Quote: {formData.id}</h1>
                   <div className="flex flex-row gap-2">
                     {/* <span className="self-center">Metal Prices At:</span> */}
-                    <div className="flex flex-col mb-1">
+                    <div className="flex flex-col gap-2 mb-1">
                       <label htmlFor="gold_price">Gold Price:</label>
                       <span className="border-2 border-black p-2 rounded">
                         ${formData.gold}
                       </span>
                     </div>
-                    <div className="flex flex-col mb-1">
+                    <div className="flex flex-col gap-2 mb-1">
                       <label htmlFor="silver_price">Silver Price:</label>
                       <span className="border-2 border-black p-2 rounded">
                         {" "}
@@ -513,18 +513,18 @@ export default function ViewQuote({ quoteId, forPdf }) {
                           Image
                         </th>
                         <th className="border border-gray-300 p-2 w-20">
-                          Weight
+                          Sales Weight
                         </th>
                         <th className="border border-gray-300 p-2 w-20">
                           Price
                         </th>
                         {/* <th className="border border-gray-300 p-2 w-20">Internal Note</th> */}
-                        <th className="border border-gray-300 p-2 w-20">
+                        {forPdf? "":<th className="border border-gray-300 p-2 w-20">
                           Remarks
-                        </th>
+                        </th>}
                       </tr>
                     </thead>
-                    <tbody>
+                    {/* <tbody>
                       {lineItems.map((lineItem, index) => {
                         let product = productInfo.find(
                           (product) => product.id === lineItem.productId
@@ -544,7 +544,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
                                   src={product.images[0]}
                                   alt={product.styleNumber}
                                 />
-                                {product.images.length > 1 ? (
+                                {product.images.length > 1 && !forPdf? (
                                   <button
                                     onClick={(e) => {
                                       e.preventDefault();
@@ -566,12 +566,12 @@ export default function ViewQuote({ quoteId, forPdf }) {
                               </div>
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
-                              {product.weight}g
+                              {product.salesWeight}g
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
                               ${lineItem.salesPrice}
                             </td>
-                            <EditableCellWithGenerics
+                            {!forPdf? <EditableCellWithGenerics
                               handleChange={handleChangeUnauthenticated}
                               setEditingCell={setEditingCell}
                               editingCell={editingCell}
@@ -582,15 +582,46 @@ export default function ViewQuote({ quoteId, forPdf }) {
                                   ? null
                                   : lineItem.buyerComment
                               } // Placeholder for actual data
-                            />
+                            />:""}
                           </tr>
                         );
                       })}
-                    </tbody>
+                    </tbody> */}
+                 <tbody>
+  {lineItems.map((lineItem, index) => {
+    let product = productInfo.find(
+      (product) => product.id === lineItem.productId
+    );
+
+    return (
+      <tr
+        key={index}
+        className={`border border-gray-300 ${
+          index < 3 ? '':index % 10 === 0 ? "break-before-page" : "break-inside-avoid"
+        }`}
+      >
+        <td className="border border-gray-300 p-2 text-center">
+          <span className="flex flex-col">{product.styleNumber}</span>
+        </td>
+        <td className="border border-gray-300 p-2 text-center">
+          <div className="flex flex-col">
+            <img src={product.images[0]} alt={product.styleNumber} />
+          </div>
+        </td>
+        <td className="border border-gray-300 p-2 text-center">
+          {product.salesWeight}g
+        </td>
+        <td className="border border-gray-300 p-2 text-center">
+          ${lineItem.salesPrice}
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
                   </table>
                 </div>
 
-                <div className="w-full border-b border-x border-gray-300 pl-3">
+                <div className="w-full border-b border-x border-gray-300 p-2 pl-3">
                   <span>
                     Quote Total:
                     {lineItems
@@ -610,9 +641,10 @@ export default function ViewQuote({ quoteId, forPdf }) {
     <div className="flex flex-col min-h-[80vh]">
       {forPdf
         ? isNotAuthenticatedRender()
-        : isAuthenticated
+        : (isAuthenticated
         ? isAuthenticatedRender()
-        : isNotAuthenticatedRender()}
+        : isNotAuthenticatedRender())
+      }
     </div>
   );
 }

@@ -16,7 +16,7 @@ const stoneHeaders = Array.from({ length: 10 }, (_, i) => {
 const headersExport = {
   designs: [
     { key: "id", label: "ID (Design)" },
-    { key: "description", label: "Description" },
+    { key: "d_description", label: "Design Description" },
     { key: "link", label: "Link" },
     { key: "collection", label: "Collection" },
     { key: "category", label: "Category" },
@@ -25,7 +25,7 @@ const headersExport = {
     { key: "name", label: "Name" },
 
     { key: "manufacturerCode", label: "Manufacturer Code" },
-    { key: "startinginfo_description", label: "Quote Description" },
+    { key: "s_description", label: "Quote Description" },
     { key: "karat", label: "Karat" },
     { key: "metalType", label: "Metal Type" },
     { key: "color", label: "Color" },
@@ -38,6 +38,7 @@ const headersExport = {
     { key: "plating", label: "Plating" },
     { key: "miscCost", label: "Misc Cost" },
     { key: "laborCost", label: "Labor Cost" },
+    // { key: "description", label: "Description" },
     // { key: "designId", label: "Design ID" },
     { key: "totalCost", label: "Total Cost" },
     { key: "s_images", label: "Quote Images" },
@@ -47,7 +48,7 @@ const headersExport = {
    ],
    samples:[
     {key:'id',label:'ID (Sample)'},
-     { key: 'name', label: 'Name' },
+     { key: 'name', label: 'Sku' },
      { key: 'styleNumber', label: 'Style Number' },
     { key: 'cad', label: 'CAD Files' },
     { key: 'category', label: 'Category' },
@@ -60,7 +61,7 @@ const headersExport = {
     { key: 's_status', label: 'Sample Status' },
 
     { key: "manufacturerCode", label: "Manufacturer Code" },
-    { key: "startinginfo_description", label: "Quote Description" },
+    { key: "s_description", label: "Quote Description" },
     { key: "karat", label: "Karat" },
     { key: "metalType", label: "Metal Type" },
     { key: "color", label: "Color" },
@@ -73,6 +74,7 @@ const headersExport = {
     { key: "plating", label: "Plating" },
     { key: "miscCost", label: "Misc Cost" },
     { key: "laborCost", label: "Labor Cost" },
+    // { key: "description", label: "Description" },
     // { key: "designId", label: "Design ID" },
     { key: "totalCost", label: "Total Cost" },
     { key: "s_images", label: "Quote Images" },
@@ -150,7 +152,7 @@ export const exportToCSV = (products,type) => {
   function flattenDesignOnly(design) {
     return {
       id: design.id ?? "",
-      description: design.description ?? "",
+      d_description: design.description ?? "",
       link: design.link ?? "",
       collection: design.collection ?? "",
       category: design.category ?? "",
@@ -160,7 +162,7 @@ export const exportToCSV = (products,type) => {
       // designId: design.id ?? "",
       manufacturerCode: design.startingInfo.manufacturerCode ?? "",
       images: design.startingInfo.images?.join(" | ") ?? "",
-      description: design.startingInfo.description ?? "",
+      s_description: design.startingInfo.description ?? "",
       metalType: design.startingInfo.metalType ?? "",
       karat: design.startingInfo.karat ?? "",
       color: design.startingInfo.color ?? "",
@@ -212,7 +214,7 @@ export const exportToCSV = (products,type) => {
       // sampleId: sample.id ?? "",
       manufacturerCode: sample.startingInfo.manufacturerCode ?? "",
       s_images:sample.s_images,
-      description: sample.startingInfo.description ?? "",
+      s_description: sample.startingInfo.description ?? "",
       metalType: sample.startingInfo.metalType ?? "",
       karat: sample.startingInfo.karat ?? "",
       color: sample.startingInfo.color ?? "",

@@ -48,16 +48,17 @@ import { useEffect, useState, useMemo } from "react";
 
 
 export default function CalculateMetalCost({ type: originalType, weight, karat, lossPercent, onMetalCostChange }) {
+    
     const { prices } = useMetalPriceStore();
     let type = originalType?.toLowerCase() || "";
     let buyingFee = 1.01;
-    const lossPercentFormated =( lossPercent >1 ? (lossPercent/100):lossPercent)+1
+    const lossPercentFormated =( lossPercent >=1 ? (lossPercent/100):lossPercent)+1
 
-    console.log(parseFloat(prices[type].price) * weight)
     // Compute metal price dynamically
     const metalCost = useMemo(() => {
         if (prices[type].price && weight && purity[karat] && lossPercent) {
-            return parseFloat(((weight * parseFloat(prices[type].price * purity[karat]) * buyingFee) / 31.1035) *lossPercentFormated).toFixed(2);        }
+            console.log(parseFloat(prices[type].price),weight,purity[karat],lossPercentFormated )
+            return parseFloat(((weight * parseFloat(prices[type].price )*purity[karat] * buyingFee) / 31.1035) *lossPercentFormated).toFixed(2);        }
         return 0.00;
     }, [prices, type, weight, karat, lossPercent]);
     // Update PricingContext when metal cost changes

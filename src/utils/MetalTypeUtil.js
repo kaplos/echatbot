@@ -23,7 +23,7 @@ export const purity = {
     '18K': 0.75, 
     '22K': 0.917, 
     '24K': 1.00,
-    '925':.925
+    '925': .925
 }
 // export const goldFormula = (weight,pricePerOz,carats) => {
 //     weight * pricePerOz * purity[carats] *

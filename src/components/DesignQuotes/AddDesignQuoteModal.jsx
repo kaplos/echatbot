@@ -11,10 +11,10 @@ import CalculatePrice from "../Samples/CalculatePrice";
 import TotalCost from "../Samples/TotalCost";
 import { metalTypes, getMetalType } from "../../utils/MetalTypeUtil";
 import StonePropertiesForm from "../Products/StonePropertiesForm";
+
 import { useLocation } from "react-router-dom";
 const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
-  const getVendorById = useVendorStore((state) => state.getVendorById);
-  const vendors = useVendorStore((state) => state.vendors);
+  const { getVendorById, vendors } = useVendorStore();
 
   const { supabase } = useSupabase();
   const vendorLossRef = useRef();
@@ -22,8 +22,8 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
   const [metalCost, setMetalCost] = useState(0);
   // const [vendors, setVendors] = useState([]);
   const location = useLocation(); // Access the current URL
-    const queryParams = new URLSearchParams(location.search); // Parse the query string
-    const designId = queryParams.get('designId') || null;
+  const queryParams = new URLSearchParams(location.search); // Parse the query string
+  const designId = queryParams.get("designId") || null;
 
   const [formData, setFormData] = useState({
     description: "",
@@ -37,56 +37,58 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
     metalType: "Gold",
     platingCharge: 0,
     stones: [],
-    vendor: '',
-    plating: '',
+    vendor: "",
+    plating: "",
     karat: "10K",
     designId: designId,
     status: "Working_on_it:yellow",
   });
   useEffect(() => {
-      // const { data, error } = await supabase.from("vendors").select("*");
+   
+    console.log(vendors, "vendors from store");
 
-      // if (error) {
-      //   console.log(e);
-      // }
-      // console.log("data of vendors", data);
-      // setVendors(data);
-      console.log(vendors, "vendors from store");
+    setLossPercent(vendors[0].pricingsetting.lossPercentage);
 
-      setLossPercent(vendors[0].pricingsetting.lossPercentage);
-      setFormData({...formData,vendor:vendors[0].id})
-      // vendorLossRef.current.textContent = data[0].pricingsetting.lossPercentage
+    if(designId){
+      console.log('form with design id', designId)
+      setFormData({
+        ...formData,designId: parseInt(designId),
+        vendor: vendors[0].id 
+      })
+    }else {
+      setFormData({ ...formData, vendor: vendors[0].id });
+    }
+    
   }, [isOpen]);
-
-  
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const {stones,...rest} = formData;
+    const { stones, ...rest } = formData;
     console.log(formData);
     const { data, error } = await supabase
-      .from('starting_info')
-      .insert([{...rest}])
-      .select()
-    const {  error: stoneError } = await supabase
-      .from('stones')
-      .insert(stones.map((stone) => ({
+      .from("starting_info")
+      .insert([{ ...rest }])
+      .select();
+    const { error: stoneError } = await supabase.from("stones").insert(
+      stones.map((stone) => ({
         ...stone,
         starting_info_id: data[0].id,
-        }))) ;
+      }))
+    );
 
-if(error || stoneError){
-    console.log('error inserting stones or starting info ', error);
-}
+    if (error || stoneError) {
+      console.log("error inserting stones or starting info ", error);
+    }
 
-console.log(data, 'data from insert samples ');
-const {error:designIdError}= await supabase
-  .from('designs')
-  .update({starting_info_id: data[0].id})
-  .eq('id', designId)
-  .select()
+    console.log(data, "data from insert samples ");
+    const { error: designIdError } = await supabase
+      .from("designs")
+      .update({ starting_info_id: data[0].id })
+      .eq("id", designId)
+      .select();
 
-    if(designIdError){
-      console.log(designIdError)
+    if (designIdError) {
+      console.log(designIdError);
     }
     onSave(data[0]);
     setFormData({
@@ -101,12 +103,12 @@ const {error:designIdError}= await supabase
       metalType: "Gold",
       platingCharge: 0,
       stones: [],
-      vendor: '',
-      plating: '',
+      vendor: "",
+      plating: "",
       karat: "10K",
       status: "Working_on_it:yellow",
-  })
-}
+    });
+  };
   // const handleFileChange = (e) => {
 
   // }
@@ -159,7 +161,7 @@ const {error:designIdError}= await supabase
                 <div className="flex justify-between items-center p-6 border-b">
                   <Dialog.Title className="text-xl font-semibold text-gray-900">
                     Add New Design Quote
-                  </Dialog.Title> 
+                  </Dialog.Title>
                   <button
                     onClick={onClose}
                     className="text-gray-400 hover:text-gray-500"
@@ -241,7 +243,10 @@ const {error:designIdError}= await supabase
                                 //   (vendor) =>
                                 //     vendor.id === Number(e.target.value)
                                 // );
-                                setLossPercent(getVendorById(Number(e.target.value)).pricingsetting.lossPercentage)
+                                setLossPercent(
+                                  getVendorById(Number(e.target.value))
+                                    .pricingsetting.lossPercentage
+                                );
                                 // vendorLossRef.current.textContent =
                                 //   getVendorById(Number(e.target.value)).pricingsetting.lossPercent;
                               }}
@@ -303,12 +308,17 @@ const {error:designIdError}= await supabase
                           <select
                             name="metalType"
                             id=""
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const selectedMetalType = e.target.value;
+                              const metal = getMetalType(selectedMetalType);
+
                               setFormData({
                                 ...formData,
-                                metalType: e.target.value,
-                              })
-                            }
+                                metalType: selectedMetalType,
+                                karat: metal.karat[0], // default to first karat
+                                color: metal.color[0], // default to first color
+                              });
+                            }}
                             value={formData.metalType}
                             className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           >
@@ -579,4 +589,3 @@ const {error:designIdError}= await supabase
 };
 
 export default AddDesignQuoteModal;
-

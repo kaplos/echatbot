@@ -340,6 +340,8 @@ export default function NewQuote() {
           <h1 className="text-2xl font-bold text-gray-900">{quote ? 'Update Quote' : 'Create Quote'}</h1>
           <div className="flex space-x-3 justify-self-end flex-col w-48 ml-auto">
             <button
+              
+
               className="bg-chabot-gold text-white px-4 py-2 rounded-lg flex items-center hover:bg-opacity-90 transition-colors"
               onClick={() => setIsOpen(true)}
             >
@@ -385,7 +387,15 @@ export default function NewQuote() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 flex flex-col flex-1 h-full">
+          <form onSubmit={handleSubmit} 
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                }}
+              }
+              className="p-6 flex flex-col flex-1 h-full"
+          
+          >
             <div className="flex flex-1 h-full">
               <div className="overflow-auto h-full border border-gray-300 flex-1">
                 <table className="w-full min-h-full border-collapse border border-gray-300 flex-1 table-fixed">
@@ -394,7 +404,7 @@ export default function NewQuote() {
                       <th className="border border-gray-300 p-2 w-20">Item</th>
                       <th className="border border-gray-300 p-2 w-20">Image</th>
                       <th className="border border-gray-300 p-2 w-20">Description</th>
-                      <th className="border border-gray-300 p-2 w-20">Sales Weight</th>
+                      <th className="border border-gray-300 p-2 w-20">Weights</th>
                       <th className="border border-gray-300 p-2 w-20">Total Cost</th>
                       <th className="border border-gray-300 p-2 w-20">Margins</th>
                       <th className="border border-gray-300 p-2 w-20">Sales Price</th>
@@ -434,6 +444,7 @@ export default function NewQuote() {
                             type="number"
                             value={product.margin || 0}
                             onChange={(e) => {
+                              e.preventDefault()
                               handleLineChange(product.productId, 'margin', parseInt(e.target.value))
                               // handleLineChange(product.productId, 'salesPrice', parseFloat((product.totalCost + (productInfoObject.weight * parseInt(e.target.value))).toFixed(2)))
 
@@ -474,7 +485,7 @@ export default function NewQuote() {
                         />
                         <td className="border border-gray-300 p-2 text-center  ">{product.BuyerComment}</td>
                           <td className=" flex justify-center items-center">
-                            <button  onClick={(event)=> deleteLineItem(event,product)} className="border border-gray-300 p-2 text-center bg-red-500 text-white rounded-md hover:bg-red-600 ">
+                            <button type='button'  onClick={(event)=>{ event.preventDefault(); deleteLineItem(event,product)}} className="border border-gray-300 p-2 text-center bg-red-500 text-white rounded-md hover:bg-red-600 ">
                               Delete
                             </button>
                           </td>

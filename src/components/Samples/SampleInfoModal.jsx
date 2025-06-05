@@ -16,7 +16,7 @@ import { metalTypes, getMetalType } from "../../utils/MetalTypeUtil";
 import StonePropertiesForm from "../Products/StonePropertiesForm";
 import CalculatePrice from "./CalculatePrice";
 import TotalCost from "./TotalCost";
-import { useNavigate } from "react-router-dom";
+import { data, useNavigate } from "react-router-dom";
 // import {limitInput} from '../../utils/inputUtils.js'
 import { useVendorStore } from "../../store/VendorStore";
 const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
@@ -89,9 +89,10 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
       }
       setRelatedQuotes(data);
     };
-
     fetchQuoteNumber();
-    setLossPercent(vendors[0].pricingsetting.lossPercentage);
+    setLossPercent(
+      getVendorById(sample.starting_info.vendor).pricingsetting.lossPercentage
+    );
   }, [isOpen]);
 
   const handleInputChange = (e) => {
@@ -150,9 +151,9 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
 
     for (const stone of current) {
       if (!stone.id) {
-        added.push({...stone,starting_info_id: starting_info.id}); // new stone
+        added.push({ ...stone, starting_info_id: starting_info.id }); // new stone
       } else if (!areObjectsEqual(stone, originalMap.get(stone.id))) {
-        updated.push({...stone,starting_info_id: starting_info.id}); // changed stone
+        updated.push({ ...stone, starting_info_id: starting_info.id }); // changed stone
       }
     }
 
@@ -199,7 +200,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
       stones,
       starting_info_original.stones
     );
-    console.log(added,stones,'added stones in smapleInfoModal')
+    console.log(added, stones, "added stones in smapleInfoModal");
     // INSERT new stones
     if (added.length > 0) {
       const { error: insertError } = await supabase.from("stones").insert(
@@ -368,7 +369,6 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                                   ...formData,
                                   status: e.target.value,
                                 })
-
                               }
                               value={formData.status}
                               className={`${getStatusColor(
@@ -387,60 +387,62 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                               <option value="Dead:red">Dead</option>
                             </select>
                           </div>
-                          
+
                           <div className="flex flex-col w-full overflow-hidden">
                             <span className="text-black text-sm">
                               Related Quotes
                             </span>
                             <div className="overflow-y-auto max-h-[200px] border border-gray-300 rounded-md p-2">
                               {relatedQuotes.length > 0
-                                ? relatedQuotes.map((quote, index) => {
-                                    return (
-                                      <div
-                                        key={index}
-                                        className="flex flex-col items-center"
-                                      >
-                                        <div className="flex justify-evenly items-center gap-2">
-                                          <span>#{quote.quote.id}</span>
-                                          <span>
-                                            Last Updated:{" "}
-                                            {formatShortDate(
-                                              quote.quote.updated_at
-                                            )}
-                                          </span>
-                                          <button
-                                            onClick={() =>
-                                              navigate(
-                                                `/newQuote?quote=${quote.quote.quoteNumber}`
-                                              )
-                                            }
-                                            className="bg-chabot-gold text-white px-1 rounded-lg flex items-center hover:bg-gray-300 hover:rounded transition-colors"
-                                          >
-                                            Go to quote
-                                          </button>
+                                ? relatedQuotes
+                                    .sort((a, b) => a.quote.id - b.quote.id)
+                                    .map((quote, index) => {
+                                      return (
+                                        <div
+                                          key={index}
+                                          className="flex flex-col items-center"
+                                        >
+                                          <div className="flex justify-evenly items-center gap-2">
+                                            <span>#{quote.quote.id}</span>
+                                            <span>
+                                              Last Updated:{" "}
+                                              {formatShortDate(
+                                                quote.quote.updated_at
+                                              )}
+                                            </span>
+                                            <button
+                                              onClick={() =>
+                                                navigate(
+                                                  `/newQuote?quote=${quote.quote.quoteNumber}`
+                                                )
+                                              }
+                                              className="bg-chabot-gold text-white px-1 rounded-lg flex items-center hover:bg-gray-300 hover:rounded transition-colors"
+                                            >
+                                              Go to quote
+                                            </button>
+                                          </div>
+                                          <hr className="border-t border-gray-500 w-full my-1" />
                                         </div>
-                                        <hr className="border-t border-gray-500 w-full my-1" />
-                                      </div>
-                                    );
-                                  })
+                                      );
+                                    })
                                 : "No quotes found for this sample"}
                             </div>
                           </div>
                         </div>
                         <div className="w-full">
-                                                  <TotalCost
-                                                    metalCost={metalCost}
-                                                    miscCost={starting_info.miscCost}
-                                                    laborCost={starting_info.laborCost}
-                                                    stones={starting_info.stones}
-                                                    updateTotalCost={(cost) =>
-                                                      setStarting_info({
-                                                        ...starting_info,
-                                                        totalCost: cost,
-                                                      })
-                                                    }
-                                                  />
-                                                </div>
+                          <TotalCost
+                            metalCost={metalCost}
+                            miscCost={starting_info.miscCost}
+                            laborCost={starting_info.laborCost}
+                            stones={starting_info.stones}
+                            updateTotalCost={(cost) =>
+                              setStarting_info({
+                                ...starting_info,
+                                totalCost: cost,
+                              })
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -558,12 +560,17 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                             <select
                               name="metalType"
                               id=""
-                              onChange={(e) =>
-                                setStarting_info({
-                                  ...starting_info,
-                                  metalType: e.target.value,
-                                })
-                              }
+                              onChange={(e) => {
+                                const selectedMetalType = e.target.value;
+                                const metal = getMetalType(selectedMetalType);
+
+                                setFormData({
+                                  ...formData,
+                                  metalType: selectedMetalType,
+                                  karat: metal.karat[0], // default to first karat
+                                  color: metal.color[0], // default to first color
+                                });
+                              }}
                               value={starting_info.metalType}
                               className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
                             >
@@ -740,7 +747,10 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                         <StonePropertiesForm
                           stones={starting_info.stones || []}
                           onChange={(stones) => {
-                            setStarting_info({ ...starting_info, stones:stones });
+                            setStarting_info({
+                              ...starting_info,
+                              stones: stones,
+                            });
                           }}
                         />
                       </div>
@@ -789,62 +799,62 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                           </div>
                         </div>
                       </div>
-                       <div className="flex flex-col ">
-                                              <label htmlFor="back_type">Back Type</label>
-                                              <div className="flex flex-row gap-2">
-                                                <div className="relative w-full">
-                                                  <select
-                                                    name="back_type"
-                                                    id=""
-                                                    className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                                                    value={formData.back_type}
-                                                    onChange={(e) =>
-                                                      setFormData({
-                                                        ...formData,
-                                                        back_type: e.target.value,
-                                                      })
-                                                    }
-                                                  >
-                                                    <option value="none">None</option>
-                                                    <option value="silicone">Silicone</option>f
-                                                    <option value="screw">Screw</option>
-                                                    <option value="flat">Flat</option>
-                                                    <option value="other">Other</option>
-                                                  </select>
-                                                  <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
-                                                  {formData.back_type === "other" && (
-                                                    <input
-                                                      type="text"
-                                                      className="mt-1  input pr-7 pl-3 py-2"
-                                                      placeholder="Enter custom back type"
-                                                      value={formData.custom_back_type}
-                                                      onChange={(e) =>
-                                                        setFormData({
-                                                          ...formData,
-                                                          custom_back_type: e.target.value,
-                                                        })
-                                                      }
-                                                    />
-                                                  )}
-                                                </div>
-                                                <div className=" w-full">
-                                                  <label htmlFor="back_type_quantity">Back Type Quantity</label>  
-                                                  <input
-                                                    type="number"
-                                                    className="mt-1  input pr-7 pl-3 py-2"
-                                                    value={formData.back_type_quantity}
-                                                    onChange={(e) =>
-                                                      setFormData({
-                                                        ...formData,
-                                                        back_type_quantity: e.target.value,
-                                                      })
-                                                    }
-                                                  />
-                                                </div>
-                                                  
-                                              </div>
-                                              
-                                            </div>
+                      <div className="flex flex-col ">
+                        <label htmlFor="back_type">Back Type</label>
+                        <div className="flex flex-row gap-2">
+                          <div className="relative w-full">
+                            <select
+                              name="back_type"
+                              id=""
+                              className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                              value={formData.back_type}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  back_type: e.target.value,
+                                })
+                              }
+                            >
+                              <option value="none">None</option>
+                              <option value="silicone">Silicone</option>f
+                              <option value="screw">Screw</option>
+                              <option value="flat">Flat</option>
+                              <option value="other">Other</option>
+                            </select>
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                            {formData.back_type === "other" && (
+                              <input
+                                type="text"
+                                className="mt-1  input pr-7 pl-3 py-2"
+                                placeholder="Enter custom back type"
+                                value={formData.custom_back_type}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    custom_back_type: e.target.value,
+                                  })
+                                }
+                              />
+                            )}
+                          </div>
+                          <div className=" w-full">
+                            <label htmlFor="back_type_quantity">
+                              Back Type Quantity
+                            </label>
+                            <input
+                              type="number"
+                              className="mt-1  input pr-7 pl-3 py-2"
+                              value={formData.back_type_quantity}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  back_type_quantity: e.target.value,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
                       <div className="flex flex-col ">
                         <label htmlFor="selling_pair">Selling type</label>
                         <div className="relative w-full">

@@ -11,7 +11,7 @@ export default function QuotePDFGenerator({ quoteNumber, quoteId }) {
 
   const waitForImagesToLoad = (container) => {
     const images = container.querySelectorAll('img');
-    console.log(images)
+    // console.log(images)
     const promises = Array.from(images).map(
       (img) =>
         new Promise((resolve) => {
@@ -31,7 +31,7 @@ export default function QuotePDFGenerator({ quoteNumber, quoteId }) {
           }
         })
     );
-    console.log(promises)
+    // console.log(promises)
     return Promise.all(promises);
   };
 
@@ -63,10 +63,23 @@ export default function QuotePDFGenerator({ quoteNumber, quoteId }) {
         await waitForImagesToLoad(quoteRef.current);
         // await new Promise((resolve) => setTimeout(resolve, 10000));        // Generate the PDF
         console.log(quoteRef.current.innerHTML); // Log the content of the container
+        // const pdfOptions = {
+        //   filename: `quote${quoteId}.pdf`,
+        //   html2canvas: { scale: 2, useCORS: true, logging: true }, // Enable logging
+        //   jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        // };
         const pdfOptions = {
           filename: `quote${quoteId}.pdf`,
-          html2canvas: { scale: 2, useCORS: true, logging: true }, // Enable logging
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: true,
+          },
+          jsPDF: {
+            unit: 'in',
+            format: 'letter',
+            orientation: 'portrait',
+          },
         };
         const pdf = html2pdf()
           .set(pdfOptions)
@@ -94,7 +107,7 @@ export default function QuotePDFGenerator({ quoteNumber, quoteId }) {
           <div ref={quoteRef}>
           {/* <img src="https://ujwdpieleyuaiammaopj.supabase.co/storage/v1/object/public/echatbot/public/WhatsApp%20Image%202025-05-16%20at%204.07.09%20PM.jpeg" alt="Test Image" /> */}
 
-            <ViewQuote quoteId={quoteNumber} forPdf />
+            <ViewQuote quoteId={quoteNumber} forPdf={true} />
           </div>
         </PDFPortal>
       )}

@@ -1,6 +1,6 @@
 import React, { useState, Fragment, useEffect, useRef } from "react";
 import { Dialog, Transition } from "@headlessui/react";
-import ImageUpload from '../ImageUpload';
+import ImageUpload from "../ImageUpload";
 import { useSupabase } from "../SupaBaseProvider";
 import { ChevronDown, X, Upload } from "lucide-react";
 import { getStatusColor } from "../../utils/designUtils";
@@ -10,7 +10,7 @@ import StonePropertiesForm from "../Products/StonePropertiesForm";
 import { useVendorStore } from "../../store/VendorStore";
 
 const DesignQuoteInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
-  const {getVendorById,vendors}=useVendorStore()
+  const { getVendorById, vendors } = useVendorStore();
   console.log(design.images ? design.images : [], "design images from props");
   console.log(design, "design in modal");
   const { supabase } = useSupabase();
@@ -31,22 +31,20 @@ const DesignQuoteInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
   //   setOriginalData({
   //     ...design,
   //   });
-  
+
   //   setFormData({
   //     ...design,
   //   });
 
   // }, [design, isOpen]);
-  
-useEffect(() => {
-      console.log(formData.images, "formData images");  
 
+  useEffect(() => {
+    console.log(formData.images, "formData images");
   }, [formData.images]);
 
   useEffect(() => {
-      setLossPercent(vendors[0].pricingsetting.lossPercentage);
-      // vendorLossRef.current.textContent = data[0].pricingsetting.lossPercentage
-
+    setLossPercent(vendors[0].pricingsetting.lossPercentage);
+    // vendorLossRef.current.textContent = data[0].pricingsetting.lossPercentage
   }, [isOpen]);
 
   const handleInputChange = (e) => {
@@ -151,7 +149,7 @@ useEffect(() => {
     }
     onClose();
   };
-  
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -202,9 +200,9 @@ useEffect(() => {
                           </label>
                           <ImageUpload
                             images={formData.images}
-                            onChange={(images) =>
-                              setFormData({ ...formData, images })
-                              // console.log(images, "images from onchange") 
+                            onChange={
+                              (images) => setFormData({ ...formData, images })
+                              // console.log(images, "images from onchange")
                             }
                           />
                         </div>
@@ -227,7 +225,7 @@ useEffect(() => {
                                 formData.status
                               )} mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
                             >
-                             <option value="Working_On_It:yellow">
+                              <option value="Working_On_It:yellow">
                                 Working on it
                               </option>
                               <option value="Waiting_On_Cads:grey">
@@ -260,8 +258,10 @@ useEffect(() => {
                                   ...formData,
                                   vendor: e.target.value,
                                 });
-                                setLossPercent(getVendorById(Number(e.target.value)).pricingsetting.lossPercentage)
-
+                                setLossPercent(
+                                  getVendorById(Number(e.target.value))
+                                    .pricingsetting.lossPercentage
+                                );
                               }}
                               value={formData.vendor}
                               className={` mt-1 border input  p-2 appearance-none `}
@@ -321,12 +321,17 @@ useEffect(() => {
                           <select
                             name="metalType"
                             id=""
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const selectedMetalType = e.target.value;
+                              const metal = getMetalType(selectedMetalType);
+
                               setFormData({
                                 ...formData,
-                                metalType: e.target.value,
-                              })
-                            }
+                                metalType: selectedMetalType,
+                                karat: metal.karat[0], // default to first karat
+                                color: metal.color[0], // default to first color
+                              });
+                            }}
                             value={formData.metalType}
                             className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500`}
                           >

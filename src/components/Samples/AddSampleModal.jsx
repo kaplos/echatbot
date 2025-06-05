@@ -74,43 +74,43 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
 
   useEffect(() => {
     setLossPercent(vendors[0].pricingsetting.lossPercentage);
-    setStarting_info({...starting_info,vendor:vendors[0].id})
+    setStarting_info({ ...starting_info, vendor: vendors[0].id });
     // vendorLossRef.current.textContent = data[0].pricingsetting.lossPercentage
-  }, [isOpen,vendors]);
-const handleClose = ()=>{
-  setFormData({
-    cad: [],
-    category: "",
-    collection: "",
-    selling_pair: "pair",
-    back_type: "none",
-    custom_back_type: "",
-    back_type_quantity: 0,
-    // cost: 0,
-    name: "",
-    styleNumber: "",
-    salesWeight: 0,
-    status: "Working_on_it:yellow",
-  })
-  setStarting_info({
-    description: "",
-    images: [],
-    color: "Yellow",
-    height: 0,
-    length: 0,
-    width: 0,
-    weight: 0,
-    manufacturerCode: "",
-    metalType: "Gold",
-    platingCharge: 0,
-    stones: [],
-    vendor: "",
-    plating: 1,
-    karat: "10K",
-    status: "Working_on_it:yellow",
-  })
-  onClose()
-}
+  }, [isOpen, vendors]);
+  const handleClose = () => {
+    setFormData({
+      cad: [],
+      category: "",
+      collection: "",
+      selling_pair: "pair",
+      back_type: "none",
+      custom_back_type: "",
+      back_type_quantity: 0,
+      // cost: 0,
+      name: "",
+      styleNumber: "",
+      salesWeight: 0,
+      status: "Working_on_it:yellow",
+    });
+    setStarting_info({
+      description: "",
+      images: [],
+      color: "Yellow",
+      height: 0,
+      length: 0,
+      width: 0,
+      weight: 0,
+      manufacturerCode: "",
+      metalType: "Gold",
+      platingCharge: 0,
+      stones: [],
+      vendor: "",
+      plating: 1,
+      karat: "10K",
+      status: "Working_on_it:yellow",
+    });
+    onClose();
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log(formData);
@@ -135,7 +135,7 @@ const handleClose = ()=>{
     if (stoneError) {
       console.log(stoneError);
     }
-
+    console.log(starting_infoData[0].id )
     const { data, error } = await supabase
       .from("samples")
       .insert([{ ...formData, starting_info_id: starting_infoData[0].id }])
@@ -429,12 +429,17 @@ const handleClose = ()=>{
                             <select
                               name="metalType"
                               id=""
-                              onChange={(e) =>
-                                setStarting_info({
-                                  ...starting_info,
-                                  metalType: e.target.value,
-                                })
-                              }
+                              onChange={(e) => {
+                                const selectedMetalType = e.target.value;
+                                const metal = getMetalType(selectedMetalType);
+
+                                setFormData({
+                                  ...formData,
+                                  metalType: selectedMetalType,
+                                  karat: metal.karat[0], // default to first karat
+                                  color: metal.color[0], // default to first color
+                                });
+                              }}
                               value={starting_info.metalType}
                               className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
                             >
@@ -699,7 +704,9 @@ const handleClose = ()=>{
                             )}
                           </div>
                           <div className=" w-full">
-                            <label htmlFor="back_type_quantity">Back Type Quantity</label>  
+                            <label htmlFor="back_type_quantity">
+                              Back Type Quantity
+                            </label>
                             <input
                               type="number"
                               className="mt-1  input pr-7 pl-3 py-2"
@@ -712,9 +719,7 @@ const handleClose = ()=>{
                               }
                             />
                           </div>
-                            
                         </div>
-                        
                       </div>
                       <div className="flex flex-col ">
                         <label htmlFor="selling_pair">Selling type</label>

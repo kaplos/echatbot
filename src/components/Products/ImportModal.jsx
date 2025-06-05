@@ -124,7 +124,7 @@ const handleDrop = async (e) => {
             return {
               id: row['ID (Design)'] || null,
               name: row['Name'] || '',
-              description: row['Description'] || '',
+              description: row['Design Description'] || '',
               link: row['Link'] || '',
               collection: row['Collection'] || '',
               category: row['Category'] || '',
@@ -145,7 +145,7 @@ const handleDrop = async (e) => {
               back_type: row['Back Type'] || 'none',
               custom_back_type: row['Custom Back Type'] || '',
               back_type_quantity: parseInt(row['Back Type Quantity'] || 0),
-              name: row['Name'] || '',
+              name: row['Sku'] || '',
               styleNumber: row['Style Number'] || '',
               salesWeight: parseFloat(row['Sales Weight'] || 0),
               starting_info_id: row['Starting Info ID'] || '',

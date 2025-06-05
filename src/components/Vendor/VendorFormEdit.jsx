@@ -84,13 +84,15 @@ const VendorForm = ({  isOpen, onClose, vendor, updateVendor }) => {
                 .from('vendors')
                 .update(updates)
                 .eq('id',vendor.id)
+                .select()
+                .single()
                 
                 if (error) {
                     console.error('Error updating vendor:', error);
                 } else {
                     console.log('vendor updated:', data);
-                    setOriginalData({ ...formData });
-                    updateVendor({...formData})
+                    setOriginalData(data);
+                    updateVendor(data)
                 }
             onClose();
     }

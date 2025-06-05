@@ -5,32 +5,34 @@ import VendorList from '../components/Vendor/VendorList';
 import AddVendorForm from '../components/Vendor/VendorForm';
 import VendorFormEdit from '../components/Vendor/VendorFormEdit';
 import Loading from '../components/Loading';
+import { useVendorStore } from '../store/VendorStore';
 
 const Vendors = () => {
+    const {vendors,updateVendor} = useVendorStore()
     const {supabase} = useSupabase();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isEditFormOpen, setIsEditFormOpen] = useState(false);
     const [selectedDesign, setSelectedDesign] = useState(null);
     const [isLoading,setIsLoading] = useState(false)
     const [selectedVendor, setSelectedVendor] = useState();
-    const [vendors, setVendors] = useState([]);
+    // const [vendors, setVendors] = useState([]);
 
-    useEffect(() => {
-        const fetchVendors = async () => {
-            setIsLoading(true)
-            const { data, error } = await supabase
-            .from('vendors')
-            .select('*')
-            if (error) {
-                console.error('Error fetching vendors:', error);
-                return;
-            }
-            setVendors(data);
-            setIsLoading(false)
-        };
-        fetchVendors();
+    // useEffect(() => {
+    //     const fetchVendors = async () => {
+    //         setIsLoading(true)
+    //         const { data, error } = await supabase
+    //         .from('vendors')
+    //         .select('*')
+    //         if (error) {
+    //             console.error('Error fetching vendors:', error);
+    //             return;
+    //         }
+    //         setVendors(data);
+    //         setIsLoading(false)
+    //     };
+    //     fetchVendors();
 
-    }, []);
+    // }, []);
     
     const handleClick = async (vendor) => {
       const { data, error } = await supabase
@@ -47,11 +49,6 @@ const Vendors = () => {
       setIsEditFormOpen(true);
   }
 
-  const updateVendor = (updatedVendor) => {
-    setVendors((previousVendor) =>
-        previousVendor.map((vendor) => (vendor.id === updatedVendor.id ? updatedVendor : vendor))
-    );
-  };
 
     const handleSave = (vendorData) => {
 
@@ -92,7 +89,6 @@ const Vendors = () => {
             onSave={(vendor) => {
               console.log(vendor)
               setIsFormOpen(false);
-              setVendors((prev)=>[...prev,...vendor]);
             }}
           />
           {selectedVendor &&

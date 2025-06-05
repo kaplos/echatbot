@@ -21,35 +21,14 @@ const DesignQuote = () =>{
     const [design,setDesign] = useState(null);
     const [designToShow, setDesignToShow] = useState(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [designs, setDesigns] = useState(null);
+
     useEffect(() => {
         console.log("isEditOpen:", isEditOpen,design);
       }, [isEditOpen]);
     // console.log(selectedDesign, 'designs');    
-    useEffect(()=>{
-        const fetchDesignQuote = async () => {
-            setIsLoading(true);
-            console.log(designId,'designId from params')
-            let query = supabase.from('starting_info').select('*');
-            if (designId) {
-                query = query.eq('designId', designId);
-            }else{
-                query = query.order('created_at', { ascending: false }).limit(12); // Replace 'created_at' with your timestamp column
-            }
-            const { data, error } = await query; // Use the modified query here
-
-            console.log(data, 'data from supabase');
-            if (error) {
-              console.error('Error fetching design quotes:', error);
-              setIsLoading(false);
-              return;
-            }
-            setDesigns(data);
-            setIsLoading(false); // Moved this line up for clarity
-          };
-          fetchDesignQuote(); 
-    },[])
+    
             
     
     // const handleClick = async (design) => {
@@ -130,9 +109,6 @@ const DesignQuote = () =>{
                         </button>
                     </div>
                 </div>
-                {designs.length === 0 ? (
-                    <div className="flex justify-center items-center h-screen">No Design Quotes Found For This Design</div>
-                ) : 
                 <DesignQuoteList
                     designs={designs}
                     // onDesignClick={(design) => {
@@ -142,7 +118,6 @@ const DesignQuote = () =>{
                     // }}
                     onDesignClick={handleClick}
                 />
-                } 
 
 
                 <AddDesignQuoteModal

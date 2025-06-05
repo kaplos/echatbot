@@ -106,4 +106,14 @@ export const useVendorStore = create((set, get) => ({
     const { vendors } = get();
     return vendors.find((vendor) => vendor.name === name);
   },
+  updateVendor: (updatedVendor) => {
+  const { vendors } = get();
+  const updatedVendors = vendors.map((vendor) =>
+    vendor.id === updatedVendor.id ? { ...vendor, ...updatedVendor } : vendor
+  );
+  set({ vendors: updatedVendors });
+
+  // Update the cached vendors in localStorage
+  localStorage.setItem('vendors', JSON.stringify(updatedVendors));
+},
 }));
