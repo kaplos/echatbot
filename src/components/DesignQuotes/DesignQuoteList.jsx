@@ -5,8 +5,8 @@ import DesignQuoteCard from './DesignQuoteCard';
 import { useSupabase } from '../SupaBaseProvider';
 import { useLocation } from 'react-router-dom';
 
-const DesignQuoteList = ({ onDesignClick }) => {
-  const [designQuotes, setDesignQuotes] = useState([]);
+const DesignQuoteList = ({ onDesignClick,designQuotes,setDesignQuotes }) => {
+  // const [designQuotes, setDesignQuotes] = useState([]);
   const [selectedDesigns, setSelectedDesigns] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [page, setPage] = useState(0);
@@ -22,6 +22,7 @@ const DesignQuoteList = ({ onDesignClick }) => {
 
   const hasFetchedQuotes = useRef(false);
 //   useEffect(()=>{
+
 //     const fetchDesignQuote = async () => {
 //         setLoading(true);
 //         console.log(designId,'designId from params')
@@ -47,6 +48,8 @@ const DesignQuoteList = ({ onDesignClick }) => {
 //       };
 //       fetchDesignQuote(); 
 // },[])
+
+
   // Fetch design quotes from Supabase
   const fetchDesignQuotes = async (pageNumber) => {
     setLoading(true);
@@ -101,15 +104,6 @@ const DesignQuoteList = ({ onDesignClick }) => {
     setSelectedDesigns(newSelection);
   };
 
-  const handleButtonSelections = () => {
-    setIsSelectionMode(!isSelectionMode);
-    if (!isSelectionMode) {
-      setIsSelectionMode(true);
-    } else {
-      setSelectedDesigns(new Set());
-      setIsSelectionMode(false);
-    }
-  };
 
   return (
     <div

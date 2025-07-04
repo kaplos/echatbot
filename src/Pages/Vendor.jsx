@@ -5,10 +5,11 @@ import VendorList from '../components/Vendor/VendorList';
 import AddVendorForm from '../components/Vendor/VendorForm';
 import VendorFormEdit from '../components/Vendor/VendorFormEdit';
 import Loading from '../components/Loading';
-import { useVendorStore } from '../store/VendorStore';
+import { useGenericStore } from '../store/VendorStore';
 
 const Vendors = () => {
-    const {vendors,updateVendor} = useVendorStore()
+    const {getEntity,updateEntity} = useGenericStore()
+    const vendors = getEntity('vendors');
     const {supabase} = useSupabase();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isEditFormOpen, setIsEditFormOpen] = useState(false);
@@ -99,7 +100,7 @@ const Vendors = () => {
                   setIsEditFormOpen(false);
                   setSelectedVendor(undefined);
                 }}
-                updateVendor={updateVendor}
+                updateVendor={(data)=> updateEntity('vendors', data)}
             />
           }
         </div>

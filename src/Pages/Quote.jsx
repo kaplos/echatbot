@@ -4,6 +4,7 @@ import GridComponenet from '../components/Qoutes/GridComponent'
 import AddQuoteModal from '../components/Qoutes/AddQuoteModal'
 import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../components/SupaBaseProvider';
+import DeleteButton from '../components/MiscComponenets/DeleteButton';
 
 export default function Quote (){
     const navigate = useNavigate()
@@ -11,6 +12,8 @@ export default function Quote (){
     const [isLoading, setIsLoading] = useState(true);
     const [isAddModalOpen,setIsAddModalOpen]= useState(false)
     const [quotes,setQuotes ]=useState([])
+    const [selected,setSelected] = useState(new Set())
+    
 //     useEffect(()=>{
 //     const fetchSamples = async () => {
 //         setIsLoading(true);
@@ -42,6 +45,12 @@ export default function Quote (){
                     <Upload className="w-5 h-5 mr-2" />
                     Import
                 </button> */}
+
+                {selected.size>0 &&
+                    <DeleteButton 
+                    type={'quote'}
+                    // onDelete={}
+                />}
                 <button 
                     className="bg-chabot-gold text-white px-4 py-2 rounded-lg flex items-center hover:bg-opacity-90 transition-colors"
                     onClick={() => navigate('/newQuote')}
@@ -60,6 +69,8 @@ export default function Quote (){
         <GridComponenet 
             quotes={quotes}
             setQuotes={setQuotes}
+            selected={selected}
+            setSelected={setSelected}
         />
         <AddQuoteModal 
             isOpen={isAddModalOpen}

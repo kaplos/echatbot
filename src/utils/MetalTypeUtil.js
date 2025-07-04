@@ -7,13 +7,12 @@ export const metalTypes = [
     },
     {
         type: 'Silver',
-        karat: [925],
+        karat: ["925"],
         color: ['Silver'],
     }
 ]
 
 export const getMetalType = (type) => {
-    // console.log(type,'type from getMetalType')
     return metalTypes.find(metal => metal.type === type);
 }
 

@@ -5,15 +5,19 @@ import { Upload, X, FileQuestion } from 'lucide-react';
 import { parseCSV,handleImportFile } from '../../utils/importUtils';
 import { useSupabase } from '../SupaBaseProvider';
 import { useMetalPriceStore } from '../../store/MetalPrices';
-import { useVendorStore } from '../../store/VendorStore';
+import { useGenericStore } from '../../store/VendorStore';
 import { getTotalCost } from '../Samples/TotalCost';
 import { getMetalCost } from '../Samples/CalculatePrice';
 // import headers from '../../utils/exportUtils';
 
 const ImportModal = ({ isOpen, onClose,type }) => {
 const {supabase} = useSupabase();
-const {getVendorByName,getVendorById,vendors} = useVendorStore();
-  const {prices} = useMetalPriceStore();
+const [progress, setProgress] = useState(0); // 0 to 100
+const [isLoading, setIsLoading] = useState(false);
+
+const {getVendorByName,getEntityItemById, getEntity} = useGenericStore();
+const vendors = getEntity('vendors');
+const {prices} = useMetalPriceStore();
 const [isDragging, setIsDragging] = useState(false);
 const [error, setError] = useState(null);
 
@@ -47,206 +51,204 @@ const handleDrop = async (e) => {
     // Check if any remaining fields are provided
     return Object.values(rest).some((value) => value !== null && value !== '' && value !== 0&& JSON.stringify(['']) !== JSON.stringify(value)&& JSON.stringify([]) !== JSON.stringify(value)) 
   };
+  const getDropDownData = async ()=>{
+    const { data, error } = await supabase.rpc('get_dropdown_options');
+
+    if(error){
+      showMessage('Issue with retriving dropdown options')
+    }
+    return data
+  }
   const handleFileChange = async (e) => {
     setError('');
     const file = e.target.files?.[0];
-    if (file) {
-      try {
-        const products = await handleImportFile(file, type);
   
-        // for (const [index, product] of products.entries()) {
-        //   if (!product.weight || isNaN(product.weight) || product.weight <= 0) {
-        //     setError(`Error: Product at line ${index + 1} is missing a valid weight.`);
-        //     return;
-        //   }
-        // }
+    if (!file) return;
   
-        const formatted = products.map((row) => {
-          const vendor = Number.isInteger(row['Vendor'])
-            ? getVendorById(row['Vendor'])
-            : getVendorByName(row['Vendor']);
+    try {
+      const products = await handleImportFile(file, type);
+      const dropdown = await getDropDownData();
   
-          const stones = [];
-          for (let i = 1; i <= 10; i++) {
-            if (row[`Stone ${i} Type`] || row[`Stone ${i} Color`] || row[`Stone ${i} Size`]) {
-              stones.push({
-                id: row[`Stone ${i} ID`],
-                type: row[`Stone ${i} Type`] || '',
-                color: row[`Stone ${i} Color`] || '',
-                size: row[`Stone ${i} Size`] || '',
-                shape: row[`Stone ${i} Shape`] || '',
-                cost: parseFloat(row[`Stone ${i} Cost`] || 0),
-                customType: row[`Stone ${i} Custom Type`] || '',
-                quantity: parseInt(row[`Stone ${i} Quantity`] || 0),
-                notes: row[`Stone ${i} Notes`] || '',
-              });
+      const formatted = products.map((row) => {
+        const stones = [];
+        for (let i = 1; i <= 10; i++) {
+          if (row[`Stone ${i} Type`] || row[`Stone ${i} Color`] || row[`Stone ${i} Size`]) {
+            stones.push({
+              id: row[`Stone ${i} ID`],
+              type: row[`Stone ${i} Type`] || '',
+              color: row[`Stone ${i} Color`] || '',
+              size: row[`Stone ${i} Size`] || '',
+              shape: row[`Stone ${i} Shape`] || '',
+              cost: parseFloat(row[`Stone ${i} Cost`] || 0),
+              customType: row[`Stone ${i} Custom Type`] || '',
+              quantity: parseInt(row[`Stone ${i} Quantity`] || 0),
+              notes: row[`Stone ${i} Notes`] || '',
+            });
+          }
+        }
+  
+        const mappedVendorId = dropdown.vendors.find(v => v.name === row['Vendor'])?.id ?? null;
+        const mappedPlatingId = dropdown.plating.find(p => p.name === row['Plating'])?.id ?? null;
+        const mappedCollectionId = dropdown.collection.find(c => c.name === row['Collection'])?.id ?? null;
+        const mappedCategoryId = dropdown.category.find(c => c.name === row['Category'])?.id ?? null;
+  
+        const starting_info = {
+          necklace: row['Necklace True Or False'] || false,
+          necklaceCost: row['Necklace Cost'] || 0,
+          description: row['Quote Description'] || '',
+          images: (row['Quote Images'] || '').split('|').filter(image => image !== '') || [],
+          color: row['Color'] || '',
+          height: parseFloat(row['Height (in)'] || 0),
+          length: parseFloat(row['Length (in)'] || 0),
+          width: parseFloat(row['Width (in)'] || 0),
+          weight: parseFloat(row['Weight (g)'] || 0),
+          category: mappedCategoryId,
+          collection: mappedCollectionId,
+          manufacturerCode: row['Manufacturer Code'] || '',
+          metalType: row['Metal Type'] || '',
+          platingCharge: parseFloat(row['Plating Charge'] || 0),
+          stones,
+          vendor: mappedVendorId,
+          plating: mappedPlatingId,
+          karat: row['Karat'] || '',
+          designId: row['ID (Design)'] || null,
+          miscCost: parseFloat(row['Misc Cost'] || 0),
+          laborCost: parseFloat(row['Labor Cost'] || 0),
+          totalCost: parseFloat(
+            row['Total Cost'] ||
+              getTotalCost(
+                getMetalCost(
+                  prices[row['Metal Type'].toLowerCase()]?.price || 0,
+                  row['Weight'] || 0,
+                  row['Karat'],
+                  dropdown.vendors.find(v => v.id === mappedVendorId)?.pricingsetting?.lossPercentage
+                ),
+                parseFloat(row['Misc Cost'] || 0),
+                parseFloat(row['Labor Cost'] || 0),
+                stones
+              ) || 0
+          ),
+        };
+  
+        const includeStartingInfo = hasStartingInfo(starting_info);
+  
+        if (type === 'designs') {
+          return {
+            id: row['ID (Design)'] || null,
+            name: row['Name'] || '',
+            description: row['Design Description'] || '',
+            link: row['Link'] || '',
+            collection: mappedCollectionId,
+            category: mappedCategoryId,
+            images: (row['Design Images'] || '').split('|').filter(image => image !== '') || [],
+            status: row['Status'] || 'Working_on_it:yellow',
+            starting_info: includeStartingInfo ? { ...starting_info } : null,
+          };
+        }
+  
+        if (type === 'samples') {
+          return {
+            id: row['ID (Sample)'] || null,
+            cad: (row['CAD Files'] || '').split('|').filter(image => image !== '') || [],
+            selling_pair: row['Selling Pair'] || 'pair',
+            back_type: row['Back Type'] || 'none',
+            custom_back_type: row['Custom Back Type'] || '',
+            back_type_quantity: parseInt(row['Back Type Quantity'] || 0),
+            name: row['Sku'] || '',
+            styleNumber: row['Style Number'] || '',
+            salesWeight: parseFloat(row['Sales Weight'] || 0),
+            starting_info_id: row['Starting Info ID'] || '',
+            status: row['Sample Status'] || 'Working_on_it:yellow',
+            starting_info: includeStartingInfo ? { ...starting_info } : null,
+            designId: row['Design Id'] || null,
+          };
+        }
+  
+        if (type === 'designQuote') {
+          return {
+            ...starting_info,
+            id: row['ID (Design Quote)'] || null,
+          };
+        }
+      });
+  
+      setIsLoading(true);
+      setProgress(0);
+  
+      for (let i = 0; i < formatted.length; i++) {
+        const item = formatted[i];
+        try {
+          const { starting_info, ...formData } = item;
+          const { stones, ...restStartingInfo } = starting_info || {};
+  
+          if (type === 'designs') {
+            const { data: formData_database } = await supabase.from(type).upsert(formData);
+            if (starting_info) {
+              const { data: starting_info_database } = await supabase.from('starting_info').insert([restStartingInfo]);
+              const { data: stones_database } = await supabase
+                .from('stones')
+                .insert(stones.map(stone => ({ ...stone, starting_info_id: starting_info_database[0].id })));
             }
           }
   
-          const starting_info = {
-            description: row['Quote Description'] || '',
-            images: ( row['Quote Images']||'').split('|').filter(image => image !== '') || [row['Quote Images'] ] || [],
-            color: row['Color'] || '',
-            height: parseFloat(row['Height'] || 0),
-            length: parseFloat(row['Length'] || 0),
-            width: parseFloat(row['Width'] || 0),
-            weight: parseFloat(row['Weight'] || 0),
-            manufacturerCode: row['Manufacturer Code'] || '',
-            metalType: row['Metal Type'] || '',
-            platingCharge: parseFloat(row['Plating Charge'] || 0),
-            stones: stones || [],
-            vendor: vendor?.id || null,
-            plating: parseFloat(row['Plating']) || 1,
-            karat: row['Karat'] || '',
-            designId: row['ID (Design)'] || null,
-            miscCost: parseFloat(row['Misc Cost'] || 0),
-            laborCost: parseFloat(row['Labor Cost'] || 0),
-            totalCost: parseFloat(
-              row['Total Cost'] ||
-                getTotalCost(
-                  getMetalCost(
-                    prices[row['Metal Type'].toLowerCase()]?.price || 0,
-                    row['Weight'] || 0,
-                    row['Karat'],
-                    vendor?.pricingsetting?.lossPercentage
-                  ),
-                  parseFloat(row['Misc Cost'] || 0),
-                  parseFloat(row['Labor Cost'] || 0),
-                  stones
-                ) || 0
-            ),
-          };
-  
-          // Check if starting_info has any valid fields
-          const includeStartingInfo = hasStartingInfo(starting_info);
-  
-          if (type === 'designs') {
-            return {
-              id: row['ID (Design)'] || null,
-              name: row['Name'] || '',
-              description: row['Design Description'] || '',
-              link: row['Link'] || '',
-              collection: row['Collection'] || '',
-              category: row['Category'] || '',
-              images: (row['Design Images'] || '').split('|').filter(image => image !== '') || [row['Design Images']],
-              status: row['Status'] || 'Working_on_it:yellow',
-              starting_info: includeStartingInfo ? { ...starting_info } : null, // Include only if valid
-            };
-          }
-  
-          // Handle other types (e.g., samples, designQuote)
           if (type === 'samples') {
-            return {
-              id: row['ID (Sample)'] || null,
-              cad: (row['CAD Files'] || '').split('|').filter(image => image !== '')|| row["CAD Files"],
-              category: row['Category'] || '',
-              collection: row['Collection'] || '',
-              selling_pair: row['Selling Pair'] || 'pair',
-              back_type: row['Back Type'] || 'none',
-              custom_back_type: row['Custom Back Type'] || '',
-              back_type_quantity: parseInt(row['Back Type Quantity'] || 0),
-              name: row['Sku'] || '',
-              styleNumber: row['Style Number'] || '',
-              salesWeight: parseFloat(row['Sales Weight'] || 0),
-              starting_info_id: row['Starting Info ID'] || '',
-              status: row['Sample Status'] || 'Working_on_it:yellow',
-              starting_info: includeStartingInfo ? { ...starting_info } : null, // Include only if valid
-              designId: row['Design Id'] || null,
-            };
+            const { data: starting_info_id } = await supabase
+              .from('samples')
+              .select('starting_info_id')
+              .eq('id', formData.id)
+              .single();
+  
+            if (starting_info_id) {
+              restStartingInfo.id = starting_info_id.starting_info_id;
+            }
+  
+            const { data: starting_info_database } = await supabase
+              .from('starting_info')
+              .upsert([restStartingInfo], { onConflict: ['id'] })
+              .select();
+  
+            const { data: formData_database } = await supabase
+              .from(type)
+              .upsert([{ ...formData, starting_info_id: starting_info_database[0].id }], { onConflict: ['id'] })
+              .select();
+  
+            const { data: stones_database } = await supabase
+              .from('stones')
+              .upsert(stones.map(stone => ({ ...stone, starting_info_id: starting_info_database[0].id })), {
+                onConflict: ['id'],
+              })
+              .select();
           }
   
           if (type === 'designQuote') {
-            return {
-              ...starting_info,
-              id: row['ID (Design Quote)'] || null,
-            };
-          }
-        });
+            const { data: starting_info_database } = await supabase
+              .from('starting_info')
+              .upsert([restStartingInfo], { onConflict: ['id'] })
+              .select();
   
-        console.log('Formatted products:', formatted);
-        const uploadedItems = []
-        // console.log(formatted,'products to upload')
-        for (const item of formatted) {
-      
-          try {
-            const {starting_info, ...formData} = item;
-            const {stones, ...restStartingInfo} = starting_info||{};
-            if(type === 'designs'){
-              console.log('hitting designs')
-            let stones_databaseVar 
-            const { data: formData_database } = await supabase
-            .from(type)
-            .upsert(formData)
-            // .select();
-            if(starting_info){
-               const { data: starting_info_database } = await supabase
-               .from(type)
-               .insert([restStartingInfo])
-              //  .select();
-               const { data: stones_database } = await supabase
-               .from('stones')
-               .insert(stones.map(stone => ({ ...stone, starting_info_id: starting_info_database[0].id })))
-              //  .select();
-               stones_databaseVar = stones_database
-              }
-            //    uploadedItems.push({
-            //   formData: {...formData_database, starting_info:{...starting_info_database, stones: stones_database}},
-            //  })
-            }
-           if(type === 'samples'){
-            console.log('hitting samples')
-
-            const {data:starting_info_id } = await supabase
-            .from('samples')
-            .select('starting_info_id')
-            .eq('id',formData.id)
-            .single()
-            if(starting_info_id){
-              restStartingInfo.id = starting_info_id.starting_info_id
-            }
-             const { data: starting_info_database } = await supabase
-              .from('starting_info')
-              .upsert([restStartingInfo], { onConflict: ['id'] })
-              .eq('id',restStartingInfo.id)
-              .select();
-             const { data: formData_database } = await supabase
-              .from(type)
-              .upsert([{...formData, starting_info_id: starting_info_database[0].id}], { onConflict: ['id'] })
-              .select();
-             const { data: stones_database } = await supabase
+            const { data: stones_database } = await supabase
               .from('stones')
-              .upsert(stones.map(stone => ({ ...stone, starting_info_id: starting_info_database[0].id })), { onConflict: ['id'] })
-              .select();
-             uploadedItems.push({
-               formData: {...formData_database, starting_info:{...starting_info_database, stones: stones_database}},
+              .upsert(stones.map(stone => ({ ...stone, starting_info_id: starting_info_database[0].id })), {
+                onConflict: ['id'],
               })
-            }
-            if(type==='designQuote' ){
-              console.log('hitting designQuote')
-
-              const { data: starting_info_database } = await supabase
-              .from('starting_info')
-              .upsert([restStartingInfo], { onConflict: ['id'] })
-              .eq('id',restStartingInfo.id)
               .select();
-              const { data: stones_database } = await supabase
-              .from('stones')
-              .upsert(stones.map(stone => ({ ...stone, starting_info_id: starting_info_database[0].id })), { onConflict: ['id'] })
-              .select();
-
-            }
-          } catch (err) {
-            console.error(`Upload failed for item at index :`, err);
           }
+        } catch (err) {
+          console.error(`Upload failed for item ${i}:`, err);
         }
-          onClose();
-          // window.location.reload();
-      } catch (err) {
-        setError('Error parsing file. Please check the format.');
-        console.error('Import error:', err);
+  
+        // ✅ Update progress
+        setProgress(Math.round(((i + 1) / formatted.length) * 100));
       }
+  
+      setIsLoading(false);
+      onClose();
+    } catch (err) {
+      setError('Error parsing file. Please check the format.');
+      console.error('Import error:', err);
     }
   };
+  
 
 
   return (
@@ -310,10 +312,22 @@ const handleDrop = async (e) => {
                         accept=".csv, .xlsx"
                         multiple={false}
                         onChange={handleFileChange}
+                        disabled={isLoading}
                       />
                     </label>
                   </p>
                 </div>
+                {isLoading && (
+  <div className="mb-4">
+    <div className="w-full bg-gray-200 rounded-full h-3">
+      <div
+        className="bg-blue-600 h-3 rounded-full transition-all duration-200"
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+    <p className="text-xs text-gray-600 mt-1 text-center">{progress}% completed</p>
+  </div>
+)}
 
                 {error && (
                   <p className="mt-2 text-sm text-red-600">{error}</p>

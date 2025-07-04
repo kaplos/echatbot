@@ -28,7 +28,7 @@ export default function Sidebar  ()  {
     { icon: Images, label: 'Images', to: '/images' },
     // { icon: MessageSquare, label: 'Communications', to: '/communications' },
     // { icon: FileText, label: 'Documents', to: '/documents' },
-    // { icon: Settings, label: 'Settings', to: '/settings' },
+    { icon: Settings, label: 'Settings', to: '/settings' },
   ];
 
   return (

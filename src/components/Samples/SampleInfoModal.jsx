@@ -16,14 +16,14 @@ import { metalTypes, getMetalType } from "../../utils/MetalTypeUtil";
 import StonePropertiesForm from "../Products/StonePropertiesForm";
 import CalculatePrice from "./CalculatePrice";
 import TotalCost from "./TotalCost";
-import { data, useNavigate } from "react-router-dom";
+import {  useNavigate } from "react-router-dom";
 // import {limitInput} from '../../utils/inputUtils.js'
-import { useVendorStore } from "../../store/VendorStore";
+import { useGenericStore } from "../../store/VendorStore";
 const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
   const navigate = useNavigate();
-  const { getVendorById, vendors } = useVendorStore();
-
-  console.log(sample, "sample from design info modal");
+  const { getEntityItemById, getEntity } = useGenericStore();
+  const vendors = getEntity("vendors");
+  // console.log(sample, "sample from design info modal");
   const { supabase } = useSupabase();
   const { starting_info: passedStartingInfo, formData: passedFormData } =
     sample;
@@ -91,7 +91,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
     };
     fetchQuoteNumber();
     setLossPercent(
-      getVendorById(sample.starting_info.vendor).pricingsetting.lossPercentage
+      getEntityItemById('vendors',sample.starting_info.vendor).pricingsetting.lossPercentage
     );
   }, [isOpen]);
 
@@ -513,7 +513,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                                   vendor: e.target.value,
                                 });
                                 setLossPercent(
-                                  getVendorById(Number(e.target.value))
+                                  getEntityItemById('vendors',Number(e.target.value))
                                     .pricingsetting.lossPercentage
                                 );
                               }}

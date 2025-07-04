@@ -12,6 +12,7 @@ import NewQuote from './Pages/NewQuote';
 import ViewQuote from './Pages/ViewQuote';
 import MetalPrices from './Pages/MetalPrices';
 import DesignQuote from './Pages/DesignQuotes';
+import Settings from './Pages/Settings';
 import Login from './Pages/Login';
 import VendorPreloader from './components/VendorPreloader';
 import './App.css';
@@ -20,14 +21,14 @@ import { MessageProvider } from './components/Messages/MessageContext';
 import MessageBox from './components/Messages/MessageBox';
 import { Navigate } from 'react-router-dom';
 import ImageManager from './components/ImageManager';
-import { useVendorStore } from './store/VendorStore';
+import { useGenericStore } from './store/VendorStore';
 
 function AppContent() {
   useEffect(() => {
     const handleStorageChange = (event) => {
       if (event.key === 'vendors') {
         // Sync the store with the updated localStorage data
-        useVendorStore.getState().syncVendorsFromLocalStorage();
+        useGenericStore.getState().syncEntityFromLocalStorage('vendors');
       }
     };
   
@@ -78,6 +79,7 @@ function AppContent() {
                 <Route path="/vendors" element={<Vendors />} />
                 <Route path="/designQuote" element={<DesignQuote />} />
                 <Route path="/images" element={<ImageManager />} />
+                <Route path="/settings" element={<Settings />} />
                 <Route path="/" element={<Navigate to="/Ideas" />} />
               </>
             )}

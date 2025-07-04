@@ -177,12 +177,12 @@ const handleCustomSelect = (option) => {
                       
                         <div>
                             <label htmlFor="board" className="text-sm font-medium text-gray-700">Board</label>
-                            <CustomSelect onSelect={handleCustomSelect} version={'collection'} hidden={false}/>
+                            <CustomSelect onSelect={handleCustomSelect} version={'collection'} hidden={true}/>
                         </div>
 
                         <div className='mb-10'>
                             <label htmlFor="category" className="text-sm font-medium text-gray-700">Category</label>
-                            <CustomSelect  onSelect={handleCustomSelect} version={'category'}  />
+                            <CustomSelect  onSelect={handleCustomSelect} version={'category'}   />
                         </div>
                       </div>
                   </div>

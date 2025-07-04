@@ -22,11 +22,11 @@ const DesignQuote = () =>{
     const [designToShow, setDesignToShow] = useState(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [designs, setDesigns] = useState(null);
+    const [designs, setDesigns] = useState([]);
 
-    useEffect(() => {
-        console.log("isEditOpen:", isEditOpen,design);
-      }, [isEditOpen]);
+    // useEffect(() => {
+    //     console.log("isEditOpen:", isEditOpen,design);
+    //   }, [isEditOpen]);
     // console.log(selectedDesign, 'designs');    
     
             
@@ -77,6 +77,7 @@ const DesignQuote = () =>{
         setDesign({ ...data[0], stones });
       };
     const updateDesign = (updatedDesigns) => {
+        console.log('updated design:', updatedDesigns,designs)
         setDesigns((previousDesign) =>
             previousDesign.map((design) => (design.id === updatedDesigns.id ? updatedDesigns : design))
         );
@@ -108,7 +109,8 @@ const DesignQuote = () =>{
                     </div>
                 </div>
                 <DesignQuoteList
-                    designs={designs}
+                    designQuotes={designs}
+                    setDesignQuotes={setDesigns}
                     // onDesignClick={(design) => {
 
                     // setIsDetailsOpen(true);
@@ -134,13 +136,14 @@ const DesignQuote = () =>{
                             // setDesign(null)
                         }}
                         design={design}
-                        openEditModal={(design) => {setIsEditOpen(true)
+                        openEditModal={(design) => {
+                            setIsEditOpen(true)
                             setDesign(design)
 
                         }} 
                     />
                 }
-                {design&&
+                {design &&
 
                     <DesignQuoteInfoModal 
                     isOpen={isEditOpen}

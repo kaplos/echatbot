@@ -10,7 +10,7 @@ import { useMetalPriceStore } from '../store/MetalPrices';
 import { getTotalCost } from '../components/Samples/TotalCost';
 import { useLocation } from 'react-router-dom';
 import EditableCellWithGenerics from '../components/Qoutes/EditableCellWithGenerics';
-import { useVendorStore } from '../store/VendorStore';
+import { useGenericStore } from '../store/VendorStore';
 export default function NewQuote() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,6 +22,7 @@ export default function NewQuote() {
   const [productInfo, setProductInfo] = useState([]);
   const [lineItems, setlineItems] = useState([]);
   const [lineItemsToDelete, setlineItemsToDelete] = useState([]);
+  const [bulkMargin, setBulkMargin] = useState(0);
   // const {formData: lineItems, updateFormField: updateLineItem, resetForm: resetLineItems} =  useFormUpdater([]
   //   {
   //     productId:" ",
@@ -45,8 +46,8 @@ export default function NewQuote() {
     quoteTotal: 0
   });
 
-  const {getVendorById,vendors}= useVendorStore()
-
+  const {getEntityItemById,getEntity}= useGenericStore()
+const vendors = getEntity('vendors')
   const [isLoading,setIsLoading] = useState(false)
   const [editingCell, setEditingCell] = useState(null);
 
@@ -267,6 +268,7 @@ export default function NewQuote() {
         })
       );
     };
+
   const handleCustomSelect = (items) => {
     setProductInfo(prev=> [...prev,...items]);
     
@@ -279,8 +281,8 @@ export default function NewQuote() {
         retailPrice: 0,
         internalNote: '',
         margin: 0,
-        totalCost: parseFloat(totalCost(item, getVendorById( item.vendor).pricingsetting?.lossPercentage).toFixed(2)),
-        salesPrice:  parseFloat(totalCost(item, getVendorById( item.vendor).pricingsetting?.lossPercentage).toFixed(2))
+        totalCost: parseFloat(totalCost(item, getEntityItemById('vendors', item.vendor).pricingsetting?.lossPercentage).toFixed(2)),
+        salesPrice:  parseFloat(totalCost(item, getEntityItemById('vendors', item.vendor).pricingsetting?.lossPercentage).toFixed(2))
       })
       
     
@@ -309,6 +311,7 @@ export default function NewQuote() {
     const metalCost = getMetalCost(metalPrice, product.weight, product.karat, lossPercentage);
     return getTotalCost(metalCost, product.miscCost, product.laborCost, product.stones);
   };
+  // Update totalCost and salesPrice when metal prices change
   useEffect(() => {
     // Recalculate totalCost for each line item when metal prices change
     setlineItems((prevItems) =>
@@ -316,7 +319,7 @@ export default function NewQuote() {
         const productInfoObject = productInfo.find((p) => p.id === item.productId);
         if (!productInfoObject) return item;
   
-        const lossPercentage = getVendorById(productInfoObject.vendor)?.pricingsetting?.lossPercentage || 0;
+        const lossPercentage = getEntityItemById('vendors',productInfoObject.vendor)?.pricingsetting?.lossPercentage || 0;
   
         return {
           ...item,
@@ -330,14 +333,34 @@ export default function NewQuote() {
       })
     );
   }, [formData.gold, formData.silver]);
+  useEffect(() => {
+    // Recalculate salesPrice for each line item when bulkMargin changes
+    setlineItems((prevItems) =>
+      prevItems.map((item) => {
+        const productInfoObject = productInfo.find((p) => p.id === item.productId);
+        if (!productInfoObject) return item;
+
+        const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
+        const salesPrice = parseFloat(+(totalCost / (1 - bulkMargin / 100)).toFixed(2));
+        return {
+          ...item,
+          salesPrice: salesPrice,
+          margin: parseFloat(+(((salesPrice - totalCost) / salesPrice) * 100).toFixed(2))
+        };
+      })
+    );
+  },[bulkMargin])
+
   console.log(productInfo,lineItems,'line items')
 
 
   return (
     <div className="flex flex-col min-h-[80vh]">
       <div className="p-6 flex-1 flex flex-col">
+        {/* headers for the new quote page */}
         <div className="flex flex-row">
           <h1 className="text-2xl font-bold text-gray-900">{quote ? 'Update Quote' : 'Create Quote'}</h1>
+          {/* this div supplies the user with a add and selection modal */}
           <div className="flex space-x-3 justify-self-end flex-col w-48 ml-auto">
             <button
               
@@ -358,33 +381,49 @@ export default function NewQuote() {
           </div>
         </div>
 
-        <div className="flex flex-col justify-between items-center mb-6 flex-1 h-full">
-          <div className="flex flex-row gap-2">
-            <span className="self-center">Metal Prices At:</span>
-            <div className="flex flex-col mb-1">
-              <label htmlFor="gold_price">Gold Price</label>
+        <div className="flex flex-col justify-between items-end  mb-6 flex-1 h-full  ">
+          <div className="flex flex-row gap-2 mt-4 w-full justify-between ">
+            {/* metalPrices */}
+            <div className='flex gap-2'>
+              <span className="self-center">Metal Prices At:</span>
+              <div className="flex flex-col mb-1">
+                <label htmlFor="gold_price">Gold Price</label>
+                <input
+                  type="number"
+                  className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
+                  name="gold"
+                  id="gold_price"
+                  placeholder="2300"
+                  value={formData.gold}
+                  onChange={(e) => updateFormField('gold', e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col mb-1">
+                <label htmlFor="silver_price">Silver Price</label>
+                <input
+                  type="number"
+                  className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
+                  name="silver"
+                  id="silver_price"
+                  placeholder="32"
+                  value={formData.silver}
+                  onChange={(e) => updateFormField('silver', e.target.value)}
+                />
+              </div>
+              {/* bulk margins */}
+            </div>
+            <div>
+              <label htmlFor="bulk-margin">Bulk Margin</label>
               <input
                 type="number"
                 className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
-                name="gold"
-                id="gold_price"
-                placeholder="2300"
-                value={formData.gold}
-                onChange={(e) => updateFormField('gold', e.target.value)}
-              />
+                name="bulk-margin"
+                id="bulk-margin"
+                onChange={(e) => setBulkMargin(parseInt(e.target.value))}
+                value={bulkMargin}
+                />
             </div>
-            <div className="flex flex-col mb-1">
-              <label htmlFor="silver_price">Silver Price</label>
-              <input
-                type="number"
-                className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
-                name="silver"
-                id="silver_price"
-                placeholder="32"
-                value={formData.silver}
-                onChange={(e) => updateFormField('silver', e.target.value)}
-              />
-            </div>
+
           </div>
 
           <form onSubmit={handleSubmit} 

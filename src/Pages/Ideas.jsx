@@ -7,7 +7,7 @@ import CardInfoModal from '../components/CardInfoModal';
 import Loading from '../components/Loading';
 import SlideEditor from '../components/Ideas/SlideEditor';
 import { useLocation } from 'react-router-dom';
-
+import SearchBar from '../components/SearchBar'
 export default function Ideas() {
   const {supabase} = useSupabase();
   // console.log(supabase, 'supabase from ideas page');
@@ -15,12 +15,16 @@ export default function Ideas() {
   const [cardModalOpen, setCardModalOpen] = useState(false);
   const [slideEditorOpen, setSlideEditorOpen] = useState(false);
   const [ideas, setIdeas] = useState([]);
+  const [filteredIdeas, setFilteredIdeas] = useState([]);
+
   const [idea, setIdea] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlideData, setCurrentSlideData] = useState(null);
   const location = useLocation(); // Access the current URL
-    const queryParams = new URLSearchParams(location.search); // Parse the query string
-    const ideaId = queryParams.get('ideaId') || null;
+  const queryParams = new URLSearchParams(location.search); // Parse the query string
+  const ideaId = queryParams.get('ideaId') || null;
+
+
     useEffect(()=>{
       if(ideaId){
         handleClick({id:ideaId})
@@ -157,7 +161,7 @@ export default function Ideas() {
       <div className="w-full h-screen">
         <div className="bg-gray-100 p-2 flex justify-between items-center mb-2">
           <h2 className="text-lg font-semibold">
-            {idea ? `Editing: ${idea.title}` : 'Creating New Design'}
+            {idea ? `Editing: ${idea.name}` : 'Creating New Design'}
           </h2>
           <button 
             onClick={() => setSlideEditorOpen(false)}
@@ -178,7 +182,10 @@ export default function Ideas() {
   return (
     <div className="p-6 w-full">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Ideas Board</h1>
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-bold text-gray-900">Ideas Board</h1>
+          <SearchBar items={ideas} onSearch={(filteredItems)=> {console.log(filteredItems);setFilteredIdeas(filteredItems)}}/>
+        </div>
         <div className="flex space-x-2">
           <button 
             className="bg-chabot-gold text-white px-4 py-2 rounded-lg flex items-center hover:bg-opacity-90 transition-colors"
@@ -194,7 +201,7 @@ export default function Ideas() {
       </div>
       
       <IdeaBoard 
-        ideas={ideas} 
+        ideas={filteredIdeas} 
         handleClick={handleClick} 
         handleEdit={editIdeaDesign} 
       />

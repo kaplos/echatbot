@@ -9,11 +9,13 @@ import CustomSelect from "../CustomSelect";
 import ImageUpload from "../ImageUpload";
 import { useSupabase } from "../SupaBaseProvider";
 import StonePropertiesForm from "../Products/StonePropertiesForm";
-import { useVendorStore } from "../../store/VendorStore";
+import { useGenericStore } from "../../store/VendorStore";
 const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   const { supabase } = useSupabase();
   const vendorLossRef = useRef();
-  const { getVendorById, vendors } = useVendorStore();
+  const { getEntityItemById, getEntity } = useGenericStore();
+  const vendors = getEntity("vendors");
+  console.log(vendors, "vendors from add sample modal");
   const [lossPercent, setLossPercent] = useState(0);
   const [metalCost, setMetalCost] = useState(0);
 
@@ -174,10 +176,11 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
       });
     }
   };
-  console.log(
-    Array.isArray(starting_info.images),
-    "images from form data in add smaple modal"
-  );
+  // console.log(
+  //   Array.isArray(starting_info.images),
+  //   "images from form data in add smaple modal"
+  // );
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={handleClose}>
@@ -220,7 +223,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                 <form onSubmit={handleSubmit} className="p-6">
                   <div className="flex flex-row">
                     <div className=" pr-6 ">
-                      <div className="flex justify-between items-start flex flex-col min-h-[70vh] overflow-y-auto">
+                      <div className="flex justify-between items-start flex-col min-h-[70vh] overflow-y-auto">
                         {/* this is the image upload  */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
@@ -360,7 +363,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                                   vendor: e.target.value,
                                 });
                                 setLossPercent(
-                                  getVendorById(Number(e.target.value))
+                                  getEntityItemById('vendors',Number(e.target.value))
                                     .pricingsetting.lossPercentage
                                 );
                               }}

@@ -5,11 +5,12 @@ import TotalCost from "../Samples/TotalCost";
 import { formatDate } from "../../utils/dateUtils";
 import { ChevronDown, X,Upload } from 'lucide-react';
 import { useSupabase } from "../SupaBaseProvider";
-import { useVendorStore } from "../../store/VendorStore";
+import { useGenericStore } from "../../store/VendorStore";
 import { useMetalPriceStore } from "../../store/MetalPrices";
 import { useMessage } from "../Messages/MessageContext";
 export default function DesignApprovalForm({ design, openEditModal, isOpen, onClose,updateDesign }) {
-  const {getVendorById,vendors}= useVendorStore()
+  const {getEntityItemById,getEntity}= useGenericStore()
+  const vendors = getEntity('vendors');
   const [styleNumber,setStyleNumber] = useState('')
   const {prices}=useMetalPriceStore()
   const { supabase } = useSupabase();
@@ -18,7 +19,7 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
   useEffect(() => {
     console.log("design in design approval form", design);
   }, [design]);
-  console.log(getVendorById(design.vendor)?.pricingsetting?.lossPercentage,design)
+  console.log(getEntityItemById('vendors',design.vendor)?.pricingsetting?.lossPercentage,design)
  const handleUpdateStatus = async (status) => {
    if(status === "Approved:green") {
      if(styleNumber===''){
@@ -156,7 +157,7 @@ export default function DesignApprovalForm({ design, openEditModal, isOpen, onCl
                 <div className="mb-4 w-full">
                   
                   <TotalCost
-                    metalCost={getMetalCost(prices[design.metalType.toLowerCase()].price,design.weight,design.karat,getVendorById(design.vendor)?.pricingsetting?.lossPercentage)}
+                    metalCost={getMetalCost(prices[design.metalType.toLowerCase()].price,design.weight,design.karat,getEntityItemById("vendors",design.vendor)?.pricingsetting?.lossPercentage)}
                     miscCost={design.miscCost}
                     laborCost={design.laborCost}
                     stones={design.stones}
