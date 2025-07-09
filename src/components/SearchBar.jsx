@@ -38,7 +38,7 @@ const SearchBar = ({ items: collectionItems, onSearch }) => {
       if (samplesError) throw samplesError;
 
       const { data: ideas, error: ideasError } = await supabase
-        .from("Ideas")
+        .from("ideas")
         .select("*")
         .ilike("title", `%${searchTerm}%`);
 

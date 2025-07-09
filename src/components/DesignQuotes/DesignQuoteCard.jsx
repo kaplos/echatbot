@@ -68,8 +68,14 @@ return (
                 {design.status.split(':')[0].replaceAll('_', ' ')}
               </span>
             </div>
-            <label htmlFor="">Description:</label>
-            <p className="mt-2 text-sm text-gray-600 line-clamp-2">{design.description}</p>
+            <div>
+              <label htmlFor="">Manufacturer Code:</label>
+              <p className="mt-2 text-sm text-gray-600 line-clamp-2">{design.manufacturerCode}</p>
+            </div>
+            <div>
+              <label htmlFor="">Description:</label>
+              <p className="mt-2 text-sm text-gray-600 line-clamp-2">{design.description}</p>
+            </div>
             <div className="flex items-center justify-between text-sm text-gray-500">
                 <div className="flex items-center">
                   <Calendar className="w-4 h-4 mr-1" />

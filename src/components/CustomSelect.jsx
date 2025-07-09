@@ -89,7 +89,7 @@ function CustomSelect({ onSelect, version, setNewOption, informationFromDataBase
   };
 
   const getFromDatabase = async () => {
-    const { data, error } = await supabase.from(`${version === "collection" ? "Ideas" : version}`).select("id,name");
+    const { data, error } = await supabase.from(`${version === "collection" ? "ideas" : version}`).select("id,name");
 
     if (error) {
       console.error(`Error fetching ${version}:`, error);

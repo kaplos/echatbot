@@ -5,6 +5,7 @@ import AddQuoteModal from '../components/Qoutes/AddQuoteModal'
 import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '../components/SupaBaseProvider';
 import DeleteButton from '../components/MiscComponenets/DeleteButton';
+import { useMessage } from '../components/Messages/MessageContext';
 
 export default function Quote (){
     const navigate = useNavigate()
@@ -13,26 +14,19 @@ export default function Quote (){
     const [isAddModalOpen,setIsAddModalOpen]= useState(false)
     const [quotes,setQuotes ]=useState([])
     const [selected,setSelected] = useState(new Set())
-    
-//     useEffect(()=>{
-//     const fetchSamples = async () => {
-//         setIsLoading(true);
-//         const { data, error } = await supabase.from('quotes')
-//         .select('*')
-//         .order('created_at', { ascending: false }) // Replace 'created_at' with your timestamp column
-//         .limit(12);
-        
-//         if (error) {
-//           console.error('Error fetching samples:', error);
-//           return;
-//         }
-//         setQuotes(data);
-//         // console.log(data);
-//         setIsLoading(false);
-//       };
-//        fetchSamples(); 
-//       },[])
+    const {showMessage} = useMessage()
 
+    const handleDelete = async (success)=>{
+       
+              if(!success)           {
+                    showMessage('Error occured while deleting')
+                return
+              }
+
+        setQuotes(quotes.filter(q => !selected .has(q.id)))
+        showMessage('Items have been deleted successfully')
+        setSelected(new Set())
+    }
    return(
     <div className="p-6">
     <div className="flex justify-between items-center mb-6">
@@ -48,8 +42,9 @@ export default function Quote (){
 
                 {selected.size>0 &&
                     <DeleteButton 
-                    type={'quote'}
-                    // onDelete={}
+                    type={'quotes'}
+                    selectedItems={selected}
+                    onDelete={handleDelete}
                 />}
                 <button 
                     className="bg-chabot-gold text-white px-4 py-2 rounded-lg flex items-center hover:bg-opacity-90 transition-colors"

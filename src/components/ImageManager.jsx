@@ -112,7 +112,7 @@ const ImageManager = () => {
       {!loading && images.length === 0 && <p>No images found in this folder.</p>}
 
       <div className="grid grid-cols-3 gap-4">
-      {images.map((image) => (
+      {images.map((image,index) => (
           <div
             key={image.name}
             className={`border rounded-lg p-2 cursor-pointer ${
@@ -123,6 +123,7 @@ const ImageManager = () => {
             <img
               src={`${process.env.VITE_SUPABASE_URL}/storage/v1/object/public/echatbot/${selectedFolder}/${image.name}`}
               alt={image.name}
+              loading={index>10?'lazy':''}
               className="w-full h-32 object-cover rounded-md"
             />
             <div className="flex justify-between items-center mt-2">

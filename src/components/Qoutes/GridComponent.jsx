@@ -125,7 +125,7 @@ const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
       setSelected(new Set());
     } else {
       // Select all rows
-      const allRowIds = new Set(quotes.map((quote) => quote.quoteNumber));
+      const allRowIds = new Set(quotes.map((quote) => quote.id));
       setSelected(allRowIds);
     }
   };
@@ -158,7 +158,7 @@ const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
           <tr className="bg-gray-200">
             <th className="border border-gray-300 p-2 w-20">
               <input type="checkbox" className="w-5 h-5"  
-              checked={selected.size === quotes.length} onClick={handleSelectAll} />
+              checked={selected.size === quotes.length} onChange={handleSelectAll} />
             </th>
             <th className="border border-gray-300 p-2 w-20">Quote Date</th>
             <th className="border border-gray-300 p-2 w-20">Quote Number</th>
@@ -177,8 +177,8 @@ const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
             return (
               <tr key={index}>
                 <td className="text-center border border-gray-300">
-                  <input type="checkbox" className="w-5 h-5"  onChange={() => handleRowSelection(row.quoteNumber)}
-                    checked={selected.has(row.quoteNumber)}/>
+                  <input type="checkbox" className="w-5 h-5"  onChange={() => handleRowSelection(row.id)}
+                    checked={selected.has(row.id)}/>
                 </td>
                 <td className="border border-gray-300 p-2 text-center">
                   <span className="flex flex-col">

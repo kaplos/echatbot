@@ -90,7 +90,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
     if (Object.keys(updates).length > 0) {
 
       const { data, error } = await supabase
-        .from('Ideas')
+        .from('ideas')
         .update(updates)
         .eq('id', idea.id);
 

@@ -21,27 +21,15 @@ export default function DesignQuoteForm({
   lossPercent,
   setLossPercent,
   handleSubmit,
+  finalizeUploadRef,
+  onUpload,
   isEditing = false,
-
-
 }) {
   console.log(isOpen);
   const { getEntityItemById, getEntity } = useGenericStore();
   const vendors = getEntity("vendors");
-
-  const { supabase } = useSupabase();
   const vendorLossRef = useRef();
-  const [metalCost, setMetalCost] = useState(0);
- 
-  const designId = formData.designId || null
 
-
-
-  
-
-  // const handleFileChange = (e) => {
-
-  // }
   const handleCustomSelect = (option) => {
     const { categories, value } = option;
     setFormData({ ...formData, [categories]: value });
@@ -60,16 +48,11 @@ export default function DesignQuoteForm({
       setFormData({ ...formData, [e.target.name]: parseFloat(value) });
     }
   };
- 
-  
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
-  
-
-
-  
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -110,7 +93,7 @@ export default function DesignQuoteForm({
                   </button>
                 </div>
 
-                <form onSubmit={ handleSubmit} className="p-6">
+                <form onSubmit={handleSubmit} className="p-6">
                   <div className="flex flex-row">
                     <div className=" pr-6 ">
                       <div className="flex justify-between items-start flex-col min-h-[70vh] overflow-y-auto">
@@ -119,11 +102,16 @@ export default function DesignQuoteForm({
                           <label className="block text-sm font-medium text-gray-700">
                             Images
                           </label>
+
                           <ImageUpload
+                            collection="image"
                             images={formData.images || []}
-                            onChange={(images) =>
-                              setFormData({ ...formData, images })
-                            }
+                            onUpload={onUpload}
+                            finalizeUpload={finalizeUploadRef}
+                            onChange={async (images) => {
+                              setFormData({ ...formData, images });
+                              // await updateDataBaseWithImages(images, sample.id)
+                            }}
                           />
                         </div>
                         {/* this is the status function */}
@@ -220,7 +208,7 @@ export default function DesignQuoteForm({
                           <input
                             required
                             type="text"
-                            name='manufacturerCode'
+                            name="manufacturerCode"
                             className="mt-1 block input shadow-sm  "
                             value={formData.manufacturerCode}
                             onChange={handleInputChange}
@@ -233,7 +221,7 @@ export default function DesignQuoteForm({
                         </label>
                         <textarea
                           rows={3}
-                          name='description'
+                          name="description"
                           className="mt-1 block input shadow-sm focus:border-blue-500 focus:ring-blue-500"
                           value={formData.description}
                           onChange={handleInputChange}
@@ -327,7 +315,7 @@ export default function DesignQuoteForm({
                         <div className="flex items-center gap-1 ">
                           <span className="w-full relative">
                             <input
-                              type="text"
+                              type="number"
                               name="weight"
                               required
                               placeholder="Enter Weight"
@@ -448,22 +436,18 @@ export default function DesignQuoteForm({
                             Necklace
                           </label>
                           <div className="mt-1 relative rounded-md shadow-sm ">
-                            
-                          <select
-                              
+                            <select
                               name="necklace"
                               value={formData.necklace || false}
                               onChange={handleInputChange}
-                            //   className="w-full input pl-7 pr-3 py-2"
+                              //   className="w-full input pl-7 pr-3 py-2"
                               className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
-
                             >
-                                <option value="false">No</option>
-                                <option value="true">Yes</option>
+                              <option value="false">No</option>
+                              <option value="true">Yes</option>
                             </select>
-                            
-                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
 
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
                           </div>
                         </div>
                         <div className="w-full">
@@ -533,18 +517,36 @@ export default function DesignQuoteForm({
                           </div>
                         </div>
                       </div>
+                      {/* category and ideas selections */}
                       <div className="flex flex-row gap-2">
                         <div>
-                            <label htmlFor="board" className="text-sm font-medium text-gray-700">Board</label>
-                            <CustomSelect onSelect={handleCustomSelect} version={'collection'} hidden={true}/>
+                          <label
+                            htmlFor="board"
+                            className="text-sm font-medium text-gray-700"
+                          >
+                            Board
+                          </label>
+                          <CustomSelect
+                            onSelect={handleCustomSelect}
+                            version={"collection"}
+                            hidden={true}
+                          />
                         </div>
 
-                        <div className='mb-10'>
-                            <label htmlFor="category" className="text-sm font-medium text-gray-700">Category</label>
-                            <CustomSelect  onSelect={handleCustomSelect} version={'category'} hidden={false} />
+                        <div className="mb-10">
+                          <label
+                            htmlFor="category"
+                            className="text-sm font-medium text-gray-700"
+                          >
+                            Category
+                          </label>
+                          <CustomSelect
+                            onSelect={handleCustomSelect}
+                            version={"category"}
+                            hidden={false}
+                          />
                         </div>
                       </div>
-                      
                     </div>
                   </div>
 

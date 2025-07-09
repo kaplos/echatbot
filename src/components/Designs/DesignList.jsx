@@ -103,6 +103,9 @@ const DesignList = ({ designs,setDesigns,isLoading,setIsLoading, onDesignClick }
                 handleSelections={(selected)=>setSelectedDesigns(selected)}
                 selectedItems={selectedDesigns}
                 allItems={designs}
+                onDelete={(deletedSelectedItems) => 
+                  setDesigns(designs.filter(d => !deletedSelectedItems.includes(d.id)))
+                }
                 type="Designs"
               />
       <div

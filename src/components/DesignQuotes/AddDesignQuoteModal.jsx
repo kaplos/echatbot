@@ -1,13 +1,17 @@
 import DesignQuoteForm from "./DesignQuoteForm";
 import { useLocation } from "react-router-dom";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useRef } from "react";
 import { useGenericStore } from "../../store/VendorStore";
+import { useSupabase } from "../SupaBaseProvider";
 const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
+  const {supabase} = useSupabase()
   const location = useLocation(); // Access the current URL
   const queryParams = new URLSearchParams(location.search); // Parse the query string
   const designId = queryParams.get("designId") || null;
   const { getEntityItemById, getEntity } = useGenericStore();
   const vendors = getEntity("vendors");
+  const [uploadedImages,setUploadedImages]= useState([])
+  const finalizeUploadRef = useRef(null)
 
   const [formData, setFormData] = useState({
     description: "",
@@ -24,11 +28,11 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
     platingCharge: 0,
     stones: [],
     vendor: "",
-    plating: "",
+    plating: 0,
     karat: "10K",
     designId: designId,
-    collection: '',
-    category: '',
+    collection: null,
+    category: null,
     status: "Working_on_it:yellow",
   });
   const [lossPercent, setLossPercent] = useState(0);
@@ -79,6 +83,8 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
     if (designIdError) {
       console.log(designIdError);
     }
+    finalizeUploadRef.current('designQuote',data[0].id,data[0].manufacturerCode,uploadedImages)
+
     onSave(data[0]);
     setFormData({
       description: "",
@@ -107,6 +113,8 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
       handleSubmit={handleSubmit}
       lossPercent={lossPercent}
       setLossPercent={setLossPercent}
+      finalizeUploadRef={finalizeUploadRef}
+      onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
     />
   );
 };

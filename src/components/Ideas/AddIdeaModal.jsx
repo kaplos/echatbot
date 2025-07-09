@@ -11,7 +11,7 @@ export default function AddIdeaModal({ isOpen, onClose, onSave }) {
   const {supabase} = useSupabase();
   const modalRef = useRef(null);
   const [ideaForm, setIdeaForm] = useState({
-    title: '',
+    name: '',
     description: '',
     status: 'In_Review:yellow',
     slides: [],
@@ -23,7 +23,7 @@ export default function AddIdeaModal({ isOpen, onClose, onSave }) {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!ideaForm.title.trim()) return;
+    if (!ideaForm.name.trim()) return;
 
     setLoading(true);
     try {
@@ -33,13 +33,13 @@ export default function AddIdeaModal({ isOpen, onClose, onSave }) {
         slides: ideaForm.slides ? ideaForm.slides : [],
       };
 
-      const { data,error } = await supabase.from('Ideas').insert(newIdea).select();
+      const { data,error } = await supabase.from('ideas').insert(newIdea).select();
       
       if (error) throw error;
       
       // Reset form and close modal
       setIdeaForm({
-        title: '',
+        name: '',
         description: '',
         status: 'In_Review:yellow',
         slides: [],
@@ -124,15 +124,15 @@ export default function AddIdeaModal({ isOpen, onClose, onSave }) {
             </div>
             
             <div className="mb-4">
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                Title
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Name
               </label>
               <input
                 type="text"
-                id="title"
-                name="title"
-                placeholder="Enter idea title"
-                value={ideaForm.title}
+                id="name"
+                name="name"
+                placeholder="Enter idea Name"
+                value={ideaForm.name}
                 onChange={handleFormChange}
                 className="w-full p-2 border border-gray-300 rounded-lg"
                 required

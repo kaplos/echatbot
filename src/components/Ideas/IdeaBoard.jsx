@@ -7,7 +7,7 @@ import { useSupabase } from "../SupaBaseProvider";
 import IdeasExportButton from "../Pdf/IdeasExportButton";
 import ViewableListActionButtons from "../MiscComponenets/ViewableListActionButtons";
 
-const IdeaBoard = ({ ideas, handleClick }) => {
+const IdeaBoard = ({ ideas,setIdeas, handleClick }) => {
   console.log(ideas)
   const [selectedIdeas, setSelectedIdeas] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -16,7 +16,7 @@ const IdeaBoard = ({ ideas, handleClick }) => {
   const handleExport = async () => {
     const ideasToExport = ideas.filter((p) => selectedIdeas.has(p.id));
     const { data: ideasData, error: ideasDataError } = await supabase
-      .from("Ideas")
+      .from("ideas")
       .select("*")
       .in("id", ideasToExport.map((idea) => idea.id));
 
@@ -51,13 +51,16 @@ const IdeaBoard = ({ ideas, handleClick }) => {
                       handleExport={handleExport}
                       allItems={ideas}
                       selectedItems={selectedIdeas}
-                      type="Ideas"
+                      onDelete={(deletedSelectedItems) => 
+                        setIdeas(ideas.filter(i => !deletedSelectedItems.includes(i.id)))
+                      }
+                      type="ideas"
                       customComponent={ <IdeasExportButton
                         ideas={selectedIdeas}
                         fetchIdeas={async () => {
                           const ideasToExport = ideas.filter((p) => selectedIdeas.has(p.id));
                           const { data: ideasData, error: ideasDataError } = await supabase
-                            .from("Ideas")
+                            .from("ideas")
                             .select("*")
                             .in("id", ideasToExport.map((idea) => idea.id));
             

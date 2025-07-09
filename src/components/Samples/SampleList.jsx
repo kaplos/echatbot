@@ -115,6 +115,9 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
         setIsSelectionMode={setIsSelectionMode}
         handleSelections={(selected) => setSelectedSamples(selected)}
         handleExport={handleExport}
+        onDelete={(deletedSelectedItems) => 
+          setSamples(designs.filter(s => !deletedSelectedItems.includes(s.id)))
+        }
         allItems={samples}
         selectedItems={selectedSamples}
         type="Samples"

@@ -1,16 +1,32 @@
 import ConfirmationModal from "../ConfirmationModal";
 import { useState } from "react";
-
-export default function DeleteButton({ onDelete,type }) {
+import { useSupabase } from "../SupaBaseProvider";
+export default function DeleteButton({ onDelete,type ,selectedItems}) {
   const [isOpen,setIsOpen]=useState(false)
-  
+  const {supabase} = useSupabase();
+
+
+  const handleDelete = async () => {
+      const {data,error} = await supabase
+      .from(type.toLowerCase())
+      .delete()
+      .in('id',selectedItems)
+      if(error){
+        console.error('error deleting entities:',error)
+        onDelete(false)
+        return
+      }
+    console.log(Array.from(selectedItems))
+      console.log(data,'items deleted ?')
+    onDelete(true)
+  }
   return (
     <>
        <ConfirmationModal 
         isOpen={isOpen} 
         message={"Are you sure you want to delete the selected items ? "}
         onClose={()=> setIsOpen(false)}
-        // onConfirm={handleDelete}
+        onConfirm={handleDelete}
         title={'Permanent Action'}
     />
       <button

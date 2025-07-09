@@ -63,7 +63,7 @@ export default function Ideas() {
       };
       
       const { error } = await supabase
-        .from('Ideas')
+        .from('ideas')
         .update(updatedIdea)
         .eq('id', idea.id);
       
@@ -85,7 +85,7 @@ export default function Ideas() {
       };
       
       const { data, error } = await supabase
-        .from('Ideas')
+        .from('ideas')
         .insert(newIdea)
         .select();
       
@@ -106,7 +106,7 @@ export default function Ideas() {
   
   const handleClick = async (idea) => {
     const { data, error } = await supabase
-      .from('Ideas')
+      .from('ideas')
       .select('*')
       .eq('id', idea.id);
 
@@ -129,7 +129,7 @@ export default function Ideas() {
     const fetchIdeas = async () => {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('Ideas')
+        .from('ideas')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(12);
@@ -202,6 +202,7 @@ export default function Ideas() {
       
       <IdeaBoard 
         ideas={filteredIdeas} 
+        setIdeas={setIdeas}
         handleClick={handleClick} 
         handleEdit={editIdeaDesign} 
       />

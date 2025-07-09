@@ -10,6 +10,7 @@ import ImageUpload from "../ImageUpload";
 import { useSupabase } from "../SupaBaseProvider";
 import StonePropertiesForm from "../Products/StonePropertiesForm";
 import { useGenericStore } from "../../store/VendorStore";
+import { useMessage } from "../Messages/MessageContext";
 const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   const { supabase } = useSupabase();
   const vendorLossRef = useRef();
@@ -18,7 +19,8 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   console.log(vendors, "vendors from add sample modal");
   const [lossPercent, setLossPercent] = useState(0);
   const [metalCost, setMetalCost] = useState(0);
-
+  const {showMessage} = useMessage()
+  const finalizeUploadRef = useRef(null)
 
   const [formData, setFormData] = useState({
     cad: [],
@@ -29,9 +31,11 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     custom_back_type: "",
     back_type_quantity: 0,
     // cost: 0,
+  
     name: "",
     styleNumber: "",
     salesWeight: 0,
+ 
     status: "Working_on_it:yellow",
   });
   const [starting_info, setStarting_info] = useState({
@@ -49,8 +53,13 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     stones: [],
     vendor: "",
     plating: 1,
+    necklace: false,
+    necklaceCost: 0,
+    collection: '',
+    category: '',
     status: "Working_on_it:yellow",
   });
+  const [uploadedImages,setUploadedImages]= useState([])
 
   useEffect(() => {
     setLossPercent(vendors[0].pricingsetting.lossPercentage);
@@ -93,6 +102,10 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if(formData.styleNumber===''){
+      showMessage('Please add a styleNumber')
+      return
+    }
     console.log(formData);
     const { stones, ...startingInfo } = starting_info;
 
@@ -121,10 +134,12 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
       .insert([{ ...formData, starting_info_id: starting_infoData[0].id }])
       .select("*, starting_info(*)");
 
+
     if (error) {
       console.log(error);
     }
     console.log(data, "data from insert samples ");
+    finalizeUploadRef.current('sample',data[0].id,data[0].styleNumber,uploadedImages)
     onSave(data[0]);
     setFormData({
       cad: [],
@@ -153,6 +168,9 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
       karat: "10K",
       status: "Working_on_it:yellow",
     });
+  
+
+ 
   };
   const handleCustomSelect = (option) => {
     console.log(option, "option from custom select");
@@ -176,6 +194,11 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
       });
     }
   };
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
   // console.log(
   //   Array.isArray(starting_info.images),
   //   "images from form data in add smaple modal"
@@ -230,8 +253,10 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                             Images
                           </label>
                           <ImageUpload
-                            // images={formData.images || []}
+                            collection="image"
                             images={starting_info.images || []}
+                            onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
+                            finalizeUpload={finalizeUploadRef}
                             onChange={async (images) => {
                               setStarting_info({
                                 ...starting_info,
@@ -241,6 +266,9 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                             }}
                           />
                           <ImageUpload
+                            collection="cad"
+                            // finalizeUpload={finalizeUploadRef}
+                            onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
                             images={formData.cad || []}
                             onChange={(cad) =>
                               setFormData({ ...formData, cad: cad })
@@ -300,10 +328,10 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                       <div className="flex flex-row gap-2 w-full">
                         <div className="w-full ">
                           <label className="block text-sm font-medium text-gray-700">
-                            Style Number
+                            Style Number <span className="text-red-500">*</span>
                           </label>
                           <input
-                            required
+                            required="true"
                             type="text"
                             className="mt-1 block input shadow-sm "
                             value={formData.styleNumber}
@@ -318,7 +346,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
 
                         <div className="w-full ">
                           <label className="block text-sm font-medium text-gray-700">
-                            Manufacturer Code
+                            Manufacturer Code <span className="text-red-500">*</span>
                           </label>
                           <input
                             required
@@ -496,7 +524,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
 
                       <div className="flex flex-row gap-2 w-full">
                         <div className="w-full">
-                          <label htmlFor="">Weight</label>
+                          <label htmlFor="">Weight <span className="text-red-500">*</span></label>
                           <div className="flex items-center gap-1 ">
                             <span className="w-full relative">
                               <input
@@ -646,63 +674,66 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                           </div>
                         </div>
                       </div>
+                     
 
-                      <div className="flex flex-col ">
-                        <label htmlFor="back_type">Back Type</label>
-                        <div className="flex flex-row gap-2">
-                          <div className="relative w-full">
-                            <select
-                              name="back_type"
-                              id=""
-                              className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                              value={formData.back_type}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  back_type: e.target.value,
-                                })
-                              }
-                            >
-                              <option value="none">None</option>
-                              <option value="silicone">Silicone</option>f
-                              <option value="screw">Screw</option>
-                              <option value="flat">Flat</option>
-                              <option value="other">Other</option>
-                            </select>
-                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
-                            {formData.back_type === "other" && (
-                              <input
-                                type="text"
-                                className="mt-1  input pr-7 pl-3 py-2"
-                                placeholder="Enter custom back type"
-                                value={formData.custom_back_type}
-                                onChange={(e) =>
-                                  setFormData({
-                                    ...formData,
-                                    custom_back_type: e.target.value,
-                                  })
-                                }
-                              />
-                            )}
-                          </div>
-                          <div className=" w-full">
-                            <label htmlFor="back_type_quantity">
-                              Back Type Quantity
-                            </label>
-                            <input
-                              type="number"
-                              className="mt-1  input pr-7 pl-3 py-2"
-                              value={formData.back_type_quantity}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  back_type_quantity: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
-                        </div>
-                      </div>
+                     <div className="flex flex-row justify-center gap-2  ">
+                                             <div className="flex w-full flex-col">
+                                               <label htmlFor="back_type">Back Type</label>
+                                               <div className="flex flex-row gap-2">
+                                                 <div className="relative w-full">
+                                                   <select
+                                                     name="back_type"
+                                                     id=""
+                                                     className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                                                     value={formData.back_type}
+                                                     onChange={(e) =>
+                                                       setFormData({
+                                                         ...formData,
+                                                         back_type: e.target.value,
+                                                       })
+                                                     }
+                                                   >
+                                                     <option value="none">None</option>
+                                                     <option value="silicone">Silicone</option>f
+                                                     <option value="screw">Screw</option>
+                                                     <option value="flat">Flat</option>
+                                                     <option value="other">Other</option>
+                                                   </select>
+                                                   <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                                                   {formData.back_type === "other" && (
+                                                     <input
+                                                       type="text"
+                                                       className="mt-1  input pr-7 pl-3 py-2"
+                                                       placeholder="Enter custom back type"
+                                                       value={formData.custom_back_type}
+                                                       onChange={(e) =>
+                                                         setFormData({
+                                                           ...formData,
+                                                           custom_back_type: e.target.value,
+                                                         })
+                                                       }
+                                                     />
+                                                   )}
+                                                 </div>
+                                               </div>
+                                             </div>
+                                               <div className=" w-full">
+                                                 <label htmlFor="back_type_quantity">
+                                                   Back Type Quantity
+                                                 </label>
+                                                 <input
+                                                   type="number"
+                                                   className="mt-1  input pr-7 pl-3 py-2"
+                                                   value={formData.back_type_quantity}
+                                                   onChange={(e) =>
+                                                     setFormData({
+                                                       ...formData,
+                                                       back_type_quantity: e.target.value,
+                                                     })
+                                                   }
+                                                 />
+                                               </div>
+                                           </div>
                       <div className="flex flex-col ">
                         <label htmlFor="selling_pair">Selling type</label>
                         <div className="relative w-full">
@@ -724,6 +755,65 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                           <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
                         </div>
                       </div>
+                      <div className="flex flex-row gap-2">
+                        <div>
+                            <label htmlFor="board" className="text-sm font-medium text-gray-700">Board</label>
+                            <CustomSelect onSelect={handleCustomSelect} version={'collection'} hidden={true}/>
+                        </div>
+
+                        <div className='mb-10'>
+                            <label htmlFor="category" className="text-sm font-medium text-gray-700">Category</label>
+                            <CustomSelect  onSelect={handleCustomSelect} version={'category'} hidden={false} />
+                        </div>
+                      </div>
+                      {/* necklace */}
+                      <div className="flex flex-row gap-2 items-center">
+                        <div className="w-full">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Necklace
+                          </label>
+                          <div className="mt-1 relative rounded-md shadow-sm ">
+                            
+                          <select
+                              
+                              name="necklace"
+                              value={starting_info.necklace || false}
+                              onChange={(e)=> setStarting_info({...starting_info, necklace:e.target.value})}
+                            //   className="w-full input pl-7 pr-3 py-2"
+                              className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+
+                            >
+                                <option value="false">No</option>
+                                <option value="true">Yes</option>
+                            </select>
+                            
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+
+                          </div>
+                        </div>
+                        <div className="w-full">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Necklase Cost
+                          </label>
+                          <div className="mt-1 relative rounded-md shadow-sm  ">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-gray-500 sm:text-sm">
+                                $
+                              </span>
+                            </div>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              name="necklaceCost"
+                              value={starting_info.necklaceCost || 0}
+                              onChange={limitInput}
+                              className="w-full input pl-7 pr-3 py-2"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      {/* dimensions */}
                       <div>
                         <label htmlFor="dims">Dimensions</label>
                         <div className="flex flex-row gap-2 ">
@@ -786,6 +876,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                           </div>
                         </div>
                       </div>
+                      
 
                       <div className="flex flex-col w-full">
                         <label htmlFor="notes">Notes</label>

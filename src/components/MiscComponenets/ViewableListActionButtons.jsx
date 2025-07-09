@@ -3,6 +3,7 @@ import DeleteButton from "./DeleteButton";
 import { Download } from "lucide-react";
 import { useState } from "react";
 import ConfirmationModal from "../ConfirmationModal";
+import { useMessage } from "../Messages/MessageContext";
 
 export default function ViewableListActionButtons({
   isSelectionMode,
@@ -11,11 +12,12 @@ export default function ViewableListActionButtons({
   handleSelections,
   allItems,
   selectedItems,
+  onDelete,
   type,
   customComponent
 }) {
+    const {showMessage} = useMessage()
     const [isSelectAll,setSelectAll] = useState(false)
-    const [isOpen,setIsOpen] =useState(false)
     // const [isSelectionMode,setIsSelectionMode] = useState(false)
 
     const toggleSelectAll = () => {
@@ -42,21 +44,14 @@ export default function ViewableListActionButtons({
           setSelectAll(false)
         }
       };
-    const handleDelete = async ()=>{
-        setIsOpen(false)
+    const handleDelete = async (success)=>{
+        showMessage(success? 'Items have been deleted successfully':'Error occured while deleting')
+        onDelete(selectedItems)
         handleSelections(new Set())
-        console.log(selectedItems)
     }
   return (
 
-    // <>
-    // <ConfirmationModal 
-    //     isOpen={isOpen} 
-    //     message={"Are you sure you want to delete the selected items ? "}
-    //     onClose={()=> setIsOpen(false)}
-    //     onConfirm={handleDelete}
-    //     title={'Permanent Action'}
-    // />
+   
     <div className="flex justify-between mb-4 space-x-3">
        <div className="flex gap-2">
            <button
@@ -75,7 +70,7 @@ export default function ViewableListActionButtons({
    
      <div className="flex justify-center items-center gap-2"> 
        {isSelectionMode && selectedItems.size > 0 && (
-      <DeleteButton onDelete={() => setIsOpen(true)} type={type}/>
+      <DeleteButton onDelete={handleDelete} type={type} selectedItems={selectedItems}/>
      )}
         {isSelectionMode && selectedItems.size > 0 && (
           customComponent ? (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect ,useRef} from "react";
 
 import DesignQuoteForm from "./DesignQuoteForm";
 
@@ -10,7 +10,11 @@ const DesignQuoteInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
   const { getEntityItemById, getEntity } = useGenericStore();
   const vendors = getEntity("vendors");
   const { supabase } = useSupabase();
+    const finalizeUploadRef = useRef(null)
+  
   const [lossPercent, setLossPercent] = useState(0);
+    const [uploadedImages,setUploadedImages]= useState([])
+  
   const [originalData, setOriginalData] = useState({
     ...design,
     images: design.images || [],
@@ -80,7 +84,9 @@ const DesignQuoteInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
       originalData.images,
       formData.images
     );
-
+    if(updates.hasOwnProperty('manufacturerCode')){
+      await handleUpdateImageManufactoreCode(design.id,updates.manufacturerCode)
+    }
     const { data, error } = await supabase
       .from("starting_info")
       .update(updates)
@@ -93,20 +99,31 @@ const DesignQuoteInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
       console.log("design updated:", data);
       updateDesign({ ...data[0] });
     }
+    finalizeUploadRef.current('designQuote',data[0].id,data[0].manufacturerCode,uploadedImages)
     onClose();
   };
+  const handleUpdateImageManufactoreCode= async(designQuotesId,manufacturerCode)=>{
+    const {data,error} = await supabase.from('image_link').update({styleNumber:manufacturerCode}).eq('entityId',designQuotesId).eq('entity','designQuote').select('styleNumber')
+    if(error){
+      console.error('style code was not updated');
+    }
+    console.log('style number was updated :',data[0].styleNumber)
+  }
  
   return (
-    <DesignQuoteForm
-          isOpen={isOpen}
-          onClose={onClose}
-          formData={formData}
-          setFormData={setFormData}
-          lossPercent={lossPercent}
-          handleSubmit={handleEditSubmit}
-          setLossPercent={setLossPercent}
-          isEditing
-        />
+    
+         <DesignQuoteForm
+              isOpen={isOpen}
+              onClose={onClose}
+              formData={formData}
+              setFormData={setFormData}
+              handleSubmit={handleEditSubmit}
+              lossPercent={lossPercent}
+              setLossPercent={setLossPercent}
+              finalizeUploadRef={finalizeUploadRef}
+              onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
+              isEditing
+            />
     // <Transition appear show={isOpen} as={Fragment}>
     //   <Dialog as="div" className="relative z-50" onClose={onClose}>
     //     <Transition.Child
