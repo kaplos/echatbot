@@ -46,7 +46,7 @@ export default function ViewableListActionButtons({
       };
     const handleDelete = async (success)=>{
         showMessage(success? 'Items have been deleted successfully':'Error occured while deleting')
-        onDelete(selectedItems)
+        onDelete(Array.from(selectedItems))
         handleSelections(new Set())
     }
   return (

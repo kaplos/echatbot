@@ -23,7 +23,7 @@ export default function Quote (){
                 return
               }
 
-        setQuotes(quotes.filter(q => !selected .has(q.id)))
+        setQuotes(quotes.filter(q => !selected.has(q.id)))
         showMessage('Items have been deleted successfully')
         setSelected(new Set())
     }

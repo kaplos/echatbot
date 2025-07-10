@@ -51,6 +51,7 @@ const handleDrop = async (e) => {
     // Check if any remaining fields are provided
     return Object.values(rest).some((value) => value !== null && value !== '' && value !== 0&& JSON.stringify(['']) !== JSON.stringify(value)&& JSON.stringify([]) !== JSON.stringify(value)) 
   };
+
   const getDropDownData = async ()=>{
     const { data, error } = await supabase.rpc('get_dropdown_options');
 
@@ -59,6 +60,7 @@ const handleDrop = async (e) => {
     }
     return data
   }
+
   const handleFileChange = async (e) => {
     setError('');
     const file = e.target.files?.[0];
@@ -174,7 +176,7 @@ const handleDrop = async (e) => {
   
       setIsLoading(true);
       setProgress(0);
-  
+  const failedRows = [];
       for (let i = 0; i < formatted.length; i++) {
         const item = formatted[i];
         try {
@@ -235,6 +237,8 @@ const handleDrop = async (e) => {
           }
         } catch (err) {
           console.error(`Upload failed for item ${i}:`, err);
+          failedRows.push({ row: i + 2, error: err.message });
+
         }
   
         // ✅ Update progress
@@ -242,7 +246,11 @@ const handleDrop = async (e) => {
       }
   
       setIsLoading(false);
-      onClose();
+      if (failedRows.length > 0) {
+        const message = failedRows.map(f => `Row ${f.row}: ${f.error}`).join('\n');
+        setError(`Some rows failed:\n${message}`);
+      }
+      // onClose();
     } catch (err) {
       setError('Error parsing file. Please check the format.');
       console.error('Import error:', err);

@@ -20,13 +20,23 @@ export default function DeleteButton({ onDelete,type ,selectedItems}) {
       console.log(data,'items deleted ?')
     onDelete(true)
   }
+  const deleteImages = async () => {
+   
+    console.log(selectedItems)
+    const pathsToDelete = selectedItems.map((imageName) => `${selectedFolder}/${imageName}`);
+    const { error } = await supabase.storage.from('echatbot').remove(pathsToDelete);
+    const {error:imageTableDelete}= await supabase.from('images').delete().in('imageUrl',selectedItems.map(image=> `${process.env.VITE_SUPABASE_URL}/storage/v1/object/public/echatbot/${selectedFolder}/${image}`))
+    if (error||imageTableDelete) {
+      console.error(error||imageTableDelete)
+    }
+  };
   return (
     <>
        <ConfirmationModal 
         isOpen={isOpen} 
         message={"Are you sure you want to delete the selected items ? "}
         onClose={()=> setIsOpen(false)}
-        onConfirm={handleDelete}
+        onConfirm={type==='images' ? deleteImages:handleDelete}
         title={'Permanent Action'}
     />
       <button

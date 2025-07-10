@@ -6,6 +6,7 @@ function CustomSelect({ onSelect, version, setNewOption, informationFromDataBase
   const { supabase } = useSupabase();
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
+  
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");

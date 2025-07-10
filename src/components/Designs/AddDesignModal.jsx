@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useState,useRef } from 'react';
 import { ChevronDown, X,Upload } from 'lucide-react';
 import { Dialog, Transition } from '@headlessui/react';
 import { getStatusColor } from '../../utils/designUtils';
@@ -15,11 +15,14 @@ const AddDesignModal = ({ isOpen, onClose,onSave }) => {
         name: '',
         description: '',
         link:'',
-        collection: '',
-        category: '',
+        collection: null,
+        category: null,
         images: [],
         status: 'Working_on_it:yellow',
     })
+      const [uploadedImages,setUploadedImages]= useState([])
+      const finalizeUploadRef = useRef(null)
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
         const newDesign = {
@@ -41,7 +44,7 @@ const AddDesignModal = ({ isOpen, onClose,onSave }) => {
     }
     console.log(data, 'data from insert designs ');
 
-    
+    finalizeUploadRef.current('design',data[0].id,data[0].name,uploadedImages)
     onSave(data[0]);
     setFormData({
         name: '',
@@ -111,9 +114,15 @@ const handleCustomSelect = (option) => {
                         Images
                       </label>
                       <ImageUpload
-                        images={formData.images || []}
-                        onChange={(images) => setFormData({ ...formData, images })}
-                      />
+                            collection="image"
+                            images={formData.images || []}
+                            onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
+                            finalizeUpload={finalizeUploadRef}
+                            onChange={async (images) => {
+                              setFormData({ ...formData, images });
+                            }}
+                          />
+                     
                     </div>
                             {/* this is the status function */}
                             <div className="mt-6 mb-2 flex justify-center w-full ">

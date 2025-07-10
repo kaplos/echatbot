@@ -146,6 +146,7 @@ export default function Samples() {
           <h1 className="text-2xl font-bold text-gray-900">Samples</h1>
           <SearchBar
             items={samples}
+            type={'samples'}
             onSearch={(filteredItems) => {
               setFilteredItems(filteredItems);
             }}

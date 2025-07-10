@@ -108,6 +108,7 @@ const Designs = () => {
           <h1 className="text-2xl font-bold text-gray-900">Designs</h1>
           <SearchBar
             items={designs}
+            type={'designs'}
             onSearch={(filteredItems) => {
               setFilteredItems(filteredItems);
             }}

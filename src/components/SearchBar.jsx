@@ -3,7 +3,7 @@ import { useSupabase } from "../components/SupaBaseProvider";
 import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const SearchBar = ({ items: collectionItems, onSearch }) => {
+const SearchBar = ({ items: collectionItems, onSearch,type }) => {
   const { supabase } = useSupabase();
   const [searchTerm, setSearchTerm] = useState("");
   const [items, setItems] = useState(null);
@@ -24,13 +24,8 @@ const SearchBar = ({ items: collectionItems, onSearch }) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  const fetchItems = async (searchTerm = "") => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data: samples, error: samplesError } = await supabase
+  const handleSearchBarFunction = async(searchTerm)=>{
+    const { data: samples, error: samplesError } = await supabase
         .from("samples")
         .select("*")
         .or(`styleNumber.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`);
@@ -117,6 +112,38 @@ const SearchBar = ({ items: collectionItems, onSearch }) => {
       ];
 
       setItems(combinedResults.filter((item) => item.display));
+  }
+  const handleImageSearch = async (searchTerm) =>{
+    const {data,error}=await supabase
+    .from('image_link')
+    .select('id,imageId(imageUrl)')
+    // .select('styleNumber')
+    .ilike('styleNumber',`%${searchTerm}%`)
+
+    if (error) {
+      console.error('Search error:', error);
+    } else {
+      console.log('Search results:', data);
+    }
+    const imageUrls = data
+  .filter((item) => item.imageId && item.imageId.imageUrl)
+  .map((item) => ({id:item.id,name:item.imageId.imageUrl.split('public/').pop(),url:item.imageId.imageUrl}));
+    onSearch([...new Set([...imageUrls,...collectionItems])])
+  }
+
+  const fetchItems = async (searchTerm = "") => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      switch(type){
+        case 'search':
+          await handleSearchBarFunction(searchTerm)
+          break;
+        case 'images':
+          await handleImageSearch(searchTerm)
+          break;
+      }
     } catch (err) {
       setError("Error fetching search results");
       console.error(err);
@@ -134,16 +161,20 @@ const SearchBar = ({ items: collectionItems, onSearch }) => {
       }
       return
     };
-    // console.log(collectionItems)
+    console.log(collectionItems)
     if (collectionItems){
       const filteredItems = collectionItems.filter((item) =>
         item.id == Number(searchTerm) ||
         item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.styleNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+        item.styleNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      
       );
 
       onSearch(filteredItems);
-      return
+      if(type!=='images'){
+        return
+      } 
     }
 
     const delayDebounce = setTimeout(() => {

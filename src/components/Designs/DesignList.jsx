@@ -104,7 +104,9 @@ const DesignList = ({ designs,setDesigns,isLoading,setIsLoading, onDesignClick }
                 selectedItems={selectedDesigns}
                 allItems={designs}
                 onDelete={(deletedSelectedItems) => 
+                {
                   setDesigns(designs.filter(d => !deletedSelectedItems.includes(d.id)))
+                }
                 }
                 type="Designs"
               />

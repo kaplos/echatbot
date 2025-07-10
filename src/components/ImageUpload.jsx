@@ -34,6 +34,7 @@ useEffect(() => {
     const imageUrls = await handleImageUpload(files);
     console.log(imageUrls, "imageUrls from upload");
     // console.log('Calling onChange with:', [...images, ...imageUrls]);
+    // setImages([...images,...imageUrls])
     setImageToShow(imageUrls[0]); // Show the first uploaded image
     onChange([...inital, ...imageUrls]);
   };
@@ -67,7 +68,7 @@ useEffect(() => {
       const { data: imageInsertData, error: imageInsertError } = await supabase
     .from("images")
     .insert(
-      imageUrls.map((image) => ({ imageUrl: image })) // ⬅️ Corrected object return
+      imageUrls.map((image) => ({ imageUrl: image,originalUrl: image})) // ⬅️ Corrected object return
     )
     .select("id,imageUrl"); // Select only the IDs of inserted images
 
@@ -80,7 +81,6 @@ useEffect(() => {
 
   const linkImagesToEntity = async (entity, entityId,styleNumber,images) => {
     if (!Array.isArray(images)) return;
-  
     const imageIds = images.map((img) => img.id).filter(Boolean); // Ensure images have IDs
     const { error } = await supabase.from("image_link").insert(
       imageIds.map((imageId) => ({
@@ -90,13 +90,55 @@ useEffect(() => {
         entityId,
         type:collection
       }))
+
     );
-  
+    
     if (error) {
       console.error("Failed to link images:", error);
     } else {
       console.log("Images linked to entity successfully");
     }
+    const uniqueSuffix = Date.now();
+
+    const formatted = `${uniqueSuffix}`;
+    console.log(formatted); // Example: "7_4_2025"
+    
+    await Promise.all(
+      images.map(async (image) => {
+        const decoded = decodeURIComponent(image.imageUrl);
+        const oldPath = decoded.split('/echatbot/')[1]; // get the path inside bucket
+        const extension = oldPath.split('.').pop(); // get file extension
+    
+        const newPath = `public/${styleNumber}_${formatted}.${extension}`;
+    
+        // Move the image in Supabase Storage
+        const { error: moveError } = await supabase.storage
+          .from('echatbot')
+          .move(oldPath, `${newPath}`);
+    
+        if (moveError) {
+          console.error(`Error moving ${oldPath}:`, moveError);
+          return;
+        }
+    
+        // Update the image metadata in the 'images' table
+        const fullNewUrl = `${process.env.VITE_SUPABASE_URL}/storage/v1/object/public/echatbot/${newPath}`
+        const {data, error: updateError } = await supabase
+          .from('images')
+          .update({ imageUrl: fullNewUrl, name: newPath })
+          .eq('id', image.id)
+          .select()
+        
+        if (updateError) {
+          console.error(`Error updating image row for ${image.imageUrl}:`, updateError);
+        }
+        console.log(data[0])
+      })
+    );
+    
+      
+    
+      
 
   };
   
