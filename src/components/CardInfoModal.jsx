@@ -13,7 +13,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
     
     const [originalData, setOriginalData] = useState({
         id: idea.id,
-        title: idea.title,
+        name: idea.name,
         description: idea.description,
         tags: JSON.parse(idea.tags),
         slides: idea.slides,
@@ -27,7 +27,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
       useEffect(() => {
         setOriginalData({
             id: idea.id,
-            title: idea.title,
+            name: idea.name,
             description: idea.description,
             tags: JSON.parse(idea.tags),
             slides: idea.slides,
@@ -37,7 +37,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
         });
         setFormData({
             id: idea.id,
-            title: idea.title,
+            name: idea.name,
             description: idea.description,
             tags: JSON.parse(idea.tags),
             slides: null,
@@ -79,7 +79,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
 
   const handleSubmit = async () => {
     const updates = {};
-    if (formData.title !== originalData.title) updates.title = formData.title;
+    if (formData.name !== originalData.name) updates.name = formData.name;
     if (formData.description !== originalData.description) updates.description = formData.description;
     if (JSON.stringify(formData.tags) !== JSON.stringify(originalData.tags)) updates.tags = JSON.stringify(formData.tags);
     if (formData.status!==originalData.status) updates.status = formData.status;
@@ -90,7 +90,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
     if (Object.keys(updates).length > 0) {
 
       const { data, error } = await supabase
-        .from('Ideas')
+        .from('ideas')
         .update(updates)
         .eq('id', idea.id);
 
@@ -182,12 +182,12 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
-                        Title
+                        name
                       </label>
                       <input
                         type="text"
-                        name="title"
-                        value={formData.title}
+                        name="name"
+                        value={formData.name}
                         onChange={handleInputChange}
                         className="input mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                       />
@@ -327,7 +327,7 @@ const CardInfoModal = ({ isOpen, onClose, idea,updateIdea}) => {
                         isOpen={confirmationModal}
                         onClose={handleCloseModal}
                         onConfirm={handleConfirmAction}
-                        title="Confirm Action"
+                        name="Confirm Action"
                         message="Are you sure you want to perform this action?"
                     /> */}
                   </div>

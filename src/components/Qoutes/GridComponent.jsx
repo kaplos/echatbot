@@ -1,4 +1,4 @@
-import React, { useState, useRef,useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilePdf, faFileExcel } from "@fortawesome/free-solid-svg-icons";
@@ -6,8 +6,8 @@ import EditableCell from "./EditableCell";
 import { useNavigate } from "react-router-dom";
 import { useSupabase } from "../SupaBaseProvider";
 import QuotePDFGenerator from "../Pdf/QuotePDFGenerator";
-import { exportToCsv, exportToExcel } from "../../utils/exportToExcel";
-const EditableGrid = ({ quotes, setQuotes }) => {
+import { exportToCsv, exportToExcel } from "../../utils/exportOrderToExcel";
+const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
   const navigate = useNavigate();
   const { supabase } = useSupabase();
   const [editingCell, setEditingCell] = useState(null);
@@ -17,7 +17,7 @@ const EditableGrid = ({ quotes, setQuotes }) => {
   const [copiedRowId, setCopiedRowId] = useState(null); // State to track which row was copied
   const [rowType, setRowType] = useState(null); // State to track the type of row copied
   const hasFetchedQuotes = useRef(false);
-             
+
   useEffect(() => {
     if (!hasFetchedQuotes.current) {
       fetchQuotes(0); // Fetch quotes only once
@@ -43,29 +43,30 @@ const EditableGrid = ({ quotes, setQuotes }) => {
     updatedData[index][field] = value;
     setQuotes(updatedData);
   };
-  const handleExportToExcel = async (quoteNumber,quoteId) => {
+  const handleExportToExcel = async (quoteNumber, quoteId) => {
     const { data, error } = await supabase
       .from("lineItems")
-      .select(`
-        *,product:samples(*,starting_info(*,stones(*)))`)
+      .select(
+        `
+        *,product:samples(*,starting_info(*,stones(*)))`
+      )
       .eq("quoteNumber", quoteNumber);
     if (error) {
-
       console.error("Error fetching quote for Excel export:", error);
       return;
     }
     const processedLineItems = data.map((item) => {
-      console.log(item)
+      console.log(item);
       const { starting_info, ...productData } = item.product; // Extract startingInfo and product data
-      const { id,...startingInfoData } = starting_info; // Extract id and other properties from startingInfo
+      const { id, ...startingInfoData } = starting_info; // Extract id and other properties from startingInfo
       return {
-          ...productData, // Spread the product data into the top-level object
-          ...startingInfoData, // Spread the startingInfo data into the top-level object
+        ...productData, // Spread the product data into the top-level object
+        ...startingInfoData, // Spread the startingInfo data into the top-level object
       };
-  });    
-      console.log(processedLineItems, "sample data");
-      exportToExcel(processedLineItems, `Quote_${quoteId}`);
-  }
+    });
+    console.log(processedLineItems, "sample data");
+    exportToExcel(processedLineItems, `Quote_${quoteId}`);
+  };
 
   const handleEditQuote = (quoteNumber) => {
     navigate(`/newQuote?quote=${quoteNumber}`);
@@ -118,6 +119,27 @@ const EditableGrid = ({ quotes, setQuotes }) => {
   const ascendingQuotesById = [...quotes].sort((a, b) =>
     a.id > b.id ? 1 : -1
   );
+  const handleSelectAll = () => {
+    if (selected.size === quotes.length) {
+      // Deselect all rows
+      setSelected(new Set());
+    } else {
+      // Select all rows
+      const allRowIds = new Set(quotes.map((quote) => quote.id));
+      setSelected(allRowIds);
+    }
+  };
+  const handleRowSelection = (rowId) => {
+    setSelected((prevSelectedRows) => {
+      const newSelectedRows = new Set(prevSelectedRows);
+      if (newSelectedRows.has(rowId)) {
+        newSelectedRows.delete(rowId); // Deselect the row
+      } else {
+        newSelectedRows.add(rowId); // Select the row
+      }
+      return newSelectedRows;
+    });
+  };
 
   return (
     <div
@@ -134,6 +156,10 @@ const EditableGrid = ({ quotes, setQuotes }) => {
       <table className="w-full border-collapse border border-gray-300 table-sticky">
         <thead className="bg-gray-200 sticky top-0 z-10">
           <tr className="bg-gray-200">
+            <th className="border border-gray-300 p-2 w-20">
+              <input type="checkbox" className="w-5 h-5"  
+              checked={selected.size === quotes.length} onChange={handleSelectAll} />
+            </th>
             <th className="border border-gray-300 p-2 w-20">Quote Date</th>
             <th className="border border-gray-300 p-2 w-20">Quote Number</th>
             <th className="border border-gray-300 p-2 w-20">Quote Total</th>
@@ -150,6 +176,10 @@ const EditableGrid = ({ quotes, setQuotes }) => {
           {quotes.map((row, index) => {
             return (
               <tr key={index}>
+                <td className="text-center border border-gray-300">
+                  <input type="checkbox" className="w-5 h-5"  onChange={() => handleRowSelection(row.id)}
+                    checked={selected.has(row.id)}/>
+                </td>
                 <td className="border border-gray-300 p-2 text-center">
                   <span className="flex flex-col">
                     {new Date(row.created_at).toLocaleDateString()}
@@ -196,7 +226,7 @@ const EditableGrid = ({ quotes, setQuotes }) => {
                   <div className="flex w-full h-full justify-around">
                     <div className="relative group z-5">
                       {/* Label for Copy to Clipboard */}
-                      {copiedRowId === row.id && rowType === 'link' ? (
+                      {copiedRowId === row.id && rowType === "link" ? (
                         <label
                           htmlFor=""
                           className="absolute z-40 bottom-full mb-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 bg-white px-2 py-1 rounded-md shadow-md"
@@ -222,41 +252,54 @@ const EditableGrid = ({ quotes, setQuotes }) => {
                         <Link className="text-black hover:text-blue-700" />
                       </div>
                     </div>
-                    <div onClick={() =>{
-                            setCopiedRowId(row.id); // Set the copied row ID
-                            setRowType("pdf");
-                            setTimeout(() => {setCopiedRowId(null); setRowType(null)}, 2000);
-                            }} className="cursor-pointer">
+                    <div
+                      onClick={() => {
+                        setCopiedRowId(row.id); // Set the copied row ID
+                        setRowType("pdf");
+                        setTimeout(() => {
+                          setCopiedRowId(null);
+                          setRowType(null);
+                        }, 2000);
+                      }}
+                      className="cursor-pointer"
+                    >
                       {/* <FontAwesomeIcon icon={faFilePdf} size="lg" /> */}
-                    <div className="relative group z-5">
-
-                      {copiedRowId === row.id && rowType ==='pdf' ? (
-                        <label
-                          htmlFor=""
-                          className="absolute z-40 bottom-full mb-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 bg-white px-2 py-1 rounded-md shadow-md"
-                        >
-                          Downloading PDF...
-                        </label>
-                      ) : (
-                        <label
-                          htmlFor=""
-                          className="absolute z-40 bottom-full mb-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 bg-white px-2 py-1 rounded-md hidden group-hover:block"
-                        >
-                          Download PDF
-                        </label>
-                      )}
-                      <QuotePDFGenerator quoteId={row.id} quoteNumber={row.quoteNumber}/>
+                      <div className="relative group z-5">
+                        {copiedRowId === row.id && rowType === "pdf" ? (
+                          <label
+                            htmlFor=""
+                            className="absolute z-40 bottom-full mb-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 bg-white px-2 py-1 rounded-md shadow-md"
+                          >
+                            Downloading PDF...
+                          </label>
+                        ) : (
+                          <label
+                            htmlFor=""
+                            className="absolute z-40 bottom-full mb-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 bg-white px-2 py-1 rounded-md hidden group-hover:block"
+                          >
+                            Download PDF
+                          </label>
+                        )}
+                        <QuotePDFGenerator
+                          quoteId={row.id}
+                          quoteNumber={row.quoteNumber}
+                        />
                       </div>
                     </div>
-                    <div onClick={() => {
-                            setCopiedRowId(row.id); // Set the copied row ID
-                            setRowType("excel");
-                            setTimeout(() => {setCopiedRowId(null); setRowType(null)}, 2000);
-                            handleExportToExcel(row.quoteNumber,row.id);
-                            
-                    }} className="cursor-pointer">
+                    <div
+                      onClick={() => {
+                        setCopiedRowId(row.id); // Set the copied row ID
+                        setRowType("excel");
+                        setTimeout(() => {
+                          setCopiedRowId(null);
+                          setRowType(null);
+                        }, 2000);
+                        handleExportToExcel(row.quoteNumber, row.id);
+                      }}
+                      className="cursor-pointer"
+                    >
                       <div className="relative group z-5">
-                        {copiedRowId === row.id && rowType ==='excel' ? (
+                        {copiedRowId === row.id && rowType === "excel" ? (
                           <label
                             htmlFor=""
                             className="absolute z-40 bottom-full mb-1 left-1/2 transform -translate-x-1/2 text-xs text-gray-600 bg-white px-2 py-1 rounded-md shadow-md"
@@ -271,7 +314,11 @@ const EditableGrid = ({ quotes, setQuotes }) => {
                             Export to Excel
                           </label>
                         )}
-                        <FontAwesomeIcon icon={faFileExcel} size="lg" className="hover:text-blue-700" />
+                        <FontAwesomeIcon
+                          icon={faFileExcel}
+                          size="lg"
+                          className="hover:text-blue-700"
+                        />
                       </div>
                     </div>
                   </div>
@@ -285,4 +332,4 @@ const EditableGrid = ({ quotes, setQuotes }) => {
   );
 };
 
-export default EditableGrid;
+export default GridComponent;

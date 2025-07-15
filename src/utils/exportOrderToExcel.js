@@ -49,10 +49,10 @@ export const exportToExcel = async (data, fileName) => {
     { header: "Style Code", key: "styleNumber", width: 20 },
     { header: "Image URL", key: "imageUrl", width: 40 },
     { header: "Image", key: "embeddedImage", width: 15 },
-    { header: "Weight (g)", key: "weight", width: 15 },
+    { header: "Weight (g)", key: "salesWeight", width: 15 },
     { header: "Price", key: "totalCost", width: 15 },
     { header: "Buyer Remark", key: "notes", width: 30 },
-    { header: "Metal Weight Price", key: "platingCharge", width: 20 },
+    // { header: "Metal Weight Price", key: "platingCharge", width: 20 },
   ];
 
   // 2. Add data rows (excluding embedded images for now)
@@ -68,7 +68,6 @@ export const exportToExcel = async (data, fileName) => {
     });
   });
 
-  // 3. Embed images
   // 3. Embed images
   for (const [index, row] of data.entries()) {
     if (row.images && row.images[0]) {

@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useSupabase } from '../components/SupaBaseProvider';
-import { Search } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from "react";
+import { useSupabase } from "../components/SupaBaseProvider";
+import { Search } from "lucide-react";
+import { Link } from "react-router-dom";
 
-const SearchBar = () => {
+const SearchBar = ({ items: collectionItems, onSearch,type }) => {
   const { supabase } = useSupabase();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [items, setItems] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -14,39 +14,34 @@ const SearchBar = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setSearchTerm('');
+        setSearchTerm("");
         setItems(null);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    if(!collectionItems) document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  const fetchItems = async (searchTerm = '') => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data: samples, error: samplesError } = await supabase
-        .from('samples')
-        .select('*')
+  const handleSearchBarFunction = async(searchTerm)=>{
+    const { data: samples, error: samplesError } = await supabase
+        .from("samples")
+        .select("*")
         .or(`styleNumber.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`);
 
       if (samplesError) throw samplesError;
 
       const { data: ideas, error: ideasError } = await supabase
-        .from('Ideas')
-        .select('*')
-        .ilike('title', `%${searchTerm}%`);
+        .from("ideas")
+        .select("*")
+        .ilike("name", `%${searchTerm}%`);
 
       if (ideasError) throw ideasError;
 
       const { data: quotes, error: quotesError } = await supabase
-        .from('quotes')
-        .select('*')
+        .from("quotes")
+        .select("*")
         .or(`buyer.ilike.%${searchTerm}%`);
 
       if (quotesError) throw quotesError;
@@ -54,8 +49,8 @@ const SearchBar = () => {
 
       if (!isNaN(parseInt(searchTerm))) {
         const { data, error: quotesError2 } = await supabase
-          .from('quotes')
-          .select('*')
+          .from("quotes")
+          .select("*")
           .eq("id", Number(searchTerm));
 
         if (quotesError2) throw quotesError2;
@@ -71,8 +66,8 @@ const SearchBar = () => {
       // if (vendorsError) throw vendorsError;
 
       const { data: designs, error: designsError } = await supabase
-        .from('designs')
-        .select('*')
+        .from("designs")
+        .select("*")
         .or(`name.ilike.%${searchTerm}%`);
 
       if (designsError) throw designsError;
@@ -80,27 +75,27 @@ const SearchBar = () => {
       const combinedResults = [
         ...samples.map((sample) => ({
           ...sample,
-          table: 'samples',
+          table: "samples",
           linkTo: `/samples?sampleId=${sample.id}`,
-          display: sample.name || sample.styleNumber
+          display: sample.name || sample.styleNumber,
         })),
         ...ideas.map((idea) => ({
           ...idea,
-          table: 'ideas',
+          table: "ideas",
           linkTo: `/ideas?ideaId=${idea.id}`,
-          display: idea.title
+          display: idea.name,
         })),
         ...quotes.map((quote) => ({
           ...quote,
-          table: 'quotes',
+          table: "quotes",
           linkTo: `/ViewQuote?quote=${quote.quoteNumber}`,
-          display: quote.buyer || quote.quoteNumber
+          display: quote.buyer || quote.quoteNumber,
         })),
         ...quotesById.map((quote) => ({
           ...quote,
-          table: 'quotes',
+          table: "quotes",
           linkTo: `/ViewQuote?quote=${quote.quoteNumber}`,
-          display: quote.buyer || `Quote: ${quote.id}`
+          display: quote.buyer || `Quote: ${quote.id}`,
         })),
         // ...vendors.map((vendor) => ({
         //   ...vendor,
@@ -110,15 +105,47 @@ const SearchBar = () => {
         // })),
         ...designs.map((design) => ({
           ...design,
-          table: 'designs',
+          table: "designs",
           linkTo: `/designs?designId=${design.id}`,
-          display: design.name
-        }))
+          display: design.name,
+        })),
       ];
 
       setItems(combinedResults.filter((item) => item.display));
+  }
+  const handleImageSearch = async (searchTerm) =>{
+    const {data,error}=await supabase
+    .from('image_link')
+    .select('id,imageId(imageUrl)')
+    // .select('styleNumber')
+    .ilike('styleNumber',`%${searchTerm}%`)
+
+    if (error) {
+      console.error('Search error:', error);
+    } else {
+      console.log('Search results:', data);
+    }
+    const imageUrls = data
+  .filter((item) => item.imageId && item.imageId.imageUrl)
+  .map((item) => ({id:item.id,name:item.imageId.imageUrl.split('public/').pop(),url:item.imageId.imageUrl}));
+    onSearch([...new Set([...imageUrls,...collectionItems])])
+  }
+
+  const fetchItems = async (searchTerm = "") => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      switch(type){
+        case 'search':
+          await handleSearchBarFunction(searchTerm)
+          break;
+        case 'images':
+          await handleImageSearch(searchTerm)
+          break;
+      }
     } catch (err) {
-      setError('Error fetching search results');
+      setError("Error fetching search results");
       console.error(err);
     } finally {
       setLoading(false);
@@ -126,14 +153,36 @@ const SearchBar = () => {
   };
 
   useEffect(() => {
-    if (searchTerm.length === 0) return;
+    if (searchTerm.length === 0) {
+      console.log("Search term is empty, sending unfiltered items:", collectionItems);
+
+      if (onSearch && collectionItems) {
+        onSearch(collectionItems); // Send unfiltered items
+      }
+      return
+    };
+    console.log(collectionItems)
+    if (collectionItems){
+      const filteredItems = collectionItems.filter((item) =>
+        item.id == Number(searchTerm) ||
+        item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.styleNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      );
+
+      onSearch(filteredItems);
+      if(type!=='images'){
+        return
+      } 
+    }
 
     const delayDebounce = setTimeout(() => {
       fetchItems(searchTerm);
     }, 300); // Adjust debounce delay (ms) as needed
 
     return () => clearTimeout(delayDebounce);
-  }, [searchTerm]);
+  }, [searchTerm,collectionItems]);
 
   return (
     <div ref={searchRef} className="relative w-full max-w-md">
@@ -156,19 +205,23 @@ const SearchBar = () => {
                 <li key={index}>
                   <Link
                     to={item.linkTo}
-                    onClick={(e)=>{
-                      setItems(null)
+                    onClick={(e) => {
+                      setItems(null);
                     }}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
                     {item.display}
-                    <span className="ml-2 text-xs text-gray-400">({item.table})</span>
+                    <span className="ml-2 text-xs text-gray-400">
+                      ({item.table})
+                    </span>
                   </Link>
                 </li>
               ))}
             </ul>
-          ) : !loading && (
-            <div className="p-2 text-sm text-gray-500">No results found</div>
+          ) : (
+            !loading && (
+              <div className="p-2 text-sm text-gray-500">No results found</div>
+            )
           )}
         </ul>
       )}

@@ -1,15 +1,28 @@
 // components/VendorPreloader.jsx
 import { useEffect } from 'react';
-import { useVendorStore } from '../store/VendorStore';
+import { useGenericStore } from '../store/VendorStore';
 
 const VendorPreloader = () => {
-  const fetchVendors = useVendorStore((state) => state.fetchVendors);
+  const { fetchEntity } = useGenericStore();
 
   useEffect(() => {
-    fetchVendors(); // Automatically fetch vendors on mount
-  }, [fetchVendors]);
+    fetchEntity('vendors');
+    fetchEntity('settings');
+     // Automatically fetch vendors on mount
+  }, [fetchEntity]);
 
   return null; // No UI, just does the preload work
 };
 
 export default VendorPreloader;
+
+// {
+//   "stonePropertiesForm":{
+//     "color":["White", "Yellow", "Blue", "Green", "Red", "Pink", "Purple", "Orange"],
+//   },
+//   "formFields":{
+//     "sellingType":["Pair,Single"] ,
+//     "backType":["None","Silicone","Screw","Flat"]
+//   }
+
+// }

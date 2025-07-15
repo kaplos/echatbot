@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../components/SupaBaseProvider';
 import Loading from './Loading';
 import { useMessage } from './Messages/MessageContext';
-
+import SearchBar from './SearchBar';
+import DeleteButton from './MiscComponenets/DeleteButton';
 const ImageManager = () => {
   const { supabase } = useSupabase();
   const [folders, setFolders] = useState(['idea-images', 'public']); // Available folders
   const [selectedFolder, setSelectedFolder] = useState('idea-images'); // Default folder
   const [images, setImages] = useState([]);
+  const [filteredImages, setFileredImages] = useState([]);
   const [selectedImages, setSelectedImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -26,6 +28,7 @@ const ImageManager = () => {
       setError('Error fetching images');
       console.error(error);
     } else {
+      console.log(data)
       setImages(data || []);
     }
 
@@ -33,26 +36,7 @@ const ImageManager = () => {
   };
 
   // Delete selected images
-  const deleteImages = async () => {
-    if (selectedImages.length === 0) {
-            showMessage('No Images To Selected')
-        
-    //   alert('No images selected for deletion.');
-      return;
-    }
-
-    const pathsToDelete = selectedImages.map((imageName) => `${selectedFolder}/${imageName}`);
-    const { error } = await supabase.storage.from('echatbot').remove(pathsToDelete);
-
-    if (error) {
-      setError('Error deleting images');
-      console.error(error);
-    } else {
-      showMessage('Selected images deleted successfully.');
-      setSelectedImages([]);
-      fetchImages(selectedFolder); // Refresh the image list
-    }
-  };
+  
 
   // Toggle image selection
   const toggleImageSelection = (imageName) => {
@@ -70,23 +54,45 @@ const ImageManager = () => {
     fetchImages(folder);
     setSelectedImages([])
   };
+  const handleDelete = async (success)=>{
+       
+    if(!success)           {
+          showMessage('Error occured while deleting')
+      return
+    }
+
+setImages(images.filter(q => !Array.from(selectedImages).has(q.id)))
+showMessage('Items have been deleted successfully')
+setSelected(new Set())
+}
 
   useEffect(() => {
     fetchImages(selectedFolder); // Fetch images when the folder changes
   }, [selectedFolder]);
-
+  console.log(filteredImages)
   return (
     <div className="p-4">
       <div className="flex justify-between items-center">
-          <h1 className="text-xl font-bold mb-4">Image Manager</h1>
-          {images.length > 0 && (
+      <div className="flex flex-col">
+          <h1 className="text-2xl font-bold text-gray-900">Image Manager</h1>
+          <SearchBar
+          type={'images'}
+            items={images}
+            onSearch={(filteredItems) => {
+              setFileredImages(filteredItems);
+            }}
+          />
+        </div>
+          {filteredImages.length > 0 && (
         <div className="mt-4">
-          <button
+          {/* <button
             onClick={deleteImages}
             className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
           >
             Delete Selected
-          </button>
+          </button> */}
+          <DeleteButton onDelete={handleDelete} type={'images'} selectedItems={selectedImages}/>
+
         </div>
       )}
       </div>
@@ -109,10 +115,10 @@ const ImageManager = () => {
         </select>
       </div>
 
-      {!loading && images.length === 0 && <p>No images found in this folder.</p>}
+      {!loading && filteredImages.length === 0 && <p>No images found in this folder.</p>}
 
       <div className="grid grid-cols-3 gap-4">
-      {images.map((image) => (
+      {filteredImages.map((image,index) => (
           <div
             key={image.name}
             className={`border rounded-lg p-2 cursor-pointer ${
@@ -123,6 +129,7 @@ const ImageManager = () => {
             <img
               src={`${process.env.VITE_SUPABASE_URL}/storage/v1/object/public/echatbot/${selectedFolder}/${image.name}`}
               alt={image.name}
+              loading={index>10?'lazy':''}
               className="w-full h-32 object-cover rounded-md"
             />
             <div className="flex justify-between items-center mt-2">

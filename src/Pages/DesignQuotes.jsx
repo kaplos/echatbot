@@ -22,11 +22,11 @@ const DesignQuote = () =>{
     const [designToShow, setDesignToShow] = useState(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [designs, setDesigns] = useState(null);
+    const [designs, setDesigns] = useState([]);
 
-    useEffect(() => {
-        console.log("isEditOpen:", isEditOpen,design);
-      }, [isEditOpen]);
+    // useEffect(() => {
+    //     console.log("isEditOpen:", isEditOpen,design);
+    //   }, [isEditOpen]);
     // console.log(selectedDesign, 'designs');    
     
             
@@ -77,6 +77,7 @@ const DesignQuote = () =>{
         setDesign({ ...data[0], stones });
       };
     const updateDesign = (updatedDesigns) => {
+        console.log('updated design:', updatedDesigns,designs)
         setDesigns((previousDesign) =>
             previousDesign.map((design) => (design.id === updatedDesigns.id ? updatedDesigns : design))
         );
@@ -108,7 +109,8 @@ const DesignQuote = () =>{
                     </div>
                 </div>
                 <DesignQuoteList
-                    designs={designs}
+                    designQuotes={designs}
+                    setDesignQuotes={setDesigns}
                     // onDesignClick={(design) => {
 
                     // setIsDetailsOpen(true);
@@ -134,13 +136,14 @@ const DesignQuote = () =>{
                             // setDesign(null)
                         }}
                         design={design}
-                        openEditModal={(design) => {setIsEditOpen(true)
+                        openEditModal={(design) => {
+                            setIsEditOpen(true)
                             setDesign(design)
 
                         }} 
                     />
                 }
-                {design&&
+                {design &&
 
                     <DesignQuoteInfoModal 
                     isOpen={isEditOpen}
@@ -150,8 +153,28 @@ const DesignQuote = () =>{
                     />
                 }
                  <ImportModal
-                    isOpen={isImportModalOpen}
-                    onClose={() => setIsImportModalOpen(false)}
+  isOpen={isImportModalOpen}
+  onClose={() => setIsImportModalOpen(false)}
+  onImport={(importedSamples) => {
+    setDesigns((prev) => {
+      // Create a map of existing samples for quick lookup
+      const existingSamplesMap = new Map(prev.map((sample) => [sample.id, sample]));
+
+      // Merge or add imported samples
+      importedSamples.forEach((importedSample) => {
+        if (existingSamplesMap.has(importedSample.id)) {
+          // Update the existing sample
+          existingSamplesMap.set(importedSample.id, importedSample);
+        } else {
+          // Add the new sample
+          existingSamplesMap.set(importedSample.id, importedSample);
+        }
+      });
+
+      // Return the updated list of samples
+      return Array.from(existingSamplesMap.values());
+    });
+  }}
                     type="designQuotes"
                 />
         </div>

@@ -16,17 +16,24 @@ import { metalTypes, getMetalType } from "../../utils/MetalTypeUtil";
 import StonePropertiesForm from "../Products/StonePropertiesForm";
 import CalculatePrice from "./CalculatePrice";
 import TotalCost from "./TotalCost";
-import { data, useNavigate } from "react-router-dom";
+import {  useNavigate } from "react-router-dom";
+import { useMessage } from "../Messages/MessageContext";
+
 // import {limitInput} from '../../utils/inputUtils.js'
-import { useVendorStore } from "../../store/VendorStore";
+import { useGenericStore } from "../../store/VendorStore";
 const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
   const navigate = useNavigate();
-  const { getVendorById, vendors } = useVendorStore();
-
-  console.log(sample, "sample from design info modal");
+  const { getEntityItemById, getEntity } = useGenericStore();
+  const vendors = getEntity("vendors");
+  // console.log(sample, "sample from design info modal");
   const { supabase } = useSupabase();
+  const {showMessage} = useMessage()
+  const finalizeUploadRef = useRef(null)
+  const [uploadedImages,setUploadedImages]= useState([])
+    
   const { starting_info: passedStartingInfo, formData: passedFormData } =
     sample;
+
   const [lossPercent, setLossPercent] = useState(0);
   const [formDataOriginal, setFormDataOriginal] = useState({
     ...passedFormData,
@@ -45,6 +52,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
     ...passedFormData,
     cad: passedFormData.cad ? passedFormData.cad : [],
   });
+
   const [relatedQuotes, setRelatedQuotes] = useState([]);
   const [metalCost, setMetalCost] = useState();
   const vendorLossRef = useRef(null);
@@ -91,7 +99,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
     };
     fetchQuoteNumber();
     setLossPercent(
-      getVendorById(sample.starting_info.vendor).pricingsetting.lossPercentage
+      getEntityItemById('vendors',sample.starting_info.vendor).pricingsetting.lossPercentage
     );
   }, [isOpen]);
 
@@ -257,8 +265,8 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
       starting_info.images
     );
 
-    console.log("sample updated:", formData);
 
+    console.log("sample updated:", formData);
     updateSample({ ...formData, starting_info: starting_info });
     setFormData({
       cad: [],
@@ -286,13 +294,47 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
       karat: "10K",
       status: "Working_on_it:yellow",
     });
-
+    finalizeUploadRef.current('sample',formData.id,formData.styleNumber,uploadedImages)
+    onClose();
+  };
+  const handleClose = () => {
+    setFormData({
+      cad: [],
+      category: "",
+      collection: "",
+      selling_pair: "pair",
+      back_type: "none",
+      custom_back_type: "",
+      back_type_quantity: 0,
+      // cost: 0,
+      name: "",
+      styleNumber: "",
+      salesWeight: 0,
+      status: "Working_on_it:yellow",
+    });
+    setStarting_info({
+      description: "",
+      images: [],
+      metalType: "Gold",
+      karat: "10K",
+      color: "Yellow",
+      height: 0,
+      length: 0,
+      width: 0,
+      weight: 0,
+      manufacturerCode: "",
+      platingCharge: 0,
+      stones: [],
+      vendor: "",
+      plating: 1,
+      status: "Working_on_it:yellow",
+    });
     onClose();
   };
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-50" onClose={handleClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -322,7 +364,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                     Edit Sample
                   </Dialog.Title>
                   <button
-                    onClick={onClose}
+                    onClick={handleClose}
                     className="text-gray-400 hover:text-gray-500"
                   >
                     <X className="w-5 h-5" />
@@ -332,7 +374,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                 <form onSubmit={handleSubmit} className="p-6">
                   <div className="flex flex-row">
                     <div className=" pr-6 ">
-                      <div className="flex justify-between items-start flex flex-col min-h-[70vh] overflow-y-auto">
+                      <div className="flex justify-between items-start flex-col min-h-[70vh] overflow-y-auto">
                         {/* this is the image upload  */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
@@ -340,24 +382,30 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                           </label>
                           <ImageUpload
                             // images={formData.images || []}
+                            collection={'image'}
                             images={starting_info.images || []}
+                            onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
+                            finalizeUpload={finalizeUploadRef}
                             onChange={async (images) => {
                               setStarting_info({
                                 ...starting_info,
                                 images: images,
                               });
-                              // await updateDataBaseWithImages(images, sample.id)
                             }}
                           />
                           <ImageUpload
+                            collection="cad"
+                            // finalizeUpload={finalizeUploadRef}
+                            onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
                             images={formData.cad || []}
                             onChange={(cad) =>
                               setFormData({ ...formData, cad: cad })
                             }
+                          
                           />
                         </div>
                         {/* this is the status function */}
-                        <div className="mt-6 mb-2 flex justify-center w-full gap-2 ">
+                        <div className="mt-6 mb-2 flex justify-center w-full ">
                           <div className="flex flex-col ">
                             <label htmlFor="status" className="self-start">
                               Status:
@@ -387,47 +435,6 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                               <option value="Dead:red">Dead</option>
                             </select>
                           </div>
-
-                          <div className="flex flex-col w-full overflow-hidden">
-                            <span className="text-black text-sm">
-                              Related Quotes
-                            </span>
-                            <div className="overflow-y-auto max-h-[200px] border border-gray-300 rounded-md p-2">
-                              {relatedQuotes.length > 0
-                                ? relatedQuotes
-                                    .sort((a, b) => a.quote.id - b.quote.id)
-                                    .map((quote, index) => {
-                                      return (
-                                        <div
-                                          key={index}
-                                          className="flex flex-col items-center"
-                                        >
-                                          <div className="flex justify-evenly items-center gap-2">
-                                            <span>#{quote.quote.id}</span>
-                                            <span>
-                                              Last Updated:{" "}
-                                              {formatShortDate(
-                                                quote.quote.updated_at
-                                              )}
-                                            </span>
-                                            <button
-                                              onClick={() =>
-                                                navigate(
-                                                  `/newQuote?quote=${quote.quote.quoteNumber}`
-                                                )
-                                              }
-                                              className="bg-chabot-gold text-white px-1 rounded-lg flex items-center hover:bg-gray-300 hover:rounded transition-colors"
-                                            >
-                                              Go to quote
-                                            </button>
-                                          </div>
-                                          <hr className="border-t border-gray-500 w-full my-1" />
-                                        </div>
-                                      );
-                                    })
-                                : "No quotes found for this sample"}
-                            </div>
-                          </div>
                         </div>
                         <div className="w-full">
                           <TotalCost
@@ -450,10 +457,10 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                       <div className="flex flex-row gap-2 w-full">
                         <div className="w-full ">
                           <label className="block text-sm font-medium text-gray-700">
-                            Style Number
+                            Style Number <span className="text-red-500">*</span>
                           </label>
                           <input
-                            required
+                            required="true"
                             type="text"
                             className="mt-1 block input shadow-sm "
                             value={formData.styleNumber}
@@ -468,7 +475,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
 
                         <div className="w-full ">
                           <label className="block text-sm font-medium text-gray-700">
-                            Manufacturer Code
+                            Manufacturer Code <span className="text-red-500">*</span>
                           </label>
                           <input
                             required
@@ -513,7 +520,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                                   vendor: e.target.value,
                                 });
                                 setLossPercent(
-                                  getVendorById(Number(e.target.value))
+                                  getEntityItemById('vendors',Number(e.target.value))
                                     .pricingsetting.lossPercentage
                                 );
                               }}
@@ -539,7 +546,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                         <textarea
                           rows={2}
                           className="mt-1 block input shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={starting_info.description || ''}
+                          value={starting_info.description}
                           onChange={(e) =>
                             setStarting_info({
                               ...starting_info,
@@ -585,9 +592,8 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                             <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
                           </div>
                         </div>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col w-full">
                           <label htmlFor=""> Karat</label>
-
                           <div className="relative w-full">
                             <select
                               name="karat"
@@ -647,7 +653,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
 
                       <div className="flex flex-row gap-2 w-full">
                         <div className="w-full">
-                          <label htmlFor="">Weight</label>
+                          <label htmlFor="">Weight <span className="text-red-500">*</span></label>
                           <div className="flex items-center gap-1 ">
                             <span className="w-full relative">
                               <input
@@ -748,10 +754,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                         <StonePropertiesForm
                           stones={starting_info.stones || []}
                           onChange={(stones) => {
-                            setStarting_info({
-                              ...starting_info,
-                              stones: stones,
-                            });
+                            setStarting_info({ ...starting_info, stones });
                           }}
                         />
                       </div>
@@ -800,44 +803,49 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-col ">
-                        <label htmlFor="back_type">Back Type</label>
-                        <div className="flex flex-row gap-2">
-                          <div className="relative w-full">
-                            <select
-                              name="back_type"
-                              id=""
-                              className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                              value={formData.back_type}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  back_type: e.target.value,
-                                })
-                              }
-                            >
-                              <option value="none">None</option>
-                              <option value="silicone">Silicone</option>f
-                              <option value="screw">Screw</option>
-                              <option value="flat">Flat</option>
-                              <option value="other">Other</option>
-                            </select>
-                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
-                            {formData.back_type === "other" && (
-                              <input
-                                type="text"
-                                className="mt-1  input pr-7 pl-3 py-2"
-                                placeholder="Enter custom back type"
-                                value={formData.custom_back_type}
+                     
+
+                      <div className="flex flex-row justify-center gap-2  ">
+                        <div className="flex w-full flex-col">
+                          <label htmlFor="back_type">Back Type</label>
+                          <div className="flex flex-row gap-2">
+                            <div className="relative w-full">
+                              <select
+                                name="back_type"
+                                id=""
+                                className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                                value={formData.back_type}
                                 onChange={(e) =>
                                   setFormData({
                                     ...formData,
-                                    custom_back_type: e.target.value,
+                                    back_type: e.target.value,
                                   })
                                 }
-                              />
-                            )}
+                              >
+                                <option value="none">None</option>
+                                <option value="silicone">Silicone</option>f
+                                <option value="screw">Screw</option>
+                                <option value="flat">Flat</option>
+                                <option value="other">Other</option>
+                              </select>
+                              <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                              {formData.back_type === "other" && (
+                                <input
+                                  type="text"
+                                  className="mt-1  input pr-7 pl-3 py-2"
+                                  placeholder="Enter custom back type"
+                                  value={formData.custom_back_type}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      custom_back_type: e.target.value,
+                                    })
+                                  }
+                                />
+                              )}
+                            </div>
                           </div>
+                        </div>
                           <div className=" w-full">
                             <label htmlFor="back_type_quantity">
                               Back Type Quantity
@@ -854,9 +862,9 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                               }
                             />
                           </div>
-                        </div>
                       </div>
-                      <div className="flex flex-col ">
+                      
+                      <div className="flex flex-col  ">
                         <label htmlFor="selling_pair">Selling type</label>
                         <div className="relative w-full">
                           <select
@@ -877,6 +885,66 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                           <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
                         </div>
                       </div>
+                      {/* category and collection */}
+                      <div className="flex flex-row gap-2">
+                        <div>
+                            <label htmlFor="board" className="text-sm font-medium text-gray-700">Board</label>
+                            <CustomSelect onSelect={handleCustomSelect} version={'collection'} hidden={true}/>
+                        </div>
+
+                        <div className='mb-10'>
+                            <label htmlFor="category" className="text-sm font-medium text-gray-700">Category</label>
+                            <CustomSelect  onSelect={handleCustomSelect} version={'category'} hidden={false} />
+                        </div>
+                      </div>
+                      {/* necklace */}
+                      <div className="flex flex-row gap-2 items-center">
+                        <div className="w-full">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Necklace
+                          </label>
+                          <div className="mt-1 relative rounded-md shadow-sm ">
+                            
+                          <select
+                              
+                              name="necklace"
+                              value={starting_info.necklace || false}
+                              onChange={(e)=> setStarting_info({...starting_info, necklace:e.target.value})}
+                            //   className="w-full input pl-7 pr-3 py-2"
+                              className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
+
+                            >
+                                <option value="false">No</option>
+                                <option value="true">Yes</option>
+                            </select>
+                            
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+
+                          </div>
+                        </div>
+                        <div className="w-full">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Necklase Cost
+                          </label>
+                          <div className="mt-1 relative rounded-md shadow-sm  ">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <span className="text-gray-500 sm:text-sm">
+                                $
+                              </span>
+                            </div>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              name="necklaceCost"
+                              value={starting_info.necklaceCost || 0}
+                              onChange={limitInput}
+                              className="w-full input pl-7 pr-3 py-2"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      {/* dimensions */}
                       <div>
                         <label htmlFor="dims">Dimensions</label>
                         <div className="flex flex-row gap-2 ">
@@ -939,6 +1007,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                           </div>
                         </div>
                       </div>
+                      
 
                       <div className="flex flex-col w-full">
                         <label htmlFor="notes">Notes</label>
@@ -970,7 +1039,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                   <div className="mt-6 flex justify-end space-x-3">
                     <button
                       type="button"
-                      onClick={onClose}
+                      onClick={handleClose}
                       className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-md"
                     >
                       Cancel
@@ -979,7 +1048,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                       type="submit"
                       className="px-4 py-2 text-sm font-medium text-white bg-chabot-gold hover:bg-opacity-90 rounded-md"
                     >
-                      Update Sample
+                      Edit Sample
                     </button>
                   </div>
                 </form>

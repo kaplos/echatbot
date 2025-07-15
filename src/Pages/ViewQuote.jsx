@@ -498,7 +498,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
 
                 <div className="flex flex-row justify-between">
                   <h1 className=" py-5 text-xl font-bold">
-                    Quote: {formData.id}
+                    Quote
                   </h1>
                   <div className="flex flex-row gap-2">
                     {/* <span className="self-center">Metal Prices At:</span> */}
@@ -528,7 +528,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
                           Image
                         </th>
                         <th className="border border-gray-300 p-2 w-20">
-                          Sales Weight
+                          Weight
                         </th>
                         <th className="border border-gray-300 p-2 w-20">
                           Price
@@ -538,7 +538,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
                           ""
                         ) : (
                           <th className="border border-gray-300 p-2 w-20">
-                            Remarks
+                            Buyer Remarks
                           </th>
                         )}
                       </tr>
@@ -664,15 +664,15 @@ export default function ViewQuote({ quoteId, forPdf }) {
                     </tbody>
                   </table>
                 </div>
-
-                <div className="w-full border-b border-x border-gray-300 p-2 pl-3">
+                {/* Client requested to remove total section uncomment if requested again */}
+                {/* <div className="w-full border-b border-x border-gray-300 p-2 pl-3">
                   <span>
                     Quote Total:
                     {lineItems
                       .reduce((total, item) => total + item.salesPrice, 0)
                       .toFixed(2)}
                   </span>
-                </div>
+                </div> */}
               </div>
             </form>
           </div>

@@ -1,8 +1,13 @@
-import React, { Fragment } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import { X } from 'lucide-react';
+import React, { Fragment, useEffect, useState } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { X } from "lucide-react";
+
 
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+  const [IsSelected,setIsSelected] = useState(false)
+  useEffect(()=>{
+    setIsSelected(false)
+  },[isOpen])
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -42,8 +47,13 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
                   </button>
                 </div>
 
-                <div className="p-6">
+                <div className="p-6 ">
                   <p className="text-sm text-gray-700">{message}</p>
+
+                  <div className="flex gap-2 mt-6">
+                    <input type="checkbox" name="delete" id="" onChange={()=> setIsSelected(!IsSelected)}/>
+                    <p>Check this box to delete the items </p>
+                  </div>
                   <div className="mt-6 flex justify-end space-x-3">
                     <button
                       type="button"
@@ -55,9 +65,10 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
                     <button
                       type="button"
                       onClick={onConfirm}
-                      className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+                      disable={!IsSelected}
+                      className={`px-4 py-2 text-sm font-medium text-white rounded-md ${IsSelected? 'bg-red-600 hover:bg-red-700':'bg-gray-400 hover:cursor-not-allowed'}`}
                     >
-                      Confirm
+                      Submit
                     </button>
                   </div>
                 </div>

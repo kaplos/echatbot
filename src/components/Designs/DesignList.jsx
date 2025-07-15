@@ -4,8 +4,13 @@ import { exportData } from '../../utils/exportUtils';
 import DesignCard from './DesignCard';
 import { useSupabase } from '../SupaBaseProvider';
 import Loading from '../Loading';
+import ViewableListActionButtons from '../MiscComponenets/ViewableListActionButtons';
+import { useGenericStore } from '../../store/VendorStore';
 
 const DesignList = ({ designs,setDesigns,isLoading,setIsLoading, onDesignClick }) => {
+  const {getEntity}= useGenericStore()
+  const  {options}  = getEntity("settings");
+
   const [selectedDesigns, setSelectedDesigns] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [page, setPage] = useState(0);
@@ -62,11 +67,27 @@ const DesignList = ({ designs,setDesigns,isLoading,setIsLoading, onDesignClick }
     }
     return designsData
   }
+  const getDropDownData = async ()=>{
+    const { data, error } = await supabase.rpc('get_dropdown_options');
+
+    if(error){
+      showMessage('Issue with retriving dropdown options')
+    }
+    return data
+  }
 
   const handleExport = async () => {
     const designsToExport = designs.filter((p) => selectedDesigns.has(p.id));
     const dataToExport = await getDataToExport(designsToExport);
-    exportData(dataToExport, 'designs');
+    let dropdowns = await getDropDownData();
+    dropdowns={
+      ...dropdowns,
+      "color":options?.stonePropertiesForm?.color.map(option => ({name:option})),
+      "type":options?.stonePropertiesForm?.type.map(option => ({name:option})),
+      
+    }
+    console.log(dropdowns)
+    exportData(dataToExport,dropdowns, 'designs');
     setSelectedDesigns(new Set());
     setIsSelectionMode(false);
   };
@@ -81,59 +102,50 @@ const DesignList = ({ designs,setDesigns,isLoading,setIsLoading, onDesignClick }
     setSelectedDesigns(newSelection);
   };
 
-  const handleButtonSelections = () => {
-    setIsSelectionMode(!isSelectionMode);
-    if (!isSelectionMode) {
-      setIsSelectionMode(true);
-    } else {
-      setSelectedDesigns(new Set());
-      setIsSelectionMode(false);
-    }
-  };
 
   return (
-    <div
-      className="flex flex-col overflow-auto max-h-[600px]"
-      onScroll={(e) => {
-        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-        const nearBottom = scrollHeight - scrollTop <= clientHeight + 50;
-
-        if (nearBottom && !loading && hasMore) {
-          fetchDesigns(page);
-        }
-      }}
-    >
-      <div className="flex justify-end mb-4 space-x-3">
-        <button
-          onClick={handleButtonSelections}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-        >
-          {isSelectionMode ? 'Cancel Selection' : 'Select Designs'}
-        </button>
-        {isSelectionMode && selectedDesigns.size > 0 && (
-          <button
-            onClick={handleExport}
-            className="px-4 py-2 text-sm font-medium text-white bg-chabot-gold rounded-lg hover:bg-opacity-90 inline-flex items-center"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export Selected ({selectedDesigns.size})
-          </button>
-        )}
+    <div>
+   
+        <ViewableListActionButtons
+                isSelectionMode={isSelectionMode}
+                setIsSelectionMode={setIsSelectionMode}
+                handleExport={handleExport}
+                handleSelections={(selected)=>setSelectedDesigns(selected)}
+                selectedItems={selectedDesigns}
+                allItems={designs}
+                onDelete={(deletedSelectedItems) => 
+                {
+                  setDesigns(designs.filter(d => !deletedSelectedItems.includes(d.id)))
+                }
+                }
+                type="Designs"
+              />
+      <div
+        className="flex flex-col overflow-auto max-h-[600px]"
+        onScroll={(e) => {
+          const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+          const nearBottom = scrollHeight - scrollTop <= clientHeight + 50;
+          if (nearBottom && !loading && hasMore) {
+            fetchDesigns(page);
+          }
+        }}
+      >
+      
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {designs.map((design) => (
+            <DesignCard
+              key={design.id}
+              design={design}
+              onClick={isSelectionMode ? toggleDesignSelection : onDesignClick}
+              selected={selectedDesigns.has(design.id)}
+              selectable={isSelectionMode}
+            />
+          ))}
+        </div>
+        <div className="flex justify-center items-center mt-6">
+      {loading && <Loading />}
+        </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {designs.map((design) => (
-          <DesignCard
-            key={design.id}
-            design={design}
-            onClick={isSelectionMode ? toggleDesignSelection : onDesignClick}
-            selected={selectedDesigns.has(design.id)}
-            selectable={isSelectionMode}
-          />
-        ))}
-      </div>
-      <div className="flex justify-center items-center mt-6">
-    {loading && <Loading />}
-  </div>
     </div>
   );
 };

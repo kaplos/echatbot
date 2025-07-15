@@ -3,14 +3,16 @@ import React from 'react';
 import { getStatusColor } from '../../utils/designUtils';
 import {formatDate} from '../../utils/dateUtils'
 import { MessageSquare, Calendar, Tag } from 'lucide-react';
-
+import { useGenericStore } from '../../store/VendorStore';
 
 const DesignCard = ({ 
-    design, 
-    onClick, 
-    selected = false,
-    selectable = false,
-  }) => {
+  design, 
+  onClick, 
+  selected = false,
+  selectable = false,
+}) => {
+    const { getEntityItemById, getEntity } = useGenericStore();
+    const vendors = getEntity('vendors')
     const handleClick = (e) => {
       e.preventDefault();
       onClick(design);
@@ -68,8 +70,14 @@ return (
                 {design.status.split(':')[0].replaceAll('_', ' ')}
               </span>
             </div>
-            <label htmlFor="">Description:</label>
-            <p className="mt-2 text-sm text-gray-600 line-clamp-2">{design.description}</p>
+            <div>
+              <label htmlFor="">Vendor</label>
+              <p className="mt-2 text-sm text-gray-600 line-clamp-2">{getEntityItemById('vendors',design.vendor).name}</p>
+            </div>
+            <div>
+              <label htmlFor="">Manufacturer Code:</label>
+              <p className="mt-2 text-sm text-gray-600 line-clamp-2">{design.manufacturerCode}</p>
+            </div>
             <div className="flex items-center justify-between text-sm text-gray-500">
                 <div className="flex items-center">
                   <Calendar className="w-4 h-4 mr-1" />
