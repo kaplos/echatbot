@@ -4,7 +4,7 @@ const stoneHeaders = Array.from({ length: 10 }, (_, i) => {
   return [
     { key: `stone${index}_id`, label: `Stone ${index} ID` },
     { key: `stone${index}_type`, label: `Stone ${index} Type` },
-    { key: `stone${index}_customType`, label: `Stone ${index} Custom Type` },
+    // { key: `stone${index}_customType`, label: `Stone ${index} Custom Type` },
     { key: `stone${index}_color`, label: `Stone ${index} Color` },
     { key: `stone${index}_shape`, label: `Stone ${index} Shape` },
     { key: `stone${index}_size`, label: `Stone ${index} Size` },
@@ -62,7 +62,7 @@ const headersExport = {
     { key: 'salesWeight', label: 'Sales Weight' },
     { key: 'selling_pair', label: 'Selling Pair' },
     { key: 'back_type', label: 'Back Type' },
-    { key: 'custom_back_type', label: 'Custom Back Type' },
+    // { key: 'custom_back_type', label: 'Custom Back Type' },
     { key: 'back_type_quantity', label: 'Back Type Quantity' },
     { key: 'sample_status', label: 'Sample Status' },
     
@@ -230,7 +230,16 @@ export const exportToCSV = (products,type) => {
     link.click();
     document.body.removeChild(link);
   }
-
+  function getExcelColumnName(index) {
+    let name = "";
+    while (index >= 0) {
+      name = String.fromCharCode((index % 26) + 65) + name;
+      index = Math.floor(index / 26) - 1;
+    }
+    return name;
+  }
+  
+  
   
   import ExcelJS from 'exceljs';
 
@@ -289,14 +298,35 @@ export const exportToCSV = (products,type) => {
       { field: "vendor", values: dropdown.vendors },
       { field: "collection", values: dropdown.collection },
       { field: "category", values: dropdown.category },
+      { field: "back_type", values: dropdown.backType },
+      { field: `stone1_color`, values: dropdown.color },
+      { field: `stone2_color`, values: dropdown.color },
+      { field: `stone3_color`, values: dropdown.color },
+      { field: `stone4_color`, values: dropdown.color },
+      { field: `stone5_color`, values: dropdown.color },
+      { field: `stone6_color`, values: dropdown.color },
+      { field: `stone7_color`, values: dropdown.color },
+      { field: `stone8_color`, values: dropdown.color },
+      { field: `stone9_color`, values: dropdown.color },
+      { field: `stone10_color`,values: dropdown.color },
+      
+      { field: "stone1_type", values: dropdown.type },
+      { field: "stone2_type", values: dropdown.type },
+      { field: "stone3_type", values: dropdown.type },
+      { field: "stone4_type", values: dropdown.type },
+      { field: "stone5_type", values: dropdown.type },
+      { field: "stone6_type", values: dropdown.type },
+      { field: "stone7_type", values: dropdown.type },
+      { field: "stone8_type", values: dropdown.type },
+      { field: "stone9_type", values: dropdown.type },
+      { field: "stone10_type", values: dropdown.type },
     ];
   
     for (const { field, values } of dropdownFields) {
       const headerIndex = headers.findIndex((h) => h.key === field);
-      if (headerIndex === -1) continue;
-  
-      const columnLetter = String.fromCharCode(65 + headerIndex); // A, B, C...
-  
+      if(headerIndex===-1) continue
+      
+      const columnLetter = getExcelColumnName(headerIndex) 
       for (let rowNum = 2; rowNum <= flattenedData.length + 1; rowNum++) {
         sheet.getCell(`${columnLetter}${rowNum}`).dataValidation = {
           type: "list",

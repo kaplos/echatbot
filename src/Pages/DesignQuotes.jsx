@@ -153,8 +153,28 @@ const DesignQuote = () =>{
                     />
                 }
                  <ImportModal
-                    isOpen={isImportModalOpen}
-                    onClose={() => setIsImportModalOpen(false)}
+  isOpen={isImportModalOpen}
+  onClose={() => setIsImportModalOpen(false)}
+  onImport={(importedSamples) => {
+    setDesigns((prev) => {
+      // Create a map of existing samples for quick lookup
+      const existingSamplesMap = new Map(prev.map((sample) => [sample.id, sample]));
+
+      // Merge or add imported samples
+      importedSamples.forEach((importedSample) => {
+        if (existingSamplesMap.has(importedSample.id)) {
+          // Update the existing sample
+          existingSamplesMap.set(importedSample.id, importedSample);
+        } else {
+          // Add the new sample
+          existingSamplesMap.set(importedSample.id, importedSample);
+        }
+      });
+
+      // Return the updated list of samples
+      return Array.from(existingSamplesMap.values());
+    });
+  }}
                     type="designQuotes"
                 />
         </div>

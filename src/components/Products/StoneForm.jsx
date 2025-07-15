@@ -4,7 +4,7 @@ import StonePropertiesForm from "./StonePropertiesForm";
 
 const StoneForm = ({ onSubmit, onCancel }) => {
   const { getEntity } = useGenericStore();
-  const { stonePropertiesForm } = getEntity("settings");
+  const  {stonePropertiesForm}  = getEntity("settings").options;
   const [stone, setStone] = useState({
     type: "cz",
     color: "white",
@@ -19,7 +19,7 @@ const StoneForm = ({ onSubmit, onCancel }) => {
     e.preventDefault();
     onSubmit(stone);
   };
-
+  console.log(stonePropertiesForm)
   const limitInput = (e) => {
     let value = e.target.value;
     console.log(value);
@@ -41,12 +41,19 @@ const StoneForm = ({ onSubmit, onCancel }) => {
             Type
           </label>
           <select
+            name="type"
+            id="type"
             value={stone.type}
             onChange={(e) => setStone({ ...stone, type: e.target.value })}
             className="mt-1 block w-full input rounded-md border-gray-300 shadow-sm focus:ring-chabot-gold focus:border-chabot-gold"
           >
-            <option value="cz">CZ</option>
-            <option value="other">Other</option>
+            {stonePropertiesForm?.type?.map((color, index) => (
+              <option key={index} value={color.toLowerCase()}>
+                {color}
+              </option>
+            ))}
+            
+            {/* <option value="other">Other</option> */}
           </select>
           {stone.type === "other" && (
             <input
@@ -66,6 +73,8 @@ const StoneForm = ({ onSubmit, onCancel }) => {
             Color
           </label>
           <select
+            id="color"
+            name="color"
             value={stone.color}
             onChange={(e) => setStone({ ...stone, color: e.target.value })}
             className="mt-1 block w-full input rounded-md border-gray-300 shadow-sm focus:ring-chabot-gold focus:border-chabot-gold"

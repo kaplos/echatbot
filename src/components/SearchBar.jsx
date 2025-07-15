@@ -35,7 +35,7 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
       const { data: ideas, error: ideasError } = await supabase
         .from("ideas")
         .select("*")
-        .ilike("title", `%${searchTerm}%`);
+        .ilike("name", `%${searchTerm}%`);
 
       if (ideasError) throw ideasError;
 
@@ -83,7 +83,7 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
           ...idea,
           table: "ideas",
           linkTo: `/ideas?ideaId=${idea.id}`,
-          display: idea.title,
+          display: idea.name,
         })),
         ...quotes.map((quote) => ({
           ...quote,

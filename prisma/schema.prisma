@@ -327,21 +327,6 @@ model users {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model Ideas {
-  id          BigInt   @id @default(autoincrement())
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
-  title       String?  @default("\"\"")
-  tags        String?
-  description String?  @default("\"\"")
-  images      Json?    @db.Json
-  status      String?  @default("\"In_Review:yellow\"::text")
-  comments    String?  @default("")
-  slides      Json     @default("[]")
-
-  @@schema("public")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model board {
   id         BigInt   @id @default(autoincrement())
   board      String?
@@ -352,9 +337,11 @@ model board {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model category {
-  id         BigInt   @id @default(autoincrement())
-  name       String?  @default("\"")
-  created_at DateTime @default(now()) @db.Timestamptz(6)
+  id                                             BigInt          @id @unique @default(autoincrement())
+  name                                           String          @default("\"")
+  created_at                                     DateTime        @default(now()) @db.Timestamptz(6)
+  designs_designs_categoryTocategory             designs[]       @relation("designs_categoryTocategory")
+  starting_info_starting_info_categoryTocategory starting_info[] @relation("starting_info_categoryTocategory")
 
   @@schema("public")
 }
@@ -364,14 +351,16 @@ model designs {
   name                                                  String
   description                                           String?
   link                                                  String?
-  collection                                            String?
-  category                                              String?
   images                                                Json?           @default("[]")
   status                                                String          @default("working_on_it")
   created_at                                            DateTime?       @default(now()) @db.Timestamptz(6)
   updated_at                                            DateTime?       @default(now()) @db.Timestamptz(6)
   starting_info_id                                      Int?
   sample_id                                             Int?
+  category                                              BigInt?
+  collection                                            BigInt?
+  category_designs_categoryTocategory                   category?       @relation("designs_categoryTocategory", fields: [category], references: [id])
+  ideas                                                 ideas?          @relation(fields: [collection], references: [id])
   samples_designs_sample_idTosamples                    samples?        @relation("designs_sample_idTosamples", fields: [sample_id], references: [id])
   starting_info_designs_starting_info_idTostarting_info starting_info?  @relation("designs_starting_info_idTostarting_info", fields: [starting_info_id], references: [id])
   samples_samples_designIdTodesigns                     samples?        @relation("samples_designIdTodesigns")
@@ -381,12 +370,42 @@ model designs {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model imageurls {
-  id           Int       @id @default(autoincrement())
-  foreign_id   Int
-  foreign_type String    @db.VarChar(50)
-  image_url    String
-  created_at   DateTime? @default(now()) @db.Timestamp(6)
+model ideas {
+  id            BigInt          @id(map: "Ideas_pkey") @default(autoincrement())
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  name          String?         @default("\"\"")
+  tags          String?
+  description   String?         @default("\"\"")
+  images        Json?           @db.Json
+  status        String?         @default("\"In_Review:yellow\"::text")
+  comments      String?         @default("")
+  slides        Json            @default("[]")
+  designs       designs[]
+  starting_info starting_info[]
+
+  @@schema("public")
+}
+
+model image_link {
+  id          BigInt   @id @default(autoincrement())
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  imageId     BigInt?
+  entity      String?
+  entityId    Decimal? @db.Decimal
+  styleNumber String
+  type        String?
+  images      images?  @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+}
+
+model images {
+  id          BigInt       @id @default(autoincrement())
+  imageUrl    String       @unique
+  name        String?
+  created_at  DateTime     @default(now()) @db.Timestamptz(6)
+  originalUrl String?      @unique(map: "images_originalName_key")
+  image_link  image_link[]
 
   @@schema("public")
 }
@@ -406,7 +425,7 @@ model lineItems {
   Quantity     BigInt?   @default(1)
   updated_at   DateTime? @default(now()) @db.Timestamp(6)
   samples      samples?  @relation(fields: [productId], references: [id])
-  quotes       quotes    @relation(fields: [quoteNumber], references: [quoteNumber], onDelete: SetNull)
+  quotes       quotes    @relation(fields: [quoteNumber], references: [quoteNumber], onDelete: Cascade)
 
   @@schema("public")
 }
@@ -468,6 +487,14 @@ model samples {
   @@schema("public")
 }
 
+model settings {
+  id         BigInt   @id @default(autoincrement())
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  options    Json?    @db.Json
+
+  @@schema("public")
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model slides {
   id         BigInt    @id @default(autoincrement())
@@ -500,11 +527,17 @@ model starting_info {
   id                                              Int       @id @unique @default(autoincrement())
   designId                                        Int?
   totalCost                                       Decimal?  @default(0.00) @db.Decimal
+  necklace                                        Boolean?  @default(false)
+  necklaceCost                                    Decimal?  @default(0.00) @db.Decimal
+  collection                                      BigInt?
+  category                                        BigInt?
   designs_designs_starting_info_idTostarting_info designs[] @relation("designs_starting_info_idTostarting_info")
   samples                                         samples[]
   plating_starting_info_platingToplating          plating?  @relation("starting_info_platingToplating", fields: [plating], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "samples_plating_fkey")
   vendors                                         vendors   @relation(fields: [vendor], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "samples_vendor_fkey")
-  designs_starting_info_designIdTodesigns         designs?  @relation("starting_info_designIdTodesigns", fields: [designId], references: [id])
+  category_starting_info_categoryTocategory       category? @relation("starting_info_categoryTocategory", fields: [category], references: [id])
+  ideas                                           ideas?    @relation(fields: [collection], references: [id])
+  designs_starting_info_designIdTodesigns         designs?  @relation("starting_info_designIdTodesigns", fields: [designId], references: [id], onDelete: Cascade)
   stones                                          stones[]
 
   @@schema("public")
@@ -523,7 +556,7 @@ model stones {
   notes            String?
   created_at       DateTime?     @default(now()) @db.Timestamptz(6)
   updated_at       DateTime?     @default(now()) @db.Timestamptz(6)
-  starting_info    starting_info @relation(fields: [starting_info_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  starting_info    starting_info @relation(fields: [starting_info_id], references: [id], onDelete: Cascade)
 
   @@schema("public")
 }

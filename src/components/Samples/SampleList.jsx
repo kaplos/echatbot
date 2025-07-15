@@ -6,8 +6,12 @@ import { useSupabase } from "../SupaBaseProvider";
 import Loading from "../Loading";
 import ViewableListActionButtons from "../MiscComponenets/ViewableListActionButtons";
 import { useMessage } from "../Messages/MessageContext";
+import { useGenericStore } from "../../store/VendorStore";
 
 const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
+   const {getEntity}= useGenericStore()
+    const  {options}  = getEntity("settings");
+
   const [selectedSamples, setSelectedSamples] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [page, setPage] = useState(0);
@@ -84,13 +88,13 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
     const samplesToExport = samples.filter((p) => selectedSamples.has(p.id));
     let dataToExport = await getDataToExport(samplesToExport);
     let dropdowns = await getDropDownData();
-    // let dropdowns = {
-    //   vendors: vendors,
-    //   category:,
-    //   collection: ,
-    //   plating: ,
-
-    // }
+    dropdowns={
+      ...dropdowns,
+      "color":options?.stonePropertiesForm?.color.map(option => ({name:option})),
+      "type":options?.stonePropertiesForm?.type.map(option => ({name:option})),
+      "backType":options?.formFields?.backType.map(option => ({name:option})),
+      
+    }
    
 
     exportData(dataToExport,dropdowns, "samples");

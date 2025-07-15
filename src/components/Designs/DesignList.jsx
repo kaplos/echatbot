@@ -5,8 +5,12 @@ import DesignCard from './DesignCard';
 import { useSupabase } from '../SupaBaseProvider';
 import Loading from '../Loading';
 import ViewableListActionButtons from '../MiscComponenets/ViewableListActionButtons';
+import { useGenericStore } from '../../store/VendorStore';
 
 const DesignList = ({ designs,setDesigns,isLoading,setIsLoading, onDesignClick }) => {
+  const {getEntity}= useGenericStore()
+  const  {options}  = getEntity("settings");
+
   const [selectedDesigns, setSelectedDesigns] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [page, setPage] = useState(0);
@@ -76,7 +80,13 @@ const DesignList = ({ designs,setDesigns,isLoading,setIsLoading, onDesignClick }
     const designsToExport = designs.filter((p) => selectedDesigns.has(p.id));
     const dataToExport = await getDataToExport(designsToExport);
     let dropdowns = await getDropDownData();
-
+    dropdowns={
+      ...dropdowns,
+      "color":options?.stonePropertiesForm?.color.map(option => ({name:option})),
+      "type":options?.stonePropertiesForm?.type.map(option => ({name:option})),
+      
+    }
+    console.log(dropdowns)
     exportData(dataToExport,dropdowns, 'designs');
     setSelectedDesigns(new Set());
     setIsSelectionMode(false);
