@@ -45,7 +45,7 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
   }, []);
 
   const handleCheckboxChange = (option) => {
-    console.log(option,selectedOptions)
+    // console.log(option,selectedOptions)
     setSelectedOptions(prev => {
       if (prev.some(selected => selected.id  === option.id)) {
         // console.log(selected.productId,option.id)
@@ -82,7 +82,7 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
       }
     })
     }
-    console.log(data)
+    // console.log(data)
 
       if (error) {
       console.error(`Error fetching ${version}:`, error);

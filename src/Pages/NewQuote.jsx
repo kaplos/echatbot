@@ -11,6 +11,7 @@ import { getTotalCost } from '../components/Samples/TotalCost';
 import { useLocation } from 'react-router-dom';
 import EditableCellWithGenerics from '../components/Qoutes/EditableCellWithGenerics';
 import { useGenericStore } from '../store/VendorStore';
+import CustomSelect from '../components/CustomSelect';
 export default function NewQuote() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,7 +23,6 @@ export default function NewQuote() {
   const [productInfo, setProductInfo] = useState([]);
   const [lineItems, setlineItems] = useState([]);
   const [lineItemsToDelete, setlineItemsToDelete] = useState([]);
-  const [bulkMargin, setBulkMargin] = useState(0);
   // const {formData: lineItems, updateFormField: updateLineItem, resetForm: resetLineItems} =  useFormUpdater([]
   //   {
   //     productId:" ",
@@ -43,6 +43,8 @@ export default function NewQuote() {
     agent: userId,
     gold: parseFloat(prices.gold.price),
     silver: parseFloat(prices.silver.price),
+    multiplier: 4,
+    bulkMargin: 0,
     quoteTotal: 0
   });
 
@@ -112,7 +114,7 @@ const vendors = getEntity('vendors')
         }
     }
     ,[quote]) 
- 
+   
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -130,6 +132,7 @@ const vendors = getEntity('vendors')
     };
     if(quote){
       await updateIfChanged(submitForm)
+      await updateLineItem()
       await updateIfLineItemsChanged()
       await handleLineItemsToDelete()
       showMessage('Quote Updated', 'success');
@@ -227,6 +230,22 @@ const vendors = getEntity('vendors')
         }
 
   }
+  const updateLineItem = async ()=>{
+    let lineItemsToUpdate = lineItems.filter(lineItem => lineItem.id ).map(item => {
+      const {product ,...rest} = item
+      return rest
+    })
+
+    const {  error } = await supabase
+        .from('lineItems')
+        .upsert(lineItemsToUpdate.map(item => ({
+              ...item,
+            })),{ onConflict: ['id'] })
+
+        if(error){
+          console.error(error)
+        }
+  }
   const handleLineItemsToDelete = async () => {
     if(lineItemsToDelete.length > 0){
       const { error } = await supabase
@@ -253,8 +272,13 @@ const vendors = getEntity('vendors')
             const weight = productInfo.find(item => item.productId === productId)?.weight || 0;
             const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
             const margin = parseInt(value) || 0;
+            const retailPrice = parseFloat((item.salesPrice * formData.multiplier ).toFixed(2)) || 0;
+            const salesPrice = parseFloat(+(totalCost / (1 - margin / 100)).toFixed(2));
+            
+            
             console.log(+(totalCost / (1 - margin / 100)).toFixed(2),parseFloat(+(totalCost / (1 - margin / 100)).toFixed(2)),margin, 'total cost after margin')
-            updatedItem.salesPrice = parseFloat(+(totalCost / (1 - margin / 100)).toFixed(2));
+            updatedItem.salesPrice = salesPrice
+            updatedItem.retailPrice =retailPrice
           }
           if (field === 'salesPrice') {
 
@@ -264,6 +288,7 @@ const vendors = getEntity('vendors')
           }
 
           // If salesPrice was updated, optionally recalc margin? (Only if needed)
+          console.log(updatedItem, 'updated item')
           return updatedItem;
         })
       );
@@ -273,14 +298,11 @@ const vendors = getEntity('vendors')
     setProductInfo(prev=> [...prev,...items]);
     
     const itemData = items.map((item) => 
-      
-
-      
       ({
         productId: item.id,
-        retailPrice: 0,
+        retailPrice: parseFloat(totalCost(item, getEntityItemById('vendors', item.vendor).pricingsetting?.lossPercentage).toFixed(2)) * multiplier,
         internalNote: '',
-        margin: 0,
+        margin: formData.bulkMargin,
         totalCost: parseFloat(totalCost(item, getEntityItemById('vendors', item.vendor).pricingsetting?.lossPercentage).toFixed(2)),
         salesPrice:  parseFloat(totalCost(item, getEntityItemById('vendors', item.vendor).pricingsetting?.lossPercentage).toFixed(2))
       })
@@ -313,26 +335,35 @@ const vendors = getEntity('vendors')
   };
   // Update totalCost and salesPrice when metal prices change
   useEffect(() => {
-    // Recalculate totalCost for each line item when metal prices change
+    // When gold or silver price changes, update totalCost and adjust salesPrice accordingly
     setlineItems((prevItems) =>
       prevItems.map((item) => {
         const productInfoObject = productInfo.find((p) => p.id === item.productId);
         if (!productInfoObject) return item;
   
-        const lossPercentage = getEntityItemById('vendors',productInfoObject.vendor)?.pricingsetting?.lossPercentage || 0;
+        const vendor = getEntityItemById('vendors', productInfoObject.vendor);
+        const lossPercentage = vendor?.pricingsetting?.lossPercentage || 0;
   
+        const newCost = parseFloat(totalCost(productInfoObject, lossPercentage).toFixed(2));
+        const oldCost = item.totalCost || 0;
+        const oldSalesPrice = item.salesPrice || 0;
+        const dollarMargin = oldSalesPrice - oldCost;
+  
+        const newSalesPrice = parseFloat((newCost + dollarMargin).toFixed(2));
+        const marginPercent = newSalesPrice > 0
+        ? parseFloat(((newSalesPrice - newCost) / newSalesPrice * 100).toFixed(2))
+        : 0;
+      
         return {
           ...item,
-          totalCost: parseFloat(
-            totalCost(productInfoObject, lossPercentage).toFixed(2)
-          ),
-          salesPrice: parseFloat(
-            totalCost(productInfoObject, lossPercentage).toFixed(2)
-          ), // Optionally update salesPrice if needed
+          totalCost: newCost,
+          salesPrice: newSalesPrice,
+          margin: marginPercent,
         };
       })
     );
   }, [formData.gold, formData.silver]);
+  
   useEffect(() => {
     // Recalculate salesPrice for each line item when bulkMargin changes
     setlineItems((prevItems) =>
@@ -341,15 +372,29 @@ const vendors = getEntity('vendors')
         if (!productInfoObject) return item;
 
         const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
-        const salesPrice = parseFloat(+(totalCost / (1 - bulkMargin / 100)).toFixed(2));
+        const salesPrice = parseFloat(+(totalCost / (1 - formData.bulkMargin / 100)).toFixed(2));
         return {
           ...item,
           salesPrice: salesPrice,
-          margin: parseFloat(+(((salesPrice - totalCost) / salesPrice) * 100).toFixed(2))
+          margin: formData.bulkMargin
         };
       })
     );
-  },[bulkMargin])
+  },[formData.bulkMargin])
+  useEffect(() => {
+    console.log('form has been updated ')
+    setlineItems((prevItems) => 
+       prevItems.map((item) => {
+      const retailPrice = parseFloat((item.salesPrice * formData.multiplier ).toFixed(2)) || 0;
+
+      return {
+        ...item,
+        retailPrice: retailPrice,
+      }
+      })
+    )
+  
+  },[formData.multiplier,formData.gold,formData.silver,formData.bulkMargin])
 
   console.log(productInfo,lineItems,'line items')
 
@@ -385,7 +430,7 @@ const vendors = getEntity('vendors')
           <div className="flex flex-row gap-2 mt-4 w-full justify-between ">
             {/* metalPrices */}
             <div className='flex gap-2'>
-              <span className="self-center">Metal Prices At:</span>
+              {/* <span className="self-center">Metal Prices At:</span> */}
               <div className="flex flex-col mb-1">
                 <label htmlFor="gold_price">Gold Price</label>
                 <input
@@ -395,7 +440,7 @@ const vendors = getEntity('vendors')
                   id="gold_price"
                   placeholder="2300"
                   value={formData.gold}
-                  onChange={(e) => updateFormField('gold', e.target.value)}
+                  onChange={(e) => updateFormField('gold',parseFloat( e.target.value))}
                 />
               </div>
               <div className="flex flex-col mb-1">
@@ -407,21 +452,35 @@ const vendors = getEntity('vendors')
                   id="silver_price"
                   placeholder="32"
                   value={formData.silver}
-                  onChange={(e) => updateFormField('silver', e.target.value)}
+                  onChange={(e) => updateFormField('silver', parseFloat( e.target.value))}
                 />
               </div>
-              {/* bulk margins */}
             </div>
-            <div>
-              <label htmlFor="bulk-margin">Bulk Margin</label>
-              <input
-                type="number"
-                className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
-                name="bulk-margin"
-                id="bulk-margin"
-                onChange={(e) => setBulkMargin(parseInt(e.target.value))}
-                value={bulkMargin}
-                />
+            <div className='flex gap-2'>
+              {/* bulk margins */}
+              <div>
+                <label htmlFor="bulk-margin">Bulk Margin</label>
+                <input
+                  type="number"
+                  className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
+                  name="bulk-margin"
+                  id="bulk-margin"
+                  onChange={(e) => updateFormField('bulkMargin',parseFloat(e.target.value))}
+                  value={formData.bulkMargin||0}
+                  />
+              </div>
+              {/* retail price multipler */}
+              <div>
+                <label htmlFor="multiplier">Multipler</label>
+                  <input
+                    type="number"
+                    className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
+                    name="multiplier"
+                    id="multiplier"
+                    onChange={(e) => updateFormField('multiplier',parseInt(e.target.value))}
+                    value={formData.multiplier}
+                    />
+              </div>
             </div>
 
           </div>
@@ -552,7 +611,7 @@ const vendors = getEntity('vendors')
                 </div>
                 <div className="flex flex-col mb-1">
                   <label htmlFor="buyer">Prepared For</label>
-                  <input
+                  {/* <input
                     type="text"
                     className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
                     name="buyer"
@@ -560,7 +619,11 @@ const vendors = getEntity('vendors')
                     placeholder="Prepared By"
                     value={formData.buyer}
                     onChange={(e) => updateFormField('buyer', e.target.value)}
-                  />
+                  /> */}
+                   <CustomSelect onSelect={(option)=> {
+                      const {categories,value} =option
+                      updateFormField('buyer', value)
+                    }} version={'customers'} hidden={false} informationFromDataBase={formData.buyer}/>
                 </div>
               </div>
 

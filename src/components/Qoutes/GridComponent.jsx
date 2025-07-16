@@ -92,11 +92,12 @@ const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
 
     const { data, error } = await supabase
       .from("quotes")
-      .select(
-        `
-      * 
-    `
-      )
+      .select(`
+        *,
+        buyer (
+          name
+        )
+      `)
       .order("created_at", { ascending: false }) // or by ID
       .range(from, to);
 
@@ -204,7 +205,7 @@ const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
                   {row.agent}
                 </td> */}
                 <td className="border border-gray-300 p-2 text-center">
-                  {row.buyer}
+                  {row.buyer?.name}
                 </td>
                 <EditableCell
                   handleChange={handleChange}

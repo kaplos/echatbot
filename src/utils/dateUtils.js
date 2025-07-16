@@ -10,7 +10,6 @@ export const formatDate = (dateString) => {
   };
   
   export const formatShortDate = (dateString) => {
-    console.log(dateString, 'date string in formatShortDate');
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
