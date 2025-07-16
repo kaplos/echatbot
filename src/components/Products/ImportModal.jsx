@@ -104,6 +104,7 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
               throw new Error(`missing weight`);
             }
             // console.log('formatted stylenumber:', formData.styleNumber, 'restInfo:', restInfo,'formData:', formData);
+            
             const { data: existing } = await supabase.from('samples').select('*').eq('id', formData.id).single();
             if (existing) restInfo.id = existing.starting_info_id;
             
@@ -112,7 +113,7 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
             const { data: updatedSample, error: updatedSampleError } =
             formData.id === '' || formData.id === null ?
              await supabase.from('samples').insert([{ ...rest, starting_info_id: updatedInfo[0].id }]).select() : await supabase.from('samples').upsert([{ ...formData, starting_info_id: updatedInfo[0].id }], { onConflict: ['id'] }).select()
-             
+
             if (updatedSampleError) {
               throw new Error(`Sample update error: ${updatedSampleError.details}`);
             }

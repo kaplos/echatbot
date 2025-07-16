@@ -889,12 +889,12 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                       <div className="flex flex-row gap-2">
                         <div>
                             <label htmlFor="board" className="text-sm font-medium text-gray-700">Board</label>
-                            <CustomSelect onSelect={handleCustomSelect} version={'collection'} hidden={true}/>
+                            <CustomSelect onSelect={handleCustomSelect} informationFromDataBase={starting_info.collection} version={'collection'} hidden={true}/>
                         </div>
 
                         <div className='mb-10'>
                             <label htmlFor="category" className="text-sm font-medium text-gray-700">Category</label>
-                            <CustomSelect  onSelect={handleCustomSelect} version={'category'} hidden={false} />
+                            <CustomSelect  onSelect={handleCustomSelect} informationFromDataBase={starting_info.category} version={'category'} hidden={false} />
                         </div>
                       </div>
                       {/* necklace */}
