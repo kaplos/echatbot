@@ -64,7 +64,7 @@ export const formatImportRow = (row, type, dropdown, prices) => {
 
   if (type === 'designs') {
     return {
-      id: row['ID (Design)'] || null,
+      id: row['ID (Design)'] || '',
       name: row['Name'] || '',
       description: row['Design Description'] || '',
       link: row['Link'] || '',
@@ -78,7 +78,7 @@ export const formatImportRow = (row, type, dropdown, prices) => {
 
   if (type === 'samples') {
     return {
-      id: row['ID (Sample)'] || null,
+      id: row['ID (Sample)'].trim() === '' || row['ID (Sample)'] === null ? '' : row['ID (Sample)'],
       cad: (row['CAD Files'] || '').split('|').filter(image => image !== ''),
       selling_pair: row['Selling Pair'] || 'pair',
       back_type: row['Back Type'] || 'none',

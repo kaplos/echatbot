@@ -70,11 +70,19 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
       const failedRows = [];
       for (let i = 0; i < formatted.length; i++) {
         try {
-          const { starting_info, ...formData } = formatted[i];
-          const { stones, ...restInfo } = starting_info || {};
+          let { starting_info, ...formData } = formatted[i];
+          let { stones, ...restInfo } = starting_info || {};
           // console.log('Formatted Row:', formData, 'Starting Info:', restInfo, 'Stones:', stones);
           if (type === 'designs') {
-            const { data: inserted } = await supabase.from('designs').upsert(formData).select('*');
+            const { id,...rest} = formData 
+            const { data: inserted ,error:insertedError} =
+            formData.id === '' || formData.id === null ?
+             await supabase.from('designs').insert(rest).select() :  await supabase.from('designs').upsert(formData).select('*');
+            if (insertedError) {
+              throw new Error(`Insert error: ${insertedError.details}`);
+            }
+            
+
               if(starting_info.vendor) {
                 const { data: startRow } = await supabase.from('starting_info').insert([restInfo]).select('*');
                 if (stones.length > 0) {
@@ -98,9 +106,16 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
             // console.log('formatted stylenumber:', formData.styleNumber, 'restInfo:', restInfo,'formData:', formData);
             const { data: existing } = await supabase.from('samples').select('*').eq('id', formData.id).single();
             if (existing) restInfo.id = existing.starting_info_id;
-
+            
             const { data: updatedInfo } = await supabase.from('starting_info').upsert([restInfo], { onConflict: ['id'] }).select();
-            const { data: updatedSample } = await supabase.from('samples').upsert([{ ...formData, starting_info_id: updatedInfo[0].id }], { onConflict: ['id'] }).select();
+            const { id,...rest} = formData 
+            const { data: updatedSample, error: updatedSampleError } =
+            formData.id === '' || formData.id === null ?
+             await supabase.from('samples').insert([{ ...rest, starting_info_id: updatedInfo[0].id }]).select() : await supabase.from('samples').upsert([{ ...formData, starting_info_id: updatedInfo[0].id }], { onConflict: ['id'] }).select()
+             
+            if (updatedSampleError) {
+              throw new Error(`Sample update error: ${updatedSampleError.details}`);
+            }
             formatted[i] = { ...updatedSample[0], starting_info: updatedInfo[0] };
             
             if (stones.length > 0) {
@@ -117,6 +132,7 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
           successfulRows.push(formatted[i]);
           // console.log('Successfully processed row:', successfulRows);
         } catch (err) {
+          console.error(`Error processing row ${i + 2}:`, err);
           failedRows.push({ row: i + 2, error: err.message });
         }
         setProgress(Math.round(((i + 1) / formatted.length) * 100));
