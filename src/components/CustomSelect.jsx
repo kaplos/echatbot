@@ -24,7 +24,7 @@ function CustomSelect({ onSelect, version, setNewOption, informationFromDataBase
   useEffect(() => {
     const fetchData = async () => {
       const data = await getFromDatabase();
-      setOptions(data);
+      setOptions([{id:null,name:'(remove selection)'},...data]);
     };
 
     fetchData();

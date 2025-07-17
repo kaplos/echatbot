@@ -18,7 +18,7 @@ export default function Ideas() {
   const [filteredIdeas, setFilteredIdeas] = useState([]);
 
   const [idea, setIdea] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // const [isLoading, setIsLoading] = useState(true);
   const [currentSlideData, setCurrentSlideData] = useState(null);
   const location = useLocation(); // Access the current URL
   const queryParams = new URLSearchParams(location.search); // Parse the query string
@@ -124,26 +124,7 @@ export default function Ideas() {
     setIsAddModalOpen(false);
   };
 
-  useEffect(() => {
-    const fetchIdeas = async () => {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from("ideas")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(12);
-
-      if (error) {
-        console.error("Error fetching ideas:", error);
-        return;
-      }
-
-      setIdeas(data);
-      setIsLoading(false);
-    };
-
-    fetchIdeas();
-  }, []);
+ 
 
   const updateIdea = (updatedIdea) => {
     setIdeas((prevIdeas) =>
@@ -151,9 +132,9 @@ export default function Ideas() {
     );
   };
 
-  if (isLoading) {
-    return <Loading />;
-  }
+  // if (isLoading) {
+  //   return <Loading />;
+  // }
 
   if (slideEditorOpen) {
     return (

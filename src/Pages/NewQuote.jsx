@@ -344,16 +344,17 @@ const vendors = getEntity('vendors')
         const vendor = getEntityItemById('vendors', productInfoObject.vendor);
         const lossPercentage = vendor?.pricingsetting?.lossPercentage || 0;
   
-        const newCost = parseFloat(totalCost(productInfoObject, lossPercentage).toFixed(2));
-        const oldCost = item.totalCost || 0;
-        const oldSalesPrice = item.salesPrice || 0;
-        const dollarMargin = oldSalesPrice - oldCost;
+        const oldCost = item.totalCost || 0; // Previous cost
+        const newCost = parseFloat(totalCost(productInfoObject, lossPercentage).toFixed(2)); // New cost
+        const costDifference = newCost - oldCost; // Difference in cost due to metal price change
   
-        const newSalesPrice = parseFloat((newCost + dollarMargin).toFixed(2));
+        const oldSalesPrice = item.salesPrice || 0; // Previous sales price
+        const newSalesPrice = parseFloat((oldSalesPrice + costDifference).toFixed(2)); // Add cost difference to sales price
+  
         const marginPercent = newSalesPrice > 0
-        ? parseFloat(((newSalesPrice - newCost) / newSalesPrice * 100).toFixed(2))
-        : 0;
-      
+          ? parseFloat(((newSalesPrice - newCost) / newSalesPrice * 100).toFixed(2)) // Recalculate margin
+          : 0;
+  
         return {
           ...item,
           totalCost: newCost,

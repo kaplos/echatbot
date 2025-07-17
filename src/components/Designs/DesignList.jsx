@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download } from 'lucide-react';
 import { exportData } from '../../utils/exportUtils';
 import DesignCard from './DesignCard';
@@ -6,26 +6,25 @@ import { useSupabase } from '../SupaBaseProvider';
 import Loading from '../Loading';
 import ViewableListActionButtons from '../MiscComponenets/ViewableListActionButtons';
 import { useGenericStore } from '../../store/VendorStore';
+import { useSearchParams } from 'react-router-dom';
 
-const DesignList = ({ designs,setDesigns,isLoading,setIsLoading, onDesignClick }) => {
-  const {getEntity}= useGenericStore()
-  const  {options}  = getEntity("settings");
+const DesignList = ({ designs, setDesigns, onDesignClick }) => {
+  const { getEntity } = useGenericStore();
+  const { options } = getEntity('settings');
 
   const [selectedDesigns, setSelectedDesigns] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const { supabase } = useSupabase();
   const PAGE_SIZE = 20;
 
-  const hasFetchedDesigns = useRef(false);
+  const [searchParams, setSearchParams] = useSearchParams(); // React Router hook for query params
+  const page = parseInt(searchParams.get('page') || '0', 10); // Get the current page from the URL
 
   // Fetch designs from Supabase
   const fetchDesigns = async (pageNumber) => {
-    // if (isLoading) return; // Prevent duplicate fetches
-    setLoading(true)
-    // setIsLoading(true);
+    setLoading(true);
     const from = pageNumber * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
@@ -37,57 +36,56 @@ const DesignList = ({ designs,setDesigns,isLoading,setIsLoading, onDesignClick }
 
     if (error) {
       console.error('Error fetching designs:', error);
-      setLoading(false)
-      // setIsLoading(false);
+      setLoading(false);
       return;
     }
 
-    if (data.length < PAGE_SIZE) setHasMore(false);
-
-    setDesigns((prevDesigns) => [...prevDesigns, ...data]);
-    setPage(pageNumber + 1);
-    setLoading(false)
-    // setIsLoading(false);
+    setDesigns(data); // Replace designs with the current page's data
+    setHasMore(data.length === PAGE_SIZE); // Check if there are more pages
+    setLoading(false);
   };
 
-  // Initial fetch
+  // Fetch the current page on component mount or when the page changes
   useEffect(() => {
-    if (!hasFetchedDesigns.current) {
-      fetchDesigns(0); // Fetch the first page
-      hasFetchedDesigns.current = true;
-    }
-  }, []);
+    fetchDesigns(page);
+  }, [page]);
+
+  // Handle page navigation
+  const handlePageChange = (newPage) => {
+    if (newPage < 0 || (newPage > page && !hasMore)) return; // Prevent invalid page navigation
+    setSearchParams({ page: newPage }); // Update the URL with the new page number
+  };
+
   const getDataToExport = async (arrayOfProducts) => {
-       
-    const {data:designsData,error:designDataError}= await supabase.from('designs').select("*").in('id',arrayOfProducts.map((design) => design.id))
-    
-  
-    if(designDataError){
-        console.error(designDataError,'error in getting data for export');
+    const { data: designsData, error: designDataError } = await supabase
+      .from('designs')
+      .select('*')
+      .in('id', arrayOfProducts.map((design) => design.id));
+
+    if (designDataError) {
+      console.error(designDataError, 'error in getting data for export');
     }
-    return designsData
-  }
-  const getDropDownData = async ()=>{
+    return designsData;
+  };
+  const getDropDownData = async () => {
     const { data, error } = await supabase.rpc('get_dropdown_options');
 
-    if(error){
-      showMessage('Issue with retriving dropdown options')
+    if (error) {
+      showMessage('Issue with retriving dropdown options');
     }
-    return data
-  }
+    return data;
+  };
 
   const handleExport = async () => {
     const designsToExport = designs.filter((p) => selectedDesigns.has(p.id));
     const dataToExport = await getDataToExport(designsToExport);
     let dropdowns = await getDropDownData();
-    dropdowns={
+    dropdowns = {
       ...dropdowns,
-      "color":options?.stonePropertiesForm?.color.map(option => ({name:option})),
-      "type":options?.stonePropertiesForm?.type.map(option => ({name:option})),
-      
-    }
-    console.log(dropdowns)
-    exportData(dataToExport,dropdowns, 'designs');
+      color: options?.stonePropertiesForm?.color.map((option) => ({ name: option })),
+      type: options?.stonePropertiesForm?.type.map((option) => ({ name: option })),
+    };
+    exportData(dataToExport, dropdowns, 'designs');
     setSelectedDesigns(new Set());
     setIsSelectionMode(false);
   };
@@ -102,35 +100,21 @@ const DesignList = ({ designs,setDesigns,isLoading,setIsLoading, onDesignClick }
     setSelectedDesigns(newSelection);
   };
 
-
   return (
     <div>
-   
-        <ViewableListActionButtons
-                isSelectionMode={isSelectionMode}
-                setIsSelectionMode={setIsSelectionMode}
-                handleExport={handleExport}
-                handleSelections={(selected)=>setSelectedDesigns(selected)}
-                selectedItems={selectedDesigns}
-                allItems={designs}
-                onDelete={(deletedSelectedItems) => 
-                {
-                  setDesigns(designs.filter(d => !deletedSelectedItems.includes(d.id)))
-                }
-                }
-                type="Designs"
-              />
-      <div
-        className="flex flex-col overflow-auto max-h-[600px]"
-        onScroll={(e) => {
-          const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-          const nearBottom = scrollHeight - scrollTop <= clientHeight + 50;
-          if (nearBottom && !loading && hasMore) {
-            fetchDesigns(page);
-          }
-        }}
-      >
-      
+      <ViewableListActionButtons
+        isSelectionMode={isSelectionMode}
+        setIsSelectionMode={setIsSelectionMode}
+        handleExport={handleExport}
+        handleSelections={(selected) => setSelectedDesigns(selected)}
+        selectedItems={selectedDesigns}
+        allItems={designs}
+        onDelete={(deletedSelectedItems) =>
+          setDesigns(designs.filter((d) => !deletedSelectedItems.includes(d.id)))
+        }
+        type="Designs"
+      />
+      <div className="flex flex-col overflow-auto max-h-[600px]">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {designs.map((design) => (
             <DesignCard
@@ -142,9 +126,32 @@ const DesignList = ({ designs,setDesigns,isLoading,setIsLoading, onDesignClick }
             />
           ))}
         </div>
-        <div className="flex justify-center items-center mt-6">
-      {loading && <Loading />}
+        <div className="flex justify-between items-center mt-6">
+          <button
+            className={`btn p-2 rounded ${
+              page === 0 || loading ? 'bg-gray-600 opacity-50 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page === 0 || loading}
+          >
+            Previous
+          </button>
+          <span>Page {page + 1}</span>
+          <button
+            className={`btn p-2 rounded ${
+              !hasMore || loading ? 'bg-gray-600 opacity-50 cursor-not-allowed' : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+            onClick={() => handlePageChange(page + 1)}
+            disabled={!hasMore || loading}
+          >
+            Next
+          </button>
         </div>
+        {loading && (
+          <div className="flex justify-center items-center mt-6">
+            <Loading />
+          </div>
+        )}
       </div>
     </div>
   );

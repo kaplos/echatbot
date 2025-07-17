@@ -7,22 +7,24 @@ import Loading from "../Loading";
 import ViewableListActionButtons from "../MiscComponenets/ViewableListActionButtons";
 import { useMessage } from "../Messages/MessageContext";
 import { useGenericStore } from "../../store/VendorStore";
+import { useSearchParams, useNavigate } from "react-router-dom"; // Import React Router hooks
 
 const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
-   const {getEntity}= useGenericStore()
-    const  {options}  = getEntity("settings");
+  const { getEntity } = useGenericStore();
+  const { options } = getEntity("settings");
 
   const [selectedSamples, setSelectedSamples] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [page, setPage] = useState(0);
+  // const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const { supabase } = useSupabase();
-  const {showMessage} = useMessage()
+  const { showMessage } = useMessage();
   const PAGE_SIZE = 20;
 
-  const hasFetchedSamples = useRef(false);
-
+  const [searchParams, setSearchParams] = useSearchParams(); // React Router hook for query params
+  const navigate = useNavigate(); // React Router hook for navigation
+  const page = parseInt(searchParams.get("page") || "0", 10);
   // Fetch samples from Supabase
   const fetchSamples = async (pageNumber) => {
     setLoading(true);
@@ -41,20 +43,28 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
       return;
     }
 
-    if (data.length < PAGE_SIZE) setHasMore(false);
-
-    setSamples((prevSamples) => [...prevSamples, ...data]);
-    setPage(pageNumber + 1);
+    setSamples(data); // Replace samples with the current page's data
+    setHasMore(data.length === PAGE_SIZE); // Check if there are more pages
     setLoading(false);
   };
 
-  // Initial fetch
+  // Fetch the first page on component mount
+  // useEffect(() => {
+  //   fetchSamples(0);
+  // }, []);
   useEffect(() => {
-    if (!hasFetchedSamples.current) {
-      fetchSamples(0); // Fetch the first page
-      hasFetchedSamples.current = true;
-    }
-  }, []);
+    fetchSamples(page); // Fetch samples whenever the page changes
+  }, [page]);
+
+  // Handle page navigation
+  const handlePageChange = (newPage) => {
+    if (newPage < 0 || (newPage > page && !hasMore)) return; // Prevent invalid page navigation
+    // setPage(newPage);
+    setSearchParams({ page: newPage }); // Update the URL with the new page number
+
+    // fetchSamples(newPage);
+  };
+
   const getDataToExport = async (arrayOfProducts) => {
     try {
       // Fetch samples and their starting_info
@@ -76,28 +86,26 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
       return [];
     }
   };
-  const getDropDownData = async ()=>{
-    const { data, error } = await supabase.rpc('get_dropdown_options');
+  const getDropDownData = async () => {
+    const { data, error } = await supabase.rpc("get_dropdown_options");
 
-    if(error){
-      showMessage('Issue with retriving dropdown options')
+    if (error) {
+      showMessage("Issue with retriving dropdown options");
     }
-    return data
-  }
+    return data;
+  };
   const handleExport = async () => {
     const samplesToExport = samples.filter((p) => selectedSamples.has(p.id));
     let dataToExport = await getDataToExport(samplesToExport);
     let dropdowns = await getDropDownData();
-    dropdowns={
+    dropdowns = {
       ...dropdowns,
-      "color":options?.stonePropertiesForm?.color.map(option => ({name:option})),
-      "type":options?.stonePropertiesForm?.type.map(option => ({name:option})),
-      "backType":options?.formFields?.backType.map(option => ({name:option})),
-      
-    }
-   
+      color: options?.stonePropertiesForm?.color.map((option) => ({ name: option })),
+      type: options?.stonePropertiesForm?.type.map((option) => ({ name: option })),
+      backType: options?.formFields?.backType.map((option) => ({ name: option })),
+    };
 
-    exportData(dataToExport,dropdowns, "samples");
+    exportData(dataToExport, dropdowns, "samples");
     setSelectedSamples(new Set());
     setIsSelectionMode(false);
   };
@@ -111,7 +119,13 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
     }
     setSelectedSamples(newSelection);
   };
-
+  if(loading){
+    return (
+      <div className="flex justify-center items-center h-full">
+        <Loading />
+      </div>
+    );
+  }
   return (
     <div>
       <ViewableListActionButtons
@@ -119,23 +133,14 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
         setIsSelectionMode={setIsSelectionMode}
         handleSelections={(selected) => setSelectedSamples(selected)}
         handleExport={handleExport}
-        onDelete={(deletedSelectedItems) => 
-          setSamples(designs.filter(s => !deletedSelectedItems.includes(s.id)))
+        onDelete={(deletedSelectedItems) =>
+          setSamples(samples.filter((s) => !deletedSelectedItems.includes(s.id)))
         }
         allItems={samples}
         selectedItems={selectedSamples}
         type="Samples"
       />
-      <div
-        className="flex flex-col overflow-auto max-h-[600px]"
-        onScroll={(e) => {
-          const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-          const nearBottom = scrollHeight - scrollTop <= clientHeight + 50;
-          if (nearBottom && !loading && hasMore) {
-            fetchSamples(page);
-          }
-        }}
-      >
+      <div className="flex flex-col overflow-auto max-h-[600px]">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {samples.map((sample) => (
             <SampleCard
@@ -147,9 +152,28 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
             />
           ))}
         </div>
-        <div className="flex justify-center items-center mt-6">
-          {loading && <Loading />}
+        <div className="flex justify-between items-center mt-6">
+          <button
+            className={`btn p-2 rounded  ${page === 0 || loading ? "bg-gray-600 opacity-50 cursor-not-allowed" : " bg-blue-500 text-white hover:bg-blue-600"}`}
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page === 0 || loading}
+          >
+            Previous
+          </button>
+          <span>Page {page + 1}</span>
+          <button
+            className={`btn p-2 rounded hover:bg-blue-600 ${!hasMore || loading ? "bg-gray-600 opacity-50 cursor-not-allowed" : " bg-blue-500 text-white"}`}
+            onClick={() => handlePageChange(page + 1)}
+            disabled={!hasMore || loading}
+          >
+            Next
+          </button>
         </div>
+        {loading && (
+          <div className="flex justify-center items-center mt-6">
+            <Loading />
+          </div>
+        )}
       </div>
     </div>
   );

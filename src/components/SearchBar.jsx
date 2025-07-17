@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSupabase } from "../components/SupaBaseProvider";
 import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 const SearchBar = ({ items: collectionItems, onSearch,type }) => {
   const { supabase } = useSupabase();
@@ -9,6 +10,8 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
   const [items, setItems] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+    const [searchParams, setSearchParams] = useSearchParams(); // React Router hook for query params
+  
   const searchRef = useRef();
 
   useEffect(() => {
@@ -131,19 +134,84 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
     onSearch([...new Set([...imageUrls,...collectionItems])])
   }
 
+  // const fetchItems = async (searchTerm = "") => {
+  //   setLoading(true);
+  //   setError(null);
+
+  //   try {
+  //     switch(type){
+  //       case 'search':
+  //         await handleSearchBarFunction(searchTerm)
+  //         break;
+  //       case 'images':
+  //         await handleImageSearch(searchTerm)
+  //         break;
+  //       case 'samples':
+
+  //     }
+  //   } catch (err) {
+  //     setError("Error fetching search results");
+  //     console.error(err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   const fetchItems = async (searchTerm = "") => {
     setLoading(true);
     setError(null);
-
+  
     try {
-      switch(type){
-        case 'search':
-          await handleSearchBarFunction(searchTerm)
+      let query = supabase; // Start with the Supabase client
+      let selects = ""; // Variable to store the table name
+      let filters = ""; // Variable to store the filter conditions
+  
+      // Dynamically set the table and filters based on the type
+      switch (type) {
+        case "search":
+          await handleSearchBarFunction(searchTerm);
           break;
-        case 'images':
-          await handleImageSearch(searchTerm)
+        case "images":
+          selects = "'id,imageId(imageUrl)'";
+          filters = `styleNumber.ilike.%${searchTerm}%`;
           break;
+        case "samples":
+          selects = "* ,starting_info:starting_info(*)";
+          filters = `styleNumber.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`;
+          break;
+        case "ideas":
+          selects = "*";
+          filters = `name.ilike.%${searchTerm}%`;
+          break;
+        case "designs":
+          selects = "*";
+          filters = `name.ilike.%${searchTerm}%`;
+          break;
+        default:
+          throw new Error("Invalid search type");
       }
+  
+      // Build and execute the query
+      const { data, error } = await query
+        .from(type)
+        .select(selects)
+        .or(filters);
+  
+      if (error) throw error;
+  
+      // Process the results based on the type
+      if (type === "images") {
+        const imageUrls = data
+          .filter((item) => item.imageId && item.imageId.imageUrl)
+          .map((item) => ({
+            id: item.id,
+            name: item.imageId.imageUrl.split("public/").pop(),
+            url: item.imageId.imageUrl,
+          }));
+        onSearch([...new Set([...imageUrls, ...collectionItems])]);
+        return;
+      } 
+      onSearch(data)
+      return;
     } catch (err) {
       setError("Error fetching search results");
       console.error(err);
@@ -151,7 +219,6 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     if (searchTerm.length === 0) {
       console.log("Search term is empty, sending unfiltered items:", collectionItems);
@@ -171,11 +238,15 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
       
       );
 
+      // onSearch(filteredItems);
       onSearch(filteredItems);
       if(type!=='images'){
         return
       } 
+     
     }
+
+
 
     const delayDebounce = setTimeout(() => {
       fetchItems(searchTerm);
