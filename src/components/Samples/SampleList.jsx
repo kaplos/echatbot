@@ -3,21 +3,21 @@ import { CornerDownLeft, Download } from "lucide-react";
 import { exportData } from "../../utils/exportUtils";
 import SampleCard from "../Samples/SampleCard";
 import { useSupabase } from "../SupaBaseProvider";
-import Loading from "../Loading";
 import ViewableListActionButtons from "../MiscComponenets/ViewableListActionButtons";
 import { useMessage } from "../Messages/MessageContext";
 import { useGenericStore } from "../../store/VendorStore";
 import { useSearchParams, useNavigate } from "react-router-dom"; // Import React Router hooks
+import Loading from "../Loading";
 
-const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
+const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, setHasMore, onSampleClick }) => {
   const { getEntity } = useGenericStore();
   const { options } = getEntity("settings");
 
   const [selectedSamples, setSelectedSamples] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   // const [page, setPage] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  // const [isloading, setIsLoading] = useState(false);
+  // const [hasMore, setHasMore] = useState(true);
   const { supabase } = useSupabase();
   const { showMessage } = useMessage();
   const PAGE_SIZE = 20;
@@ -27,7 +27,7 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
   const page = parseInt(searchParams.get("page") || "0", 10);
   // Fetch samples from Supabase
   const fetchSamples = async (pageNumber) => {
-    setLoading(true);
+    setIsLoading(true);
     const from = pageNumber * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
@@ -39,13 +39,13 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
 
     if (error) {
       console.error("Error fetching samples:", error);
-      setLoading(false);
+      setIsLoading(false);
       return;
     }
 
     setSamples(data); // Replace samples with the current page's data
     setHasMore(data.length === PAGE_SIZE); // Check if there are more pages
-    setLoading(false);
+    setIsLoading(false);
   };
 
   // Fetch the first page on component mount
@@ -110,7 +110,7 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
     setIsSelectionMode(false);
   };
 
-  const toggleSampleSelection = (sample) => {
+   const toggleSampleSelection = (sample) => {
     const newSelection = new Set(selectedSamples);
     if (newSelection.has(sample.id)) {
       newSelection.delete(sample.id);
@@ -119,12 +119,9 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
     }
     setSelectedSamples(newSelection);
   };
-  if(loading){
-    return (
-      <div className="flex justify-center items-center h-full">
-        <Loading />
-      </div>
-    );
+  if(isLoading){
+    return <Loading />
+    
   }
   return (
     <div>
@@ -140,8 +137,9 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
         selectedItems={selectedSamples}
         type="Samples"
       />
-      <div className="flex flex-col overflow-auto max-h-[600px]">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      
+      <div className="flex flex-col overflow-auto max-h-screen">
+        <div className="h-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {samples.map((sample) => (
             <SampleCard
               key={sample.id}
@@ -152,28 +150,8 @@ const SampleList = ({ samples, setSamples, setIsLoading, onSampleClick }) => {
             />
           ))}
         </div>
-        <div className="flex justify-between items-center mt-6">
-          <button
-            className={`btn p-2 rounded  ${page === 0 || loading ? "bg-gray-600 opacity-50 cursor-not-allowed" : " bg-blue-500 text-white hover:bg-blue-600"}`}
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page === 0 || loading}
-          >
-            Previous
-          </button>
-          <span>Page {page + 1}</span>
-          <button
-            className={`btn p-2 rounded hover:bg-blue-600 ${!hasMore || loading ? "bg-gray-600 opacity-50 cursor-not-allowed" : " bg-blue-500 text-white"}`}
-            onClick={() => handlePageChange(page + 1)}
-            disabled={!hasMore || loading}
-          >
-            Next
-          </button>
-        </div>
-        {loading && (
-          <div className="flex justify-center items-center mt-6">
-            <Loading />
-          </div>
-        )}
+        
+        
       </div>
     </div>
   );

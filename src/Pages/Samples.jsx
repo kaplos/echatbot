@@ -8,6 +8,7 @@ import SampleInfoModal from "../components/Samples/SampleInfoModal";
 import ImportModal from "../components/Products/ImportModal";
 import { useLocation } from "react-router-dom";
 import SearchBar from "../components/SearchBar";
+import Pagination from "../components/MiscComponenets/Pagination";
 
 export default function Samples() {
   const { supabase } = useSupabase();
@@ -15,10 +16,10 @@ export default function Samples() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [sample, setSample] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  // const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [samples, setSamples] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
-
+  const [hasMore, setHasMore] = useState(true);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const location = useLocation(); // Access the current URL
   const queryParams = new URLSearchParams(location.search); // Parse the query string
@@ -140,8 +141,8 @@ export default function Samples() {
   // }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className=" h-full bg-gray-100">
+      <div className="flex justify-between items-center ">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold text-gray-900">Samples</h1>
           <SearchBar
@@ -169,16 +170,19 @@ export default function Samples() {
           </button>
         </div>
       </div>
-      <SampleList
-        samples={filteredItems}
-        // onDesignClick={(design) => {
-        setSamples={setSamples}
-        // setIsLoading={setIsLoading}
-        // setIsDetailsOpen(true);
-        // setSelectedDesign(design);
-        // }}
-        onSampleClick={handleClick}
-      />
+      <Pagination loading={isLoading} hasMore={hasMore} >
+      <div className="flex-grow overflow-auto px-4 pb-4"> 
+        <SampleList
+          samples={filteredItems}
+          setSamples={setSamples}
+          setIsLoading={setIsLoading}
+          setHasMore={setHasMore}
+          hasMore={hasMore}
+          isLoading={isLoading}
+          onSampleClick={handleClick}
+          />
+          </div>         
+      </Pagination>
       <AddSampleModal
         isOpen={isAddModalOpen}
         onSave={(sample) => {

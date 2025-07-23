@@ -37,18 +37,20 @@ const SampleCard = ({
                </div>
              )}
              
-             <div className="relative object-contain aspect-square bg-gray-100 rounded-t-lg overflow-hidden">
+             <div className="relative object-contain aspect-[2/1] bg-gray-100 rounded-t-lg overflow-hidden">
                {images && images.length > 0 && (
-                 <>
-                   <img
-                     src={images[0]}
-                     alt={sample.name}
-                     className="w-full h-full object-contain"
-                   />
+                <div className="relative w-full  bg-gray-100 rounded-t-lg overflow-hidden">
+                <img
+                  src={images[0]}
+                  alt={sample.name}
+                  className="w-full h-full object-contain max-h-full"
+                />
+              
                    {/* <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white px-2 py-1 text-center">
                      <span className="text-sm font-medium">hi</span>
-                   </div> */}
-                 </>
+                     </div> */}
+                 
+                     </div>
                ) 
               //  : (
               //    <div className="w-full h-full flex flex-col items-center justify-center">

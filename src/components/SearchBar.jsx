@@ -3,6 +3,7 @@ import { useSupabase } from "../components/SupaBaseProvider";
 import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
+import { use } from "react";
 
 const SearchBar = ({ items: collectionItems, onSearch,type }) => {
   const { supabase } = useSupabase();
@@ -11,7 +12,10 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
     const [searchParams, setSearchParams] = useSearchParams(); // React Router hook for query params
-  
+    const page = parseInt(searchParams.get("page") || "0", 10);
+    const source = searchParams.get("source") || "search"; // Default to 'search' if not provided
+    const PAGE_SIZE = 20;
+
   const searchRef = useRef();
 
   useEffect(() => {
@@ -27,7 +31,16 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+  useEffect(() => {
+    if(source !==type){
+      return;
+    }
+    setSearchTerm(searchParams.get("search") || "");
+    fetchItems(searchTerm);
+  },[page])
+
   const handleSearchBarFunction = async(searchTerm)=>{
+
     const { data: samples, error: samplesError } = await supabase
         .from("samples")
         .select("*")
@@ -42,12 +55,12 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
 
       if (ideasError) throw ideasError;
 
-      const { data: quotes, error: quotesError } = await supabase
-        .from("quotes")
-        .select("*")
-        .or(`buyer.ilike.%${searchTerm}%`);
+      // const { data: quotes, error: quotesError } = await supabase
+      //   .from("quotes")
+      //   .select("*")
+      //   .or(`buyer.ilike.%${searchTerm}%`);
 
-      if (quotesError) throw quotesError;
+      // if (quotesError) throw quotesError;
       let quotesById = [];
 
       if (!isNaN(parseInt(searchTerm))) {
@@ -88,12 +101,12 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
           linkTo: `/ideas?ideaId=${idea.id}`,
           display: idea.name,
         })),
-        ...quotes.map((quote) => ({
-          ...quote,
-          table: "quotes",
-          linkTo: `/ViewQuote?quote=${quote.quoteNumber}`,
-          display: quote.buyer || quote.quoteNumber,
-        })),
+        // ...quotes.map((quote) => ({
+        //   ...quote,
+        //   table: "quotes",
+        //   linkTo: `/ViewQuote?quote=${quote.quoteNumber}`,
+        //   display: quote.buyer || quote.quoteNumber,
+        // })),
         ...quotesById.map((quote) => ({
           ...quote,
           table: "quotes",
@@ -116,49 +129,37 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
 
       setItems(combinedResults.filter((item) => item.display));
   }
-  const handleImageSearch = async (searchTerm) =>{
-    const {data,error}=await supabase
-    .from('image_link')
-    .select('id,imageId(imageUrl)')
-    // .select('styleNumber')
-    .ilike('styleNumber',`%${searchTerm}%`)
+  // const handleImageSearch = async (searchTerm) =>{
+  //   const {data,error}=await supabase
+  //   .from('image_link')
+  //   .select('id,imageId(imageUrl)')
+  //   // .select('styleNumber')
+  //   .ilike('styleNumber',`%${searchTerm}%`)
 
-    if (error) {
-      console.error('Search error:', error);
-    } else {
-      console.log('Search results:', data);
-    }
-    const imageUrls = data
-  .filter((item) => item.imageId && item.imageId.imageUrl)
-  .map((item) => ({id:item.id,name:item.imageId.imageUrl.split('public/').pop(),url:item.imageId.imageUrl}));
-    onSearch([...new Set([...imageUrls,...collectionItems])])
-  }
-
-  // const fetchItems = async (searchTerm = "") => {
-  //   setLoading(true);
-  //   setError(null);
-
-  //   try {
-  //     switch(type){
-  //       case 'search':
-  //         await handleSearchBarFunction(searchTerm)
-  //         break;
-  //       case 'images':
-  //         await handleImageSearch(searchTerm)
-  //         break;
-  //       case 'samples':
-
-  //     }
-  //   } catch (err) {
-  //     setError("Error fetching search results");
-  //     console.error(err);
-  //   } finally {
-  //     setLoading(false);
+  //   if (error) {
+  //     console.error('Search error:', error);
+  //   } else {
+  //     console.log('Search results:', data);
   //   }
-  // };
+  //   const imageUrls = data
+  // .filter((item) => item.imageId && item.imageId.imageUrl)
+  // .map((item) => ({id:item.id,name:item.imageId.imageUrl.split('public/').pop(),url:item.imageId.imageUrl}));
+  //   onSearch([...new Set([...imageUrls,...collectionItems])])
+  // }
+  
+  
+  //the problem i am having is that the search bar is relaoding all instances when page changes I need to find a way to 
+  // only reload the search bar when the search term changes and for the specific type of search 
   const fetchItems = async (searchTerm = "") => {
+    if (searchTerm.length <= 2 && searchTerm.length > 0) {
+      // console.log("Search term is too short, not fetching items:", searchTerm);
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    const from = page * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
   
     try {
       let query = supabase; // Start with the Supabase client
@@ -169,7 +170,8 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
       switch (type) {
         case "search":
           await handleSearchBarFunction(searchTerm);
-          break;
+          return;
+          // break;
         case "images":
           selects = "'id,imageId(imageUrl)'";
           filters = `styleNumber.ilike.%${searchTerm}%`;
@@ -194,7 +196,9 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
       const { data, error } = await query
         .from(type)
         .select(selects)
-        .or(filters);
+        .or(filters)
+        .range(from, to);
+        
   
       if (error) throw error;
   
@@ -219,7 +223,12 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
+    if (searchTerm.length <=2 && searchTerm.length > 0) {
+      console.log("Search term is too short, not fetching items:", searchTerm);
+      return;
+    }
     if (searchTerm.length === 0) {
       console.log("Search term is empty, sending unfiltered items:", collectionItems);
 
@@ -240,9 +249,9 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
 
       // onSearch(filteredItems);
       onSearch(filteredItems);
-      if(type!=='images'){
-        return
-      } 
+      // if(type!=='images'){
+      //   return
+      // } 
      
     }
 
@@ -262,7 +271,9 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
           type="text"
           placeholder="Search..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => {
+            setSearchParams({search: e.target.value, source:type});
+            setSearchTerm(e.target.value)}}
           className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <Search className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />

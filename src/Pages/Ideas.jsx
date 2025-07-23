@@ -8,6 +8,7 @@ import Loading from "../components/Loading";
 import SlideEditor from "../components/Ideas/SlideEditor";
 import { useLocation } from "react-router-dom";
 import SearchBar from "../components/SearchBar";
+import FilterButton from "../components/Filters/FilterButton";
 export default function Ideas() {
   const { supabase } = useSupabase();
   // console.log(supabase, 'supabase from ideas page');
@@ -164,14 +165,17 @@ export default function Ideas() {
       <div className="flex justify-between items-center mb-6">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold text-gray-900">Ideas Board</h1>
-          <SearchBar
-            items={ideas}
-            type={'ideas'}
-            onSearch={(filteredItems) => {
-              console.log(filteredItems);
-              setFilteredIdeas(filteredItems);
-            }}
-          />
+          <div className="flex flex-row gap-2">
+            <SearchBar
+              items={ideas}
+              type={'ideas'}
+              onSearch={(filteredItems) => {
+                console.log(filteredItems);
+                setFilteredIdeas(filteredItems);
+              }}
+            />
+            {/* <FilterButton />   */}
+          </div>
         </div>
         <div className="flex space-x-2">
           <button
