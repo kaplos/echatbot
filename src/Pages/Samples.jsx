@@ -9,6 +9,7 @@ import ImportModal from "../components/Products/ImportModal";
 import { useLocation } from "react-router-dom";
 import SearchBar from "../components/SearchBar";
 import Pagination from "../components/MiscComponenets/Pagination";
+import FilterButton from "../components/Filters/FilterButton";
 
 export default function Samples() {
   const { supabase } = useSupabase();
@@ -145,13 +146,16 @@ export default function Samples() {
       <div className="flex justify-between items-center ">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold text-gray-900">Samples</h1>
-          <SearchBar
-            items={samples}
-            type={'samples'}
-            onSearch={(filteredItems) => {
-              setFilteredItems(filteredItems);
-            }}
-          />
+          <div className="flex gap-2">
+            <SearchBar
+              items={samples}
+              type={'samples'}
+              onSearch={(filteredItems) => {
+                setFilteredItems(filteredItems);
+              }}
+            />
+            <FilterButton type={'samples'}/>
+          </div>
         </div>
         <div className="flex space-x-3">
           <button

@@ -42,10 +42,10 @@ function AppContent() {
   // If no session exists, show the login screen
   if (!session) {
     return (
-      <Routes>
+      <Routes >
         <Route path="/login" element={<Login />} />
         <Route path="/viewQuote" element={<ViewQuote />} />
-        {/* <Route path="*" element={<Navigate to="/" />} /> */}
+        <Route path="/" element={<Navigate to="/login" />} />
       </Routes>
     );
   }

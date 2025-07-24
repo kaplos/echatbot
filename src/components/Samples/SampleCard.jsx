@@ -15,7 +15,7 @@ const SampleCard = ({
       e.preventDefault();
       onClick(sample);
     };
-   let images = Array.isArray(sample.starting_info.images) ? sample.starting_info.images : JSON.parse(sample.starting_info.images) || [];
+   let images = Array.isArray(sample.images) ? sample.images : JSON.parse(sample.images) || [];
 
    return (
            <div

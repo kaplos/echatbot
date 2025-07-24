@@ -25,17 +25,40 @@ const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, set
   const [searchParams, setSearchParams] = useSearchParams(); // React Router hook for query params
   const navigate = useNavigate(); // React Router hook for navigation
   const page = parseInt(searchParams.get("page") || "0", 10);
+  const collection = searchParams.getAll('collection') || ""; // Get the collection filter from the URL
+  const category = searchParams.getAll('category') || ""; 
+  const metals = searchParams.getAll('metal') || ""; // Get the metal filter from the URL
+  const customers = searchParams.getAll('customer') || ""; // Get the customer filter from the URL
+  const chains = searchParams.getAll('chain') || ""; // Get the chain filter from the URL
   // Fetch samples from Supabase
   const fetchSamples = async (pageNumber) => {
     setIsLoading(true);
     const from = pageNumber * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
-    const { data, error } = await supabase
-      .from("samples")
-      .select("* ,starting_info:starting_info(*)")
+    let query = supabase
+      .from("sample_with_stones_export")
+      .select('*') // specify '*' to select all columns
       .order("created_at", { ascending: false })
       .range(from, to);
+
+
+    if (collection.length > 0 && collection) {
+      query = query.in("collection", collection);
+    }
+    if (category.length > 0 && category) {
+      query = query.in("category", category);
+    }
+    if (metals.length > 0 && metals) {
+      query = query.in("metalType", metals);
+    }
+    if (customers.length > 0 && customers) {
+      query = query.in("customer", customers);
+    }
+    if (chains.length > 0 && chains) {
+      query = query.in("necklace", chains);
+    }
+    const { data, error } = await query;
 
     if (error) {
       console.error("Error fetching samples:", error);
@@ -54,7 +77,7 @@ const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, set
   // }, []);
   useEffect(() => {
     fetchSamples(page); // Fetch samples whenever the page changes
-  }, [page]);
+  }, [page, searchParams]);
 
   // Handle page navigation
   const handlePageChange = (newPage) => {

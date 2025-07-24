@@ -8,6 +8,7 @@ import { useSupabase } from "../components/SupaBaseProvider";
 import ImportModal from "../components/Products/ImportModal";
 import { useLocation } from "react-router-dom";
 import SearchBar from "../components/SearchBar";
+import FilterButton from "../components/Filters/FilterButton";
 
 const Designs = () => {
   const { supabase } = useSupabase();
@@ -106,13 +107,16 @@ const Designs = () => {
       <div className="flex justify-between items-center mb-6">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold text-gray-900">Designs</h1>
-          <SearchBar
-            items={designs}
-            type={'designs'}
-            onSearch={(filteredItems) => {
-              setFilteredItems(filteredItems);
-            }}
-          />
+          <div className="flex gap-2">
+            <SearchBar
+              items={designs}
+              type={'designs'}
+              onSearch={(filteredItems) => {
+                setFilteredItems(filteredItems);
+              }}
+            />
+            <FilterButton type={'designs'}/>
+          </div>
         </div>
         <div className="flex space-x-3">
           <button

@@ -21,18 +21,28 @@ const DesignList = ({ designs, setDesigns, onDesignClick }) => {
 
   const [searchParams, setSearchParams] = useSearchParams(); // React Router hook for query params
   const page = parseInt(searchParams.get('page') || '0', 10); // Get the current page from the URL
-
+  const collection = searchParams.getAll('collection') || ""; // Get the collection filter from the URL
+  const category = searchParams.getAll('category') || ""; // Get the category filter from the URL
   // Fetch designs from Supabase
   const fetchDesigns = async (pageNumber) => {
     setLoading(true);
     const from = pageNumber * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-
-    const { data, error } = await supabase
+    let query =  supabase
       .from('designs')
       .select('*')
       .order('created_at', { ascending: false })
       .range(from, to);
+
+      if (category.length > 0 && category) {
+        query = query.in('category', category);
+      }
+
+      if (collection.length > 0 && collection) {
+        query = query.in('collection', collection);
+      }
+
+        const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching designs:', error);
@@ -48,7 +58,7 @@ const DesignList = ({ designs, setDesigns, onDesignClick }) => {
   // Fetch the current page on component mount or when the page changes
   useEffect(() => {
     fetchDesigns(page);
-  }, [page]);
+  }, [page,searchParams]);
 
   // Handle page navigation
   const handlePageChange = (newPage) => {

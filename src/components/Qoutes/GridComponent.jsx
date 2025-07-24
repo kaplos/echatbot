@@ -3,27 +3,32 @@ import { Link } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilePdf, faFileExcel } from "@fortawesome/free-solid-svg-icons";
 import EditableCell from "./EditableCell";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSupabase } from "../SupaBaseProvider";
 import QuotePDFGenerator from "../Pdf/QuotePDFGenerator";
 import { exportToCsv, exportToExcel } from "../../utils/exportOrderToExcel";
+import Pagination from "../MiscComponenets/Pagination";
 const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
   const navigate = useNavigate();
   const { supabase } = useSupabase();
   const [editingCell, setEditingCell] = useState(null);
-  const [page, setPage] = useState(0);
+  // const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [copiedRowId, setCopiedRowId] = useState(null); // State to track which row was copied
   const [rowType, setRowType] = useState(null); // State to track the type of row copied
-  const hasFetchedQuotes = useRef(false);
+  // const hasFetchedQuotes = useRef(false);
+   const [searchParams, setSearchParams] = useSearchParams(); // React Router hook for query params
+  const page = parseInt(searchParams.get("page") || "0", 10);
+  const buyer = searchParams.getAll('customer') || ""; // Get the buyer filter from the URL
+
 
   useEffect(() => {
-    if (!hasFetchedQuotes.current) {
-      fetchQuotes(0); // Fetch quotes only once
-      hasFetchedQuotes.current = true;
-    }
-  }, []);
+    // if (!hasFetchedQuotes.current) {
+      fetchQuotes(page); // Fetch quotes only once
+      // hasFetchedQuotes.current = true;
+    // }
+  }, [page,searchParams]);
 
   // Handle cell value change
   const handleChange = (rowId, field, value) => {
@@ -71,9 +76,7 @@ const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
   const handleEditQuote = (quoteNumber) => {
     navigate(`/newQuote?quote=${quoteNumber}`);
   };
-  const handleViewQuote = (quoteNumber) => {
-    navigate(`/viewQuote?quote=${quoteNumber}`);
-  };
+ 
   const PAGE_SIZE = 20;
 
   const handleCopyToClipboard = (quoteNumber, rowId) => {
@@ -85,22 +88,29 @@ const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
     setTimeout(() => setCopiedRowId(null), 2000); // Reset after 2 seconds
   };
 
-  const fetchQuotes = async (pageNumber) => {
+  const fetchQuotes = async () => {
     setLoading(true);
-    const from = pageNumber * PAGE_SIZE;
+    const from = page * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
-    const { data, error } = await supabase
+    
+    let query = supabase
       .from("quotes")
       .select(`
         *,
         buyer (
+          id,
           name
         )
       `)
       .order("created_at", { ascending: false }) // or by ID
       .range(from, to);
 
+    if (buyer.length > 0 && buyer) {
+      query = query.in("buyer", buyer);
+    }
+    const { data, error } = await query;
+    
     if (error) {
       console.error("Error fetching quotes:", error);
       setLoading(false);
@@ -109,17 +119,12 @@ const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
 
     if (data.length < PAGE_SIZE) setHasMore(false);
 
-    setQuotes([...quotes, ...data]);
-    setPage(pageNumber + 1);
+    setQuotes([ ...data]);
+    // setPage(pageNumber + 1);
     setLoading(false);
   };
 
-  const ascendingQuotesByDate = [...quotes].sort(
-    (a, b) => new Date(a.created_at) - new Date(b.created_at)
-  );
-  const ascendingQuotesById = [...quotes].sort((a, b) =>
-    a.id > b.id ? 1 : -1
-  );
+  
   const handleSelectAll = () => {
     if (selected.size === quotes.length) {
       // Deselect all rows
@@ -143,17 +148,20 @@ const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
   };
 
   return (
+      <Pagination >
+
     <div
       className="overflow-auto max-h-[600px] border border-gray-300"
-      onScroll={(e) => {
-        const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-        const nearBottom = scrollHeight - scrollTop <= clientHeight + 50;
+      // onScroll={(e) => {
+      //   const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+      //   const nearBottom = scrollHeight - scrollTop <= clientHeight + 50;
 
-        if (nearBottom && !loading && hasMore) {
-          fetchQuotes(page);
-        }
-      }}
+      //   if (nearBottom && !loading && hasMore) {
+      //     fetchQuotes(page);
+      //   }
+      // }}
     >
+
       <table className="w-full border-collapse border border-gray-300 table-sticky">
         <thead className="bg-gray-200 sticky top-0 z-10">
           <tr className="bg-gray-200">
@@ -329,7 +337,9 @@ const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
           })}
         </tbody>
       </table>
+
     </div>
+      </Pagination>
   );
 };
 
