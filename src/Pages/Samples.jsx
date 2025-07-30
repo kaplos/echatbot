@@ -101,7 +101,7 @@ export default function Samples() {
     // .select('*')
     // .single()
     // .eq('sample_id',sample.sample_id)
-            const imageData = await  getImages('starting_info',sample.sample_id)
+    const {images,cad} = await getImages('starting_info',sample.sample_id) 
 
 
     if (error) {
@@ -122,7 +122,6 @@ export default function Samples() {
     }
 
     const startingInfo = data[0].starting_info;
-    const {images,cad}= imageData
     delete data[0].starting_info;
 
     const restructuredData = {

@@ -13,6 +13,8 @@ const ImageUpload = ({
 
   console.log(inital, "images from ImageUpload");
   const { supabase } = useSupabase();
+  const [uploading, setUploading] = useState(false);
+  const [deletingIndex, setDeletingIndex] = useState(null); // for per-image delete loading
 
   const [imageToShow, setImageToShow] = useState(inital[0] || null);
   const [images, setImages] = useState(
@@ -38,140 +40,54 @@ useEffect(() => {
     setImages((prev)=> [... new Set([...inital,...prev, ...imageUrls])]);
   };
 
-const handleImageUpload = async (files) => {
-  const uploadResults = [];
+const handleImageUpload = async (event) => {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
 
-  for (const file of files) {
-    console.log("Uploading file:", file.name);
-    let publicUrl = "";
-    let status = "success";
-    let failed = false;
-    let errorMessage = "";
+  setUploading(true);
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from("echatbot")
-      .upload(`public/${file.name}`, file, { upsert: true });
+  try {
+    const uploadedImages = [];
 
-    if (!uploadError && uploadData) {
-      const { data: publicURLData } = supabase.storage
+    for (const file of files) {
+      const fileName = `${Date.now()}_${file.name}`;
+      const { data, error: uploadError } = await supabase.storage
         .from("echatbot")
-        .getPublicUrl(`public/${file.name}`);
+        .upload(fileName, file);
 
-      publicUrl = publicURLData?.publicUrl || "";
-    }
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        continue;
+      }
 
-    if (!publicUrl) {
-      const encodedName = encodeURIComponent(file.name);
-      publicUrl = `https://ujwdpieleyuaiammaopj.supabase.co/storage/v1/object/public/echatbot/public/${encodedName}`;
-      failed = true;
-      status = uploadError ? "failed" : "fallback";
-      errorMessage = uploadError?.message || "Fallback URL used.";
-    }
+      const imageUrl = supabase.storage
+        .from("echatbot")
+        .getPublicUrl(fileName).data.publicUrl;
 
-    uploadResults.push({
-      fileName: file.name,
-      imageUrl: publicUrl,
-      failed,
-      status,
-      errorMessage,
-      id: null
-    });
-  }
-
-  const successfulUploads = uploadResults.filter(r => !r.failed);
-
-  // Try inserting all and let DB handle duplicates (if any)
-  const { data: insertedImages, error: insertError } = await supabase
-    .from("images")
-    .insert(
-      successfulUploads.map((r) => ({
-        imageUrl: r.imageUrl,
-        originalUrl: r.imageUrl
-      }))
-    )
-    .select("id, imageUrl");
-
-  if (insertError) {
-    // Conflict likely due to unique constraint, so we fetch existing ones manually
-    if (insertError.code === "23505" || insertError.message?.includes("duplicate")) {
-      console.warn("Duplicate detected, fetching existing image IDs.");
-
-      const { data: existingImages, error: existingError } = await supabase
+      // Save metadata to DB
+      const { data: insertData, error: insertError } = await supabase
         .from("images")
+        .insert([{ imageUrl, originalUrl: imageUrl }])
         .select("id, imageUrl")
-        .in("imageUrl", successfulUploads.map((r) => r.imageUrl));
+        .single();
 
-      if (existingError) {
-        console.error("Error fetching existing images after conflict:", existingError);
+      if (insertError) {
+        console.error("DB insert error:", insertError);
+        continue;
       }
 
-      // Merge existing image IDs
-      if (existingImages) {
-        existingImages.forEach((img) => {
-          const match = uploadResults.find((r) => r.imageUrl === img.imageUrl);
-          if (match) {
-            match.id = img.id;
-            match.status = "duplicate";
-          }
-        });
-      }
-    } else {
-      console.error("Unexpected insert error:", insertError);
-    }
-  }
-
-  // Handle inserted ones if no error
-  if (insertedImages && insertedImages.length > 0) {
-    insertedImages.forEach((img) => {
-      const match = uploadResults.find((r) => r.imageUrl === img.imageUrl);
-      if (match) {
-        match.id = img.id;
-        match.status = "success";
-      }
-    });
-  }
-
-  // Final fallback: still missing some IDs?
-  const unresolved = uploadResults.filter((r) => !r.id && !r.failed);
-  if (unresolved.length > 0) {
-    const { data: fallbackImages, error: fallbackError } = await supabase
-      .from("images")
-      .select("id, imageUrl")
-      .in("imageUrl", unresolved.map((r) => r.imageUrl));
-
-    if (fallbackImages) {
-      fallbackImages.forEach((img) => {
-        const match = uploadResults.find((r) => r.imageUrl === img.imageUrl);
-        if (match) {
-          match.id = img.id;
-          match.status = "duplicate";
-        }
-      });
+      uploadedImages.push(insertData);
     }
 
-    if (fallbackError) {
-      console.error("Final fallback fetch error:", fallbackError);
-    }
+    // Add to local state
+    const newImages = [...images, ...uploadedImages];
+    setImages(newImages);
+    onChange?.(newImages);
+  } finally {
+    setUploading(false);
   }
-
-  if (!imageToShow && uploadResults.length > 0) {
-    setImageToShow(uploadResults[0].imageUrl);
-  }
-console.log(uploadResults)
-  onUpload(
-    uploadResults.map((r) => ({
-      id: r.id,
-      imageUrl: r.imageUrl,
-      fileName: r.fileName,
-      status: r.status,
-      failed: r.failed,
-      error: r.errorMessage,
-      type: collection
-    }))
-  );
-
-  return uploadResults.map(img => img.imageUrl);
 };
+
 
 
 
@@ -249,11 +165,52 @@ console.log(uploadResults)
 
   };
   
-  const removeImage = (index) => {
+  const removeImage = async (index) => {
+  const image = images[index];
+  if (!image) return;
+
+  if (!window.confirm("Delete this image?")) return;
+
+  setDeletingIndex(index);
+
+  try {
+    const decoded = decodeURIComponent(image.imageUrl || image);
+    const pathInBucket = decoded.split("/echatbot/")[1];
+
+    // Delete from storage
+    const { error: storageError } = await supabase.storage
+      .from("echatbot")
+      .remove([pathInBucket]);
+
+    if (storageError) {
+      console.error("Storage delete error:", storageError);
+    }
+
+    // Delete from DB
+    if (image.id) {
+      const { error: dbError } = await supabase
+        .from("images")
+        .delete()
+        .eq("id", image.id);
+
+      if (dbError) {
+        console.error("DB delete error:", dbError);
+      }
+    }
+
     const newImages = [...images];
     newImages.splice(index, 1);
-    onChange(newImages);
-  };
+    setImages(newImages);
+    onChange?.(newImages);
+
+    if (imageToShow === image.imageUrl) {
+      setImageToShow(newImages[0]?.imageUrl || null);
+    }
+  } finally {
+    setDeletingIndex(null);
+  }
+};
+
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -288,6 +245,9 @@ console.log(uploadResults)
 
       {/* Thumbnails for preview */}
       <div className="flex flex-wrap gap-2 pt-4 pr-4">
+        {uploading && (
+          <div className="text-center text-sm text-gray-500 my-2">Uploading...</div>
+        )}
         {Array.isArray(images) &&
           images.map((image, index) => (
             <div
