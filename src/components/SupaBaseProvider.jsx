@@ -83,6 +83,21 @@ export const handleImageUpload = async (files) => {
   return imageUrls;
 };
 
+export const getImages = async(entity,entityId)=>{
+
+  const {data:imageData,error:imageError} = await supabase
+  .from('entity_images')
+  .select('*')
+  .single()
+  .eq('entity',entity)
+  .eq('entityId',entityId)
+
+  if(imageError){
+     throw new Error(imageError)
+  }
+  return imageData
+
+}
 
 
 

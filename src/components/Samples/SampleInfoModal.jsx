@@ -37,20 +37,22 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
   const [lossPercent, setLossPercent] = useState(0);
   const [formDataOriginal, setFormDataOriginal] = useState({
     ...passedFormData,
-    cad: passedFormData.cad ? passedFormData.cad : [],
   });
   const [starting_info_original, setStarting_info_original] = useState({
     ...passedStartingInfo,
     images: passedStartingInfo.images ? passedStartingInfo.images : [],
+    cad: passedFormData.cad ? passedFormData.cad : [],
+    
   });
 
   const [starting_info, setStarting_info] = useState({
     ...passedStartingInfo,
     images: passedStartingInfo.images ? passedStartingInfo.images : [],
+    cad: passedFormData.cad ? passedFormData.cad : [],
+
   });
   const [formData, setFormData] = useState({
     ...passedFormData,
-    cad: passedFormData.cad ? passedFormData.cad : [],
   });
 
   const [relatedQuotes, setRelatedQuotes] = useState([]);
@@ -62,22 +64,24 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
     console.log(sample, "sample images from useeffect");
     setFormDataOriginal({
       ...passedFormData,
-      cad: passedFormData.cad ? passedFormData.cad : [],
     });
 
     setFormData({
       ...passedFormData,
-      cad: passedFormData.cad ? passedFormData.cad : [],
     });
 
     setStarting_info_original({
       ...passedStartingInfo,
       images: passedStartingInfo.images ? passedStartingInfo.images : [],
+    cad: passedFormData.cad ? passedFormData.cad : [],
+
     });
 
     setStarting_info({
       ...passedStartingInfo,
       images: passedStartingInfo.images ? passedStartingInfo.images : [],
+    cad: passedFormData.cad ? passedFormData.cad : [],
+
     });
   }, [isOpen]);
 
@@ -176,6 +180,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    let sampleData = ''
     if (
       areObjectsEqual(formData, formDataOriginal) &&
       areObjectsEqual(starting_info, starting_info_original)
@@ -194,11 +199,15 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
     // Proceed with the update logic'
     if (Object.keys(sampleUpdates).length !== 0) {
       console.log(" changes in starting_info");
-      const { data, error } = await supabase
+      const {  error } = await supabase
         .from("samples")
         .update(sampleUpdates)
         .eq("id", passedFormData.id)
-        .select();
+        // .select();
+      sampleData = await supabase
+      .from('sample_with_stones_export')
+      .select('*')
+      .eq('sample_id',passedFormData.id)
 
       if (error) {
         console.error("Error updating sample:", error);
@@ -267,9 +276,9 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
 
 
     console.log("sample updated:", formData);
-    updateSample({ ...formData, starting_info: starting_info });
+    updateSample({ ...sampleData.data });
     setFormData({
-      cad: [],
+      
       category: "",
       collection: "",
       name: "",
@@ -299,7 +308,6 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
   };
   const handleClose = () => {
     setFormData({
-      cad: [],
       category: "",
       collection: "",
       selling_pair: "pair",
@@ -386,21 +394,21 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                             images={starting_info.images || []}
                             onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
                             finalizeUpload={finalizeUploadRef}
-                            onChange={async (images) => {
-                              setStarting_info({
-                                ...starting_info,
-                                images: images,
-                              });
-                            }}
+                            // onChange={async (images) => {
+                            //   setStarting_info({
+                            //     ...starting_info,
+                            //     images: images,
+                            //   });
+                            // }}
                           />
                           <ImageUpload
                             collection="cad"
                             // finalizeUpload={finalizeUploadRef}
                             onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
-                            images={formData.cad || []}
-                            onChange={(cad) =>
-                              setFormData({ ...formData, cad: cad })
-                            }
+                            images={starting_info.cad || []}
+                            // onChange={(cad) =>
+                            //   setStarting_info({ ...starting_info, cad: cad })
+                            // }
                           
                           />
                         </div>

@@ -126,7 +126,7 @@ const EditProductModal= ({ isOpen, onClose, product }) => {
                       </h3>
                       <ImageUpload
                         images={formData.images}
-                        onChange={(value) => handleInputChange('images', value)}
+                        // onChange={(value) => handleInputChange('images', value)}
                       />
                     </div>
                   </div>

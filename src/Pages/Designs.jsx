@@ -9,6 +9,7 @@ import ImportModal from "../components/Products/ImportModal";
 import { useLocation } from "react-router-dom";
 import SearchBar from "../components/SearchBar";
 import FilterButton from "../components/Filters/FilterButton";
+import { getImages } from "../components/SupaBaseProvider";
 
 const Designs = () => {
   const { supabase } = useSupabase();
@@ -76,6 +77,7 @@ const Designs = () => {
     const { data, error } = await supabase
       .from("designs")
       .select("*")
+      .single()
       .eq("id", design.id);
 
     if (error) {
@@ -83,10 +85,16 @@ const Designs = () => {
       setIsDetailsOpen(false); // Close the modal if there's an error
       return;
     }
-
+    const {images,cad} = await getImages("design", design.id);
+    console.log(images,cad)
     // Update the design data in the modal
-    setDesign(data[0]);
+    setDesign({
+      ...data,
+      images,
+      cad
+    });
   };
+  
   const updateDesign = (updatedDesigns) => {
     setDesigns((previousDesign) =>
       previousDesign.map((design) =>
@@ -110,12 +118,12 @@ const Designs = () => {
           <div className="flex gap-2">
             <SearchBar
               items={designs}
-              type={'designs'}
+              type={"designs"}
               onSearch={(filteredItems) => {
                 setFilteredItems(filteredItems);
               }}
             />
-            <FilterButton type={'designs'}/>
+            <FilterButton type={"designs"} />
           </div>
         </div>
         <div className="flex space-x-3">
@@ -160,28 +168,30 @@ const Designs = () => {
         />
       )}
       <ImportModal
-  isOpen={isImportModalOpen}
-  onClose={() => setIsImportModalOpen(false)}
-  onImport={(importedSamples) => {
-    setDesigns((prev) => {
-      // Create a map of existing samples for quick lookup
-      const existingSamplesMap = new Map(prev.map((sample) => [sample.id, sample]));
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={(importedSamples) => {
+          setDesigns((prev) => {
+            // Create a map of existing samples for quick lookup
+            const existingSamplesMap = new Map(
+              prev.map((sample) => [sample.id, sample])
+            );
 
-      // Merge or add imported samples
-      importedSamples.forEach((importedSample) => {
-        if (existingSamplesMap.has(importedSample.id)) {
-          // Update the existing sample
-          existingSamplesMap.set(importedSample.id, importedSample);
-        } else {
-          // Add the new sample
-          existingSamplesMap.set(importedSample.id, importedSample);
-        }
-      });
+            // Merge or add imported samples
+            importedSamples.forEach((importedSample) => {
+              if (existingSamplesMap.has(importedSample.id)) {
+                // Update the existing sample
+                existingSamplesMap.set(importedSample.id, importedSample);
+              } else {
+                // Add the new sample
+                existingSamplesMap.set(importedSample.id, importedSample);
+              }
+            });
 
-      // Return the updated list of samples
-      return Array.from(existingSamplesMap.values());
-    });
-  }}
+            // Return the updated list of samples
+            return Array.from(existingSamplesMap.values());
+          });
+        }}
         type="designs"
       />
     </div>

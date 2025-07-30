@@ -99,7 +99,7 @@ const DesignQuoteInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
       console.log("design updated:", data);
       updateDesign({ ...data[0] });
     }
-    finalizeUploadRef.current('designQuote',data[0].id,data[0].manufacturerCode,uploadedImages)
+    finalizeUploadRef.current('starting_info',data[0].id,data[0].manufacturerCode,uploadedImages)
     onClose();
   };
   const handleUpdateImageManufactoreCode= async(designQuotesId,manufacturerCode)=>{

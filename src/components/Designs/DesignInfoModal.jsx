@@ -22,6 +22,7 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
     collection: design.collection,
     category: design.category,
     images: design.images,
+    cad:design.cad,
     status: design.status,
   });
   const [formData, setFormData] = useState({ ...originalData });
@@ -76,9 +77,9 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
     // console.log(formData,'formdata')
   };
 
-  const getRemovedImages = (originalImages, currentImages) => {
-    return originalImages.filter((image) => !currentImages.includes(image));
-  };
+  // const getRemovedImages = (originalImages, currentImages) => {
+  //   return originalImages.filter((image) => !currentImages.includes(image));
+  // };
   const handleUpdateImageManufactoreCode= async(designQuotesId,manufacturerCode)=>{
     const {data,error} = await supabase.from('image_link').update({styleNumber:manufacturerCode}).eq('entityId',designQuotesId).eq('entity','design').select('styleNumber')
     if(error){
@@ -86,6 +87,7 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
     }
     console.log('style number was updated :',data[0].styleNumber)
   }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const updates = {};
@@ -105,37 +107,41 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
     if (formData.category !== originalData.category)
       updates.category = formData.category;
 
-    const removedImages = getRemovedImages(
-      originalData.images,
-      formData.images
-    );
+    // const removedImages = getRemovedImages(
+    //   originalData.images,
+    //   formData.images
+    // );
 
     // need to remove any photos that are deleted from an edited idea
     // ^ This is the function that will get the image urls that are removed
-
     if (Object.keys(updates).length > 0) {
       console.log(updates, "updates");
       const { data, error } = await supabase
         .from("designs")
         .update(updates)
         .eq("id", design.id)
+        .single()
         .select();
+
 
       if (error) {
         console.error("Error updating design:", error);
-      } else {
-        console.log("design updated:", data);
-        setOriginalData({ ...formData });
+
+
+      } 
+       
+      
+      console.log("design updated:", data);
+      updateDesign({ ...data});
+      setOriginalData({ ...formData });
+    }
 
         // Call the update function to update the idea in the parent component
-        finalizeUploadRef.current('design',data[0].id,data[0].name,uploadedImages)
-
-        updateDesign({ ...data[0] });
-      }
-    }
+        finalizeUploadRef.current('design',design.id,design.name,uploadedImages)
 
     onClose();
   };
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -189,9 +195,9 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
                             images={formData.images || []}
                             onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
                             finalizeUpload={finalizeUploadRef}
-                            onChange={async (images) => {
-                              setFormData({ ...formData, images });
-                            }}
+                            // onChange={async (images) => {
+                            //   setFormData({ ...formData, images });
+                            // }}
                           />
                         </div>
                         {/* this is the status function */}
@@ -249,10 +255,10 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
                     <div className=" flex-1 space-y-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700">
-                          Name
+                          Name  <span className="text-red-500">*</span>
                         </label>
                         <input
-                          required
+                          required={true}
                           type="text"
                           className="mt-1 block input shadow-sm focus:border-blue-500 focus:ring-blue-500"
                           value={formData.name}

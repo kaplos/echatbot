@@ -1,7 +1,7 @@
 import { Plus, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import Loading from "../components/Loading";
-import { useSupabase } from "../components/SupaBaseProvider";
+import { getImages, useSupabase } from "../components/SupaBaseProvider";
 import SampleList from "../components/Samples/SampleList";
 import AddSampleModal from "../components/Samples/AddSampleModal";
 import SampleInfoModal from "../components/Samples/SampleInfoModal";
@@ -95,7 +95,14 @@ export default function Samples() {
     const { data, error } = await supabase
       .from("samples")
       .select("*, starting_info(*)")
-      .eq("id", sample.id);
+      .eq("id", sample.sample_id);
+    // const { data:imageData,error:imageError} = await supabase
+    // .from('sample_images')
+    // .select('*')
+    // .single()
+    // .eq('sample_id',sample.sample_id)
+            const imageData = await  getImages('starting_info',sample.sample_id)
+
 
     if (error) {
       console.error("Error fetching sample:", error);
@@ -115,10 +122,13 @@ export default function Samples() {
     }
 
     const startingInfo = data[0].starting_info;
+    const {images,cad}= imageData
     delete data[0].starting_info;
 
     const restructuredData = {
       formData: data[0],
+      images:images,
+      cad:cad,
       starting_info: {
         ...startingInfo,
         stones: stones,
@@ -132,7 +142,7 @@ export default function Samples() {
     setIsDetailsOpen(false);
     setSamples((previousSample) =>
       previousSample.map((Sample) =>
-        Sample.id === updatedSamples.id ? updatedSamples : Sample
+        Sample.sample_id === updatedSamples.id ? updatedSamples : Sample
       )
     );
   };
@@ -149,7 +159,7 @@ export default function Samples() {
           <div className="flex gap-2">
             <SearchBar
               items={samples}
-              type={'samples'}
+              type={'sample_with_stones_export'}
               onSearch={(filteredItems) => {
                 setFilteredItems(filteredItems);
               }}
@@ -211,16 +221,16 @@ export default function Samples() {
   onImport={(importedSamples) => {
     setSamples((prev) => {
       // Create a map of existing samples for quick lookup
-      const existingSamplesMap = new Map(prev.map((sample) => [sample.id, sample]));
+      const existingSamplesMap = new Map(prev.map((sample) => [sample.sample_id, sample]));
 
       // Merge or add imported samples
       importedSamples.forEach((importedSample) => {
-        if (existingSamplesMap.has(importedSample.id)) {
+        if (existingSamplesMap.has(importedSample.sample_id)) {
           // Update the existing sample
-          existingSamplesMap.set(importedSample.id, importedSample);
+          existingSamplesMap.set(importedSample.sample_id, importedSample);
         } else {
           // Add the new sample
-          existingSamplesMap.set(importedSample.id, importedSample);
+          existingSamplesMap.set(importedSample.sample_id, importedSample);
         }
       });
 

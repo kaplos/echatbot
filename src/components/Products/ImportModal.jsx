@@ -4,7 +4,7 @@ import React, { useEffect, useState,useRef } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { Upload, X } from 'lucide-react';
-import { useSupabase } from '../SupaBaseProvider';
+import { getImages, useSupabase } from '../SupaBaseProvider';
 import { useMetalPriceStore } from '../../store/MetalPrices';
 import { useGenericStore } from '../../store/VendorStore';
 import { handleImportFile } from '../../utils/importUtils';
@@ -110,6 +110,15 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
             
             const { data: updatedInfo } = await supabase.from('starting_info').upsert([restInfo], { onConflict: ['id'] }).select();
             const { id,...rest} = formData 
+            // const {data:imageData,error:imageError} = await supabase
+            // .from('sample_images')
+            // .select("*")
+            // .single()
+            // .eq('sample_id',formData.id)
+            // if (imageError) {
+            //   throw new Error(`Sample update error: ${imageError.details}`);
+            // }
+            const imageData = await  getImages('starting_info',formData.id)
             const { data: updatedSample, error: updatedSampleError } =
             formData.id === '' || formData.id === null ?
              await supabase.from('samples').insert([{ ...rest, starting_info_id: updatedInfo[0].id }]).select() : await supabase.from('samples').upsert([{ ...formData, starting_info_id: updatedInfo[0].id }], { onConflict: ['id'] }).select()
@@ -117,7 +126,8 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
             if (updatedSampleError) {
               throw new Error(`Sample update error: ${updatedSampleError.details}`);
             }
-            formatted[i] = { ...updatedSample[0], starting_info: updatedInfo[0] };
+            const {images,cad} = imageData
+            formatted[i] = { ...updatedSample[0], starting_info: updatedInfo[0],images, cad};
             
             if (stones.length > 0) {
               await supabase.from('stones').upsert(stones.map(stone => ({ ...stone, starting_info_id: updatedInfo[0].id })), { onConflict: ['id'] });

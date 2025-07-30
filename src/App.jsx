@@ -78,10 +78,10 @@ function AppContent() {
                   <Route path="/designQuote" element={<DesignQuote />} />
                   <Route path="/images" element={<ImageManager />} />
                   <Route path="/settings" element={<Settings />} />
-                  <Route path="/" element={<Navigate to="/Ideas" />} />
+                  <Route path="*" element={<Navigate to="/Ideas" />} />
                 </>
               )}
-              <Route path="/" element={<Navigate to="/login" />} />
+              {/* <Route path="/" element={<Navigate to="/login" />} /> */}
             </Routes>
           </main>
         </div>

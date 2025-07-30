@@ -98,20 +98,34 @@ export default function DesignQuoteForm({
                     <div className=" pr-6 ">
                       <div className="flex justify-between items-start flex-col min-h-[70vh] overflow-y-auto">
                         {/* this is the image upload  */}
+                       
                         <div>
                           <label className="block text-sm font-medium text-gray-700">
                             Images
                           </label>
-
                           <ImageUpload
                             collection="image"
                             images={formData.images || []}
                             onUpload={onUpload}
                             finalizeUpload={finalizeUploadRef}
-                            onChange={async (images) => {
-                              setFormData({ ...formData, images });
-                              // await updateDataBaseWithImages(images, sample.id)
-                            }}
+                            // onChange={async (images) => {
+                            //   setFormData({ ...formData, images });
+                            //   // await updateDataBaseWithImages(images, sample.id)
+                            // }}
+                          />
+                          <ImageUpload
+                            collection="cad"
+                            // finalizeUpload={finalizeUploadRef}
+                            onUpload={(newImages) =>
+                              setUploadedImages([
+                                ...uploadedImages,
+                                ...newImages,
+                              ])
+                            }
+                            images={formData.cad || []}
+                            // onChange={(cad) =>
+                            //   setFormData({ ...formData, cad: cad })
+                            // }
                           />
                         </div>
                         {/* this is the status function */}

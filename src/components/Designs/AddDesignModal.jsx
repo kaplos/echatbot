@@ -107,7 +107,7 @@ const handleCustomSelect = (option) => {
                   
                   <div className="flex flex-row">
                     <div className=" pr-6 ">
-                        <div className="flex justify-between items-start flex flex-col min-h-[70vh] overflow-y-auto">
+                        <div className="flex justify-between items-start flex-col min-h-[70vh] overflow-y-auto">
                             {/* this is the image upload  */}
                             <div>
                       <label className="block text-sm font-medium text-gray-700">
@@ -118,9 +118,9 @@ const handleCustomSelect = (option) => {
                             images={formData.images || []}
                             onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
                             finalizeUpload={finalizeUploadRef}
-                            onChange={async (images) => {
-                              setFormData({ ...formData, images });
-                            }}
+                            // onChange={async (images) => {
+                            //   setFormData({ ...formData, images });
+                            // }}
                           />
                      
                     </div>

@@ -176,8 +176,8 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
           selects = "'id,imageId(imageUrl)'";
           filters = `styleNumber.ilike.%${searchTerm}%`;
           break;
-        case "samples":
-          selects = "* ,starting_info:starting_info(*)";
+        case "sample_with_stones_export":
+          selects = "*";
           filters = `styleNumber.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`;
           break;
         case "ideas":

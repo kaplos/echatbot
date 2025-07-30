@@ -21,24 +21,7 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   const [metalCost, setMetalCost] = useState(0);
   const {showMessage} = useMessage()
   const finalizeUploadRef = useRef(null)
-
-  const [formData, setFormData] = useState({
-    cad: [],
-    category: "",
-    collection: "",
-    selling_pair: "pair",
-    back_type: "none",
-    custom_back_type: "",
-    back_type_quantity: 0,
-    // cost: 0,
-  
-    name: "",
-    styleNumber: "",
-    salesWeight: 0,
- 
-    status: "Working_on_it:yellow",
-  });
-  const [starting_info, setStarting_info] = useState({
+  let starting_info_object = {
     description: "",
     images: [],
     metalType: "Gold",
@@ -58,7 +41,22 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     collection: '',
     category: '',
     status: "Working_on_it:yellow",
-  });
+  }
+  let starting_formData = {
+    cad: [],
+    category: "",
+    collection: "",
+    selling_pair: "pair",
+    back_type: "none",
+    custom_back_type: "",
+    back_type_quantity: 0,
+    // cost: 0,    name: "",
+    styleNumber: "",
+    salesWeight: 0,
+    status: "Working_on_it:yellow",
+  }
+  const [formData, setFormData] = useState({...starting_formData}  );
+  const [starting_info, setStarting_info] = useState({...starting_info_object});
   const [uploadedImages,setUploadedImages]= useState([])
 
   useEffect(() => {
@@ -139,35 +137,10 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
       console.log(error);
     }
     console.log(data, "data from insert samples ");
-    finalizeUploadRef.current('sample',data[0].id,data[0].styleNumber,uploadedImages)
+    finalizeUploadRef.current('starting_info',data[0].id,data[0].styleNumber,uploadedImages)
     onSave(data[0]);
-    setFormData({
-      cad: [],
-      category: "",
-      collection: "",
-      // cost: 0,
-      name: "",
-      styleNumber: "",
-      salesWeight: 0,
-      status: "Working_on_it:yellow",
-    });
-    setStarting_info({
-      description: "",
-      images: [],
-      color: "Yellow",
-      height: 0,
-      length: 0,
-      width: 0,
-      weight: 0,
-      manufacturerCode: "",
-      metalType: "Gold",
-      platingCharge: 0,
-      stones: [],
-      vendor: null,
-      plating: 0,
-      karat: "10K",
-      status: "Working_on_it:yellow",
-    });
+    setFormData({...starting_formData});
+    setStarting_info({...starting_info_object});
   
 
  
@@ -257,22 +230,22 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                             images={starting_info.images || []}
                             onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
                             finalizeUpload={finalizeUploadRef}
-                            onChange={async (images) => {
-                              setStarting_info({
-                                ...starting_info,
-                                images: images,
-                              });
-                              // await updateDataBaseWithImages(images, sample.id)
-                            }}
+                            // onChange={async (images) => {
+                            //   setStarting_info({
+                            //     ...starting_info,
+                            //     images: images,
+                            //   });
+                            //   // await updateDataBaseWithImages(images, sample.id)
+                            // }}
                           />
                           <ImageUpload
                             collection="cad"
                             // finalizeUpload={finalizeUploadRef}
                             onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
-                            images={formData.cad || []}
-                            onChange={(cad) =>
-                              setFormData({ ...formData, cad: cad })
-                            }
+                            images={starting_info.cad || []}
+                            // onChange={(cad) =>
+                            //   setFormData({ ...starting_info, cad: cad })
+                            // }
                           />
                         </div>
                         {/* this is the status function */}

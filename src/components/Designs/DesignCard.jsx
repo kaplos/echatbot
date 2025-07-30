@@ -11,7 +11,8 @@ const DesignCard = ({
     selected = false,
     selectable = false,
   }) => {
-    console.log(design.created_at,design.updated_at,'dates')
+    // console.log(design.created_at,design.updated_at,'dates')
+    // console.log(design)
     const handleClick = (e) => {
       e.preventDefault();
       onClick(design);

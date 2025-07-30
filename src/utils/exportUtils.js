@@ -14,6 +14,7 @@ const stoneHeaders = Array.from({ length: 10 }, (_, i) => {
   ];
 }).flat();
 const startingInfoObject = [
+
  { key: 'category', label: 'Category' },
 { key: 'collection', label: 'Collection' },
 { key: "manufacturerCode", label: "Manufacturer Code" },
@@ -32,6 +33,7 @@ const startingInfoObject = [
 { key: "laborCost", label: "Labor Cost" },
 { key: "necklace", label: "Necklace True Or False" },
 { key: "necklaceCost", label: "Necklace Cost" },
+{key: 'starting_info_id',label: "Starting Info Id"},
 // { key: "description", label: "Description" },
 // { key: "designId", label: "Design ID" },
 { key: "totalCost", label: "Total Cost" },
@@ -188,11 +190,12 @@ export const exportToCSV = (products,type) => {
     };
   }
   function flattenSampleOnly(sample,dropdown) {
-    const {images,starting_info_images,cad,collection,category,vendor,plating,...rest} = sample
+    const {images,starting_info_images,cad,collection,category,vendor,plating,starting_info_id,...rest} = sample
     console.log(sample, 'sample data for export');
     return {
       starting_info_images:images.join(' | ') ?? [] ,
       cad: cad.join(' | ') ?? [],
+      starting_info_id:starting_info_id,
       collection:dropdown.collection.find(c => c.id === collection)?.name ?? "",
       category:dropdown.category.find(c => c.id === category)?.name ?? "",
       vendor:dropdown.vendors.find(v => v.id === vendor)?.name ?? "",

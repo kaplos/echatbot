@@ -23,8 +23,9 @@ export const formatImportRow = (row, type, dropdown, prices) => {
   const mappedPlatingId = dropdown.plating.find(p => p.name === row['Plating'])?.id ?? null;
   const mappedCollectionId = dropdown.collection.find(c => c.name === row['Collection'])?.id ?? null;
   const mappedCategoryId = dropdown.category.find(c => c.name === row['Category'])?.id ?? null;
-
+  // if()
   const starting_info = {
+    id: row['starting_info_id']||'',
     necklace: row['Necklace True Or False'] || false,
     necklaceCost: parseFloat(row['Necklace Cost'] || 0),
     description: row['Quote Description'] || '',
@@ -78,7 +79,7 @@ export const formatImportRow = (row, type, dropdown, prices) => {
 
   if (type === 'samples') {
     return {
-      id: row['ID (Sample)'].trim() === '' || row['ID (Sample)'] === null ? '' : row['ID (Sample)'],
+      id: row['ID (Sample)'] === null ? '' : row['ID (Sample)'],
       cad: (row['CAD Files'] || '').split('|').filter(image => image !== ''),
       selling_pair: row['Selling Pair'] || 'pair',
       back_type: row['Back Type'] || 'none',

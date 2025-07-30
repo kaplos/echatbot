@@ -15,7 +15,7 @@ const SampleCard = ({
       e.preventDefault();
       onClick(sample);
     };
-   let images = Array.isArray(sample.images) ? sample.images : JSON.parse(sample.images) || [];
+   let images = sample.images || [];
 
    return (
            <div
@@ -52,7 +52,7 @@ const SampleCard = ({
                  
                      </div>
                ) 
-              //  : (
+              //  
               //    <div className="w-full h-full flex flex-col items-center justify-center">
               //      <FileImage className="w-12 h-12 text-gray-400" />
               //      <span className="mt-2 text-sm font-medium text-gray-500">{sample.name}</span>
@@ -66,10 +66,10 @@ const SampleCard = ({
                  <span className="text-sm font-medium text-gray-900">Style: {sample.styleNumber}</span>
                  <span
                    className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                     sample.status
+                     sample.sample_status || sample.status
                    )}`}
                  >
-                   {sample.status.replaceAll('_', ' ').split(':')[0]}
+                   {(sample.sample_status|| sample.status).replaceAll('_', ' ').split(':')[0] }
                  </span>
                </div>
                {/* <label htmlFor="">name:</label> */}

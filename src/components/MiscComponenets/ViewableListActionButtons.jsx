@@ -27,7 +27,7 @@ export default function ViewableListActionButtons({
         } else {
             // Select all items
             setIsSelectionMode(true)
-            handleSelections(new Set(allItems.map((item) => item.id))); // Assuming items have an `id` property
+            handleSelections(new Set(allItems.map((item) => item.sample_id))); // Assuming items have an `id` property
         }
         // setIsSelectionMode(!isSelectionMode)
         setSelectAll(!isSelectAll); // Toggle the state

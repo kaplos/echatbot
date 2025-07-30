@@ -83,12 +83,13 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
     if (designIdError) {
       console.log(designIdError);
     }
-    finalizeUploadRef.current('designQuote',data[0].id,data[0].manufacturerCode,uploadedImages)
+    finalizeUploadRef.current('starting_info',data[0].id,data[0].manufacturerCode,uploadedImages)
 
     onSave(data[0]);
     setFormData({
       description: "",
-      images: [],
+      images: [], 
+      cad: [], 
       color: "Yellow",
       height: 0,
       length: 0,

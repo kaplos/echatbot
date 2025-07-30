@@ -262,7 +262,7 @@ const AddProductModal = ({ isOpen, onClose }) => {
                               </h3>
                               <ImageUpload
                                 images={formData.images || []}
-                                onChange={(images) => setFormData({ ...formData, images })}
+                                // onChange={(images) => setFormData({ ...formData, images })}
                               />
                             </div>
                           </div>

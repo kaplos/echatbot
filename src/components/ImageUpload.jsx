@@ -5,8 +5,7 @@ import { useSupabase } from "./SupaBaseProvider";
 const ImageUpload = ({
   images: inital,
   onChange,
-  type = "image",
-  collection,
+  collection ='image',
   onUpload,
   finalizeUpload,
   forDisplay,
@@ -19,10 +18,10 @@ const ImageUpload = ({
   const [images, setImages] = useState(
     inital.filter((image) => image !== "") || []
   );
-  useEffect(() => {
-    setImages(inital.filter((image) => image !== ""));
-    setImageToShow(images[0] || null);
-  }, [inital]);
+  // useEffect(() => {
+  //   setImages(inital.filter((image) => image !== ""));
+  //   setImageToShow(images[0] || null);
+  // }, [inital]);
 useEffect(() => {
   if (finalizeUpload) {
     finalizeUpload.current = linkImagesToEntity;
@@ -31,67 +30,175 @@ useEffect(() => {
 
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
-    const imageUrls = await handleImageUpload(files);
+    const imageUrls = await  handleImageUpload(files);
     console.log(imageUrls, "imageUrls from upload");
     // console.log('Calling onChange with:', [...images, ...imageUrls]);
     // setImages([...images,...imageUrls])
-    setImageToShow(imageUrls[0]); // Show the first uploaded image
-    onChange([...inital, ...imageUrls]);
+    // setImageToShow(imageUrls[0]); // Show the first uploaded image
+    setImages((prev)=> [... new Set([...inital,...prev, ...imageUrls])]);
   };
 
-  const handleImageUpload = async (files) => {
-    const imageUrls = [];
-    for (const file of files) {
-      console.log(file, "file name");
-      const { data, error } = await supabase.storage
-        .from("echatbot") // Replace with your bucket name
-        .upload(`public/${file.name}`, file);
+const handleImageUpload = async (files) => {
+  const uploadResults = [];
 
-      const { data: publicURL } = supabase.storage
-        .from("echatbot") // Replace with your bucket name
+  for (const file of files) {
+    console.log("Uploading file:", file.name);
+    let publicUrl = "";
+    let status = "success";
+    let failed = false;
+    let errorMessage = "";
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("echatbot")
+      .upload(`public/${file.name}`, file, { upsert: true });
+
+    if (!uploadError && uploadData) {
+      const { data: publicURLData } = supabase.storage
+        .from("echatbot")
         .getPublicUrl(`public/${file.name}`);
-      console.log(publicURL, "publicURL");
 
-      if (error) {
-        console.error("Error uploading image:", error);
-        continue;
-      }
-
-      console.log(data, "data from upload");
-      imageUrls.push(publicURL.publicUrl);
-      if (!imageToShow) {
-        setImageToShow(publicURL.publicUrl);
-      }
-      console.log(imageUrls, "imageUrls");
+      publicUrl = publicURLData?.publicUrl || "";
     }
-    // Step 1: Insert into 'images' table
-      const { data: imageInsertData, error: imageInsertError } = await supabase
+
+    if (!publicUrl) {
+      const encodedName = encodeURIComponent(file.name);
+      publicUrl = `https://ujwdpieleyuaiammaopj.supabase.co/storage/v1/object/public/echatbot/public/${encodedName}`;
+      failed = true;
+      status = uploadError ? "failed" : "fallback";
+      errorMessage = uploadError?.message || "Fallback URL used.";
+    }
+
+    uploadResults.push({
+      fileName: file.name,
+      imageUrl: publicUrl,
+      failed,
+      status,
+      errorMessage,
+      id: null
+    });
+  }
+
+  const successfulUploads = uploadResults.filter(r => !r.failed);
+
+  // Try inserting all and let DB handle duplicates (if any)
+  const { data: insertedImages, error: insertError } = await supabase
     .from("images")
     .insert(
-      imageUrls.map((image) => ({ imageUrl: image,originalUrl: image})) // ⬅️ Corrected object return
+      successfulUploads.map((r) => ({
+        imageUrl: r.imageUrl,
+        originalUrl: r.imageUrl
+      }))
     )
-    .select("id,imageUrl"); // Select only the IDs of inserted images
+    .select("id, imageUrl");
 
-  if (imageInsertError) {
-    console.error("Error inserting into images:", imageInsertError);
+  if (insertError) {
+    // Conflict likely due to unique constraint, so we fetch existing ones manually
+    if (insertError.code === "23505" || insertError.message?.includes("duplicate")) {
+      console.warn("Duplicate detected, fetching existing image IDs.");
+
+      const { data: existingImages, error: existingError } = await supabase
+        .from("images")
+        .select("id, imageUrl")
+        .in("imageUrl", successfulUploads.map((r) => r.imageUrl));
+
+      if (existingError) {
+        console.error("Error fetching existing images after conflict:", existingError);
+      }
+
+      // Merge existing image IDs
+      if (existingImages) {
+        existingImages.forEach((img) => {
+          const match = uploadResults.find((r) => r.imageUrl === img.imageUrl);
+          if (match) {
+            match.id = img.id;
+            match.status = "duplicate";
+          }
+        });
+      }
+    } else {
+      console.error("Unexpected insert error:", insertError);
+    }
   }
-  onUpload(imageInsertData.map(img => ({...img,type:collection})))
-    return imageInsertData.map(img=>img.imageUrl);
-  };
+
+  // Handle inserted ones if no error
+  if (insertedImages && insertedImages.length > 0) {
+    insertedImages.forEach((img) => {
+      const match = uploadResults.find((r) => r.imageUrl === img.imageUrl);
+      if (match) {
+        match.id = img.id;
+        match.status = "success";
+      }
+    });
+  }
+
+  // Final fallback: still missing some IDs?
+  const unresolved = uploadResults.filter((r) => !r.id && !r.failed);
+  if (unresolved.length > 0) {
+    const { data: fallbackImages, error: fallbackError } = await supabase
+      .from("images")
+      .select("id, imageUrl")
+      .in("imageUrl", unresolved.map((r) => r.imageUrl));
+
+    if (fallbackImages) {
+      fallbackImages.forEach((img) => {
+        const match = uploadResults.find((r) => r.imageUrl === img.imageUrl);
+        if (match) {
+          match.id = img.id;
+          match.status = "duplicate";
+        }
+      });
+    }
+
+    if (fallbackError) {
+      console.error("Final fallback fetch error:", fallbackError);
+    }
+  }
+
+  if (!imageToShow && uploadResults.length > 0) {
+    setImageToShow(uploadResults[0].imageUrl);
+  }
+console.log(uploadResults)
+  onUpload(
+    uploadResults.map((r) => ({
+      id: r.id,
+      imageUrl: r.imageUrl,
+      fileName: r.fileName,
+      status: r.status,
+      failed: r.failed,
+      error: r.errorMessage,
+      type: collection
+    }))
+  );
+
+  return uploadResults.map(img => img.imageUrl);
+};
+
+
+
 
   const linkImagesToEntity = async (entity, entityId,styleNumber,images) => {
-    if (!Array.isArray(images)) return;
-    const imageIds = images.map((img) => img.id).filter(Boolean); // Ensure images have IDs
-    const { error } = await supabase.from("image_link").insert(
-      imageIds.map((imageId) => ({
-        imageId: imageId,
-        styleNumber,
-        entity,
-        entityId,
-        type:collection
-      }))
+    console.log(images)
 
-    );
+    if (!Array.isArray(images)) return;
+    
+    const imageIds = images.map((img) => img.id).filter(Boolean); 
+
+    const { error } = await supabase.from("image_link").insert(
+      imageIds.map((imageId) => {
+
+        // if(imageId)
+        console.log(imageId)
+        
+       return{
+          imageId: imageId,
+          styleNumber,
+          entity,
+          entityId,
+          type:collection
+        }
+        
+      }
+    ))
     
     if (error) {
       console.error("Failed to link images:", error);
@@ -219,7 +326,7 @@ useEffect(() => {
             type="file"
             multiple
             accept={
-              type === "image"
+              collection === "image"
                 ? "image/*"
                 : "image/* , .dwg, .dxf, .step, .stp, .iges, .igs, .sat, .3dm, .stl"
             }

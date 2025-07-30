@@ -96,13 +96,14 @@ const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, set
         .select("*")
         .in(
           "sample_id",
-          arrayOfProducts.map((sample) => sample.id)
+          arrayOfProducts.map((sample) => sample.sample_id)
         );
 
       if (sampleDataError) {
         console.error("Error fetching samples:", sampleDataError);
         return [];
       }
+      console.log(samplesData)
       return samplesData; // Return samples with their stones
     } catch (error) {
       console.error("Error in getDataToExport:", error);
@@ -118,7 +119,7 @@ const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, set
     return data;
   };
   const handleExport = async () => {
-    const samplesToExport = samples.filter((p) => selectedSamples.has(p.id));
+    const samplesToExport = samples.filter((p) => selectedSamples.has(p.sample_id));
     let dataToExport = await getDataToExport(samplesToExport);
     let dropdowns = await getDropDownData();
     dropdowns = {
@@ -135,10 +136,10 @@ const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, set
 
    const toggleSampleSelection = (sample) => {
     const newSelection = new Set(selectedSamples);
-    if (newSelection.has(sample.id)) {
-      newSelection.delete(sample.id);
+    if (newSelection.has(sample.sample_id)) {
+      newSelection.delete(sample.sample_id);
     } else {
-      newSelection.add(sample.id);
+      newSelection.add(sample.sample_id);
     }
     setSelectedSamples(newSelection);
   };
@@ -165,10 +166,10 @@ const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, set
         <div className="h-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {samples.map((sample) => (
             <SampleCard
-              key={sample.id}
+              key={sample.sample_id}
               sample={sample}
               onClick={isSelectionMode ? toggleSampleSelection : onSampleClick}
-              selected={selectedSamples.has(sample.id)}
+              selected={selectedSamples.has(sample.sample_id)}
               selectable={isSelectionMode}
             />
           ))}

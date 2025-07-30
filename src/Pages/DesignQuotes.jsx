@@ -8,6 +8,7 @@ import DesignApprovalForm from '../components/DesignQuotes/DesignApprovalForm';
 import { useSupabase } from '../components/SupaBaseProvider';
 import { useLocation } from 'react-router-dom';
 import ImportModal from '../components/Products/ImportModal';
+import { getImages } from '../components/SupaBaseProvider';
 const DesignQuote = () =>{
     const {supabase} = useSupabase();
     const location = useLocation(); // Access the current URL
@@ -72,9 +73,12 @@ const DesignQuote = () =>{
           setIsDetailsOpen(false); // Close the modal if there's an error
           return;
         }
-      
+        const images = getImages('starting_info',design.id)
+    
+    
+    // Update the design data in the modal
         // Update the design quote data in the modal
-        setDesign({ ...data[0], stones });
+        setDesign({ ...data[0],...images, stones });
       };
     const updateDesign = (updatedDesigns) => {
         console.log('updated design:', updatedDesigns,designs)
