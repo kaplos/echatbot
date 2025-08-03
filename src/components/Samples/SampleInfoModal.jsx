@@ -25,6 +25,8 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
   const navigate = useNavigate();
   const { getEntityItemById, getEntity } = useGenericStore();
   const vendors = getEntity("vendors");
+  const {formFields} = getEntity("settings");
+
   // console.log(sample, "sample from design info modal");
   const { supabase } = useSupabase();
   const {showMessage} = useMessage()
@@ -830,11 +832,15 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                                   })
                                 }
                               >
-                                <option value="none">None</option>
-                                <option value="silicone">Silicone</option>f
-                                <option value="screw">Screw</option>
-                                <option value="flat">Flat</option>
-                                <option value="other">Other</option>
+                                {formFields?.backType?.map((backType, index) => (
+                                  <option
+                                    key={index}
+                                    value={backType.toLowerCase()}
+                                  >
+                                    {backType}
+                                  </option>
+                                ))}
+                                
                               </select>
                               <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
                               {formData.back_type === "other" && (
@@ -860,7 +866,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                             </label>
                             <input
                               type="number"
-                              className="mt-1  input pr-7 pl-3 py-2"
+                              className="mt-1 input pr-7 pl-3 py-2"
                               value={formData.back_type_quantity}
                               onChange={(e) =>
                                 setFormData({
@@ -878,7 +884,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                           <select
                             name="selling_pair"
                             id=""
-                            className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                            className="mt-1 border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
                             value={formData.selling_pair}
                             onChange={(e) =>
                               setFormData({
@@ -887,8 +893,14 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                               })
                             }
                           >
-                            <option value="pair">Pair</option>
-                            <option value="single">Single</option>
+                            {formFields?.sellingType?.map((type, index) => (
+                                  <option
+                                    key={index}
+                                    value={type.toLowerCase()}
+                                  >
+                                    {type}
+                                  </option>
+                                ))}
                           </select>
                           <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
                         </div>

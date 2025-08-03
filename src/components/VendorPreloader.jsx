@@ -3,13 +3,12 @@ import { useEffect } from 'react';
 import { useGenericStore } from '../store/VendorStore';
 
 const VendorPreloader = () => {
-  const { fetchEntity } = useGenericStore();
+  const fetchEntity = useGenericStore((state) => state.fetchEntity);
 
-  useEffect(() => {
-    fetchEntity('vendors');
-    fetchEntity('settings');
-     // Automatically fetch vendors on mount
-  }, [fetchEntity]);
+useEffect(() => {
+  fetchEntity('vendors');
+  fetchEntity('settings');
+}, [fetchEntity]);
 
   return null; // No UI, just does the preload work
 };

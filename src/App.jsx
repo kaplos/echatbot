@@ -93,7 +93,7 @@ function AppContent() {
 function App() {
   return (
     <SupaBaseProvider>
-      <VendorPreloader></VendorPreloader>
+      <VendorPreloader/>
       <MessageProvider>
         <MessageBox />
         <Router>

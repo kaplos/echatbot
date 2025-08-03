@@ -16,11 +16,13 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   const vendorLossRef = useRef();
   const { getEntityItemById, getEntity } = useGenericStore();
   const vendors = getEntity("vendors");
+  const { formFields } = getEntity("settings");
+
   console.log(vendors, "vendors from add sample modal");
   const [lossPercent, setLossPercent] = useState(0);
   const [metalCost, setMetalCost] = useState(0);
-  const {showMessage} = useMessage()
-  const finalizeUploadRef = useRef(null)
+  const { showMessage } = useMessage();
+  const finalizeUploadRef = useRef(null);
   let starting_info_object = {
     description: "",
     images: [],
@@ -38,10 +40,10 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     plating: 1,
     necklace: false,
     necklaceCost: 0,
-    collection: '',
-    category: '',
+    collection: "",
+    category: "",
     status: "Working_on_it:yellow",
-  }
+  };
   let starting_formData = {
     cad: [],
     category: "",
@@ -54,16 +56,19 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     styleNumber: "",
     salesWeight: 0,
     status: "Working_on_it:yellow",
-  }
-  const [formData, setFormData] = useState({...starting_formData}  );
-  const [starting_info, setStarting_info] = useState({...starting_info_object});
-  const [uploadedImages,setUploadedImages]= useState([])
+  };
+  const [formData, setFormData] = useState({ ...starting_formData });
+  const [starting_info, setStarting_info] = useState({
+    ...starting_info_object,
+  });
+  const [uploadedImages, setUploadedImages] = useState([]);
 
   useEffect(() => {
     setLossPercent(vendors[0].pricingsetting.lossPercentage);
     setStarting_info({ ...starting_info, vendor: vendors[0].id });
     // vendorLossRef.current.textContent = data[0].pricingsetting.lossPercentage
   }, [isOpen, vendors]);
+
   const handleClose = () => {
     setFormData({
       cad: [],
@@ -100,9 +105,9 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   };
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if(formData.styleNumber===''){
-      showMessage('Please add a styleNumber')
-      return
+    if (formData.styleNumber === "") {
+      showMessage("Please add a styleNumber");
+      return;
     }
     console.log(formData);
     const { stones, ...startingInfo } = starting_info;
@@ -126,24 +131,25 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     if (stoneError) {
       console.log(stoneError);
     }
-    console.log(starting_infoData[0].id )
+    console.log(starting_infoData[0].id);
     const { data, error } = await supabase
       .from("samples")
       .insert([{ ...formData, starting_info_id: starting_infoData[0].id }])
       .select("*, starting_info(*)");
 
-
     if (error) {
       console.log(error);
     }
     console.log(data, "data from insert samples ");
-    finalizeUploadRef.current('starting_info',data[0].id,data[0].styleNumber,uploadedImages)
+    finalizeUploadRef.current(
+      "starting_info",
+      data[0].id,
+      data[0].styleNumber,
+      uploadedImages
+    );
     onSave(data[0]);
-    setFormData({...starting_formData});
-    setStarting_info({...starting_info_object});
-  
-
- 
+    setFormData({ ...starting_formData });
+    setStarting_info({ ...starting_info_object });
   };
   const handleCustomSelect = (option) => {
     console.log(option, "option from custom select");
@@ -228,7 +234,12 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                           <ImageUpload
                             collection="image"
                             images={starting_info.images || []}
-                            onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
+                            onUpload={(newImages) =>
+                              setUploadedImages([
+                                ...uploadedImages,
+                                ...newImages,
+                              ])
+                            }
                             finalizeUpload={finalizeUploadRef}
                             // onChange={async (images) => {
                             //   setStarting_info({
@@ -241,7 +252,12 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                           <ImageUpload
                             collection="cad"
                             // finalizeUpload={finalizeUploadRef}
-                            onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
+                            onUpload={(newImages) =>
+                              setUploadedImages([
+                                ...uploadedImages,
+                                ...newImages,
+                              ])
+                            }
                             images={starting_info.cad || []}
                             // onChange={(cad) =>
                             //   setFormData({ ...starting_info, cad: cad })
@@ -319,7 +335,8 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
 
                         <div className="w-full ">
                           <label className="block text-sm font-medium text-gray-700">
-                            Manufacturer Code <span className="text-red-500">*</span>
+                            Manufacturer Code{" "}
+                            <span className="text-red-500">*</span>
                           </label>
                           <input
                             required
@@ -364,8 +381,10 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                                   vendor: e.target.value,
                                 });
                                 setLossPercent(
-                                  getEntityItemById('vendors',Number(e.target.value))
-                                    .pricingsetting.lossPercentage
+                                  getEntityItemById(
+                                    "vendors",
+                                    Number(e.target.value)
+                                  ).pricingsetting.lossPercentage
                                 );
                               }}
                               value={starting_info.vendor}
@@ -497,7 +516,9 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
 
                       <div className="flex flex-row gap-2 w-full">
                         <div className="w-full">
-                          <label htmlFor="">Weight <span className="text-red-500">*</span></label>
+                          <label htmlFor="">
+                            Weight <span className="text-red-500">*</span>
+                          </label>
                           <div className="flex items-center gap-1 ">
                             <span className="w-full relative">
                               <input
@@ -647,66 +668,68 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                           </div>
                         </div>
                       </div>
-                     
 
-                     <div className="flex flex-row justify-center gap-2  ">
-                                             <div className="flex w-full flex-col">
-                                               <label htmlFor="back_type">Back Type</label>
-                                               <div className="flex flex-row gap-2">
-                                                 <div className="relative w-full">
-                                                   <select
-                                                     name="back_type"
-                                                     id=""
-                                                     className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                                                     value={formData.back_type}
-                                                     onChange={(e) =>
-                                                       setFormData({
-                                                         ...formData,
-                                                         back_type: e.target.value,
-                                                       })
-                                                     }
-                                                   >
-                                                     <option value="none">None</option>
-                                                     <option value="silicone">Silicone</option>f
-                                                     <option value="screw">Screw</option>
-                                                     <option value="flat">Flat</option>
-                                                     <option value="other">Other</option>
-                                                   </select>
-                                                   <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
-                                                   {formData.back_type === "other" && (
-                                                     <input
-                                                       type="text"
-                                                       className="mt-1  input pr-7 pl-3 py-2"
-                                                       placeholder="Enter custom back type"
-                                                       value={formData.custom_back_type}
-                                                       onChange={(e) =>
-                                                         setFormData({
-                                                           ...formData,
-                                                           custom_back_type: e.target.value,
-                                                         })
-                                                       }
-                                                     />
-                                                   )}
-                                                 </div>
-                                               </div>
-                                             </div>
-                                               <div className=" w-full">
-                                                 <label htmlFor="back_type_quantity">
-                                                   Back Type Quantity
-                                                 </label>
-                                                 <input
-                                                   type="number"
-                                                   className="mt-1  input pr-7 pl-3 py-2"
-                                                   value={formData.back_type_quantity}
-                                                   onChange={(e) =>
-                                                     setFormData({
-                                                       ...formData,
-                                                       back_type_quantity: e.target.value,
-                                                     })
-                                                   }
-                                                 />
-                                               </div>
-                                           </div>
+                      <div className="flex flex-row justify-center gap-2  ">
+                        <div className="flex w-full flex-col">
+                          <label htmlFor="back_type">Back Type</label>
+                          <div className="flex flex-row gap-2">
+                            <div className="relative w-full">
+                              <select
+                                name="back_type"
+                                id=""
+                                className="mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                                value={formData.back_type}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    back_type: e.target.value,
+                                  })
+                                }
+                              >
+                                {formFields?.backType?.map((backType, index) => (
+                                  <option
+                                    key={index}
+                                    value={backType.toLowerCase()}
+                                  >
+                                    {backType}
+                                  </option>
+                                ))}
+                              </select>
+                              <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
+                              {formData.back_type === "other" && (
+                                <input
+                                  type="text"
+                                  className="mt-1  input pr-7 pl-3 py-2"
+                                  placeholder="Enter custom back type"
+                                  value={formData.custom_back_type}
+                                  onChange={(e) =>
+                                    setFormData({
+                                      ...formData,
+                                      custom_back_type: e.target.value,
+                                    })
+                                  }
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className=" w-full">
+                          <label htmlFor="back_type_quantity">
+                            Back Type Quantity
+                          </label>
+                          <input
+                            type="number"
+                            className="mt-1  input pr-7 pl-3 py-2"
+                            value={formData.back_type_quantity}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                back_type_quantity: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
                       <div className="flex flex-col ">
                         <label htmlFor="selling_pair">Selling type</label>
                         <div className="relative w-full">
@@ -722,21 +745,46 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                               })
                             }
                           >
-                            <option value="pair">Pair</option>
-                            <option value="single">Single</option>
+                            {formFields?.sellingType?.map((type, index) => (
+                              <option key={index} value={type.toLowerCase()}>
+                                {type}
+                              </option>
+                            ))}
+                            {/* <option value="pair">Pair</option>
+                            <option value="single">Single</option> */}
                           </select>
                           <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
                         </div>
                       </div>
                       <div className="flex flex-row gap-2">
                         <div>
-                            <label htmlFor="board" className="text-sm font-medium text-gray-700">Board</label>
-                            <CustomSelect onSelect={handleCustomSelect} informationFromDataBase={starting_info.collection} version={'collection'} hidden={true}/>
+                          <label
+                            htmlFor="board"
+                            className="text-sm font-medium text-gray-700"
+                          >
+                            Board
+                          </label>
+                          <CustomSelect
+                            onSelect={handleCustomSelect}
+                            informationFromDataBase={starting_info.collection}
+                            version={"collection"}
+                            hidden={true}
+                          />
                         </div>
 
-                        <div className='mb-10'>
-                            <label htmlFor="category" className="text-sm font-medium text-gray-700">Category</label>
-                            <CustomSelect  onSelect={handleCustomSelect} informationFromDataBase={starting_info.category} version={'category'} hidden={false} />
+                        <div className="mb-10">
+                          <label
+                            htmlFor="category"
+                            className="text-sm font-medium text-gray-700"
+                          >
+                            Category
+                          </label>
+                          <CustomSelect
+                            onSelect={handleCustomSelect}
+                            informationFromDataBase={starting_info.category}
+                            version={"category"}
+                            hidden={false}
+                          />
                         </div>
                       </div>
                       {/* necklace */}
@@ -746,22 +794,23 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                             Necklace
                           </label>
                           <div className="mt-1 relative rounded-md shadow-sm ">
-                            
-                          <select
-                              
+                            <select
                               name="necklace"
                               value={starting_info.necklace || false}
-                              onChange={(e)=> setStarting_info({...starting_info, necklace:e.target.value})}
-                            //   className="w-full input pl-7 pr-3 py-2"
+                              onChange={(e) =>
+                                setStarting_info({
+                                  ...starting_info,
+                                  necklace: e.target.value,
+                                })
+                              }
+                              //   className="w-full input pl-7 pr-3 py-2"
                               className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
-
                             >
-                                <option value="false">No</option>
-                                <option value="true">Yes</option>
+                              <option value="false">No</option>
+                              <option value="true">Yes</option>
                             </select>
-                            
-                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
 
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
                           </div>
                         </div>
                         <div className="w-full">
@@ -849,7 +898,6 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                           </div>
                         </div>
                       </div>
-                      
 
                       <div className="flex flex-col w-full">
                         <label htmlFor="notes">Notes</label>

@@ -4,7 +4,7 @@ import StonePropertiesForm from "./StonePropertiesForm";
 
 const StoneForm = ({ onSubmit, onCancel }) => {
   const { getEntity } = useGenericStore();
-  const  {stonePropertiesForm}  = getEntity("settings").options;
+  const  {stonePropertiesForm}  = getEntity("settings");
   const [stone, setStone] = useState({
     type: "cz",
     color: "white",

@@ -3,8 +3,6 @@ import { Plus } from 'lucide-react';
 import StoneList from './StoneList';
 import StoneForm from './StoneForm';
 
-
-
 const StonePropertiesForm = ({ stones, onChange }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [price, setPrice] = useState(0)

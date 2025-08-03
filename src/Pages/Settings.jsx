@@ -1,134 +1,118 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useMemo } from "react";
 import { useSupabase } from "../components/SupaBaseProvider";
 import { useGenericStore } from "../store/VendorStore";
 import { useMessage } from "../components/Messages/MessageContext";
+import Loading from "../components/Loading";
 
 export default function DynamicForm() {
-    const {getEntity,updateEntity} = useGenericStore()
-    const {options} = getEntity('settings')
-  const {showMessage} = useMessage()
-    console.log(options)
+  const options = useGenericStore(state => state.getEntity('settings'));
+  const updateEntity = useGenericStore(state => state.updateEntity);
+  const isLoading = useGenericStore(state => state.isLoading.settings);
+  const errors = useGenericStore(state => state.errors.settings);
+
+
+
   const { supabase } = useSupabase();
+  const { showMessage } = useMessage();
+
   const [formData, setFormData] = useState(options);
 
-  // Fetch the initial data from the database
-//   useEffect(() => {
-//     const fetchFormData = async () => {
-//       const { data, error } = await supabase
-//         .from("settings")
-//         .select("options")
-//         .single(); // Assuming the table has a single row for settings
-//       if (error) {
-//         console.error("Error fetching form data:", error);
-//       } else {
-//         setFormData(data.options || formData);
-//       }
-//     };
-//     fetchFormData();
-//   }, [supabase]);
-  useEffect(()=>{
-    console.log(formData)
-  },[formData])
+  // Initialize formData only once when data is loaded
+// useEffect(() => {
+//   if (!options) {
+//     console.warn("No options available yet from getEntity('settings')");
+//     return;
+//   }
 
-  // Handle input changes
+//   if (!formData) {
+//     setFormData(options);
+//   }
+// }, [options]);
+
+if(isLoading){
+  return <Loading />
+}
+//   // Handle input changes
   const handleChange = (section, field, value) => {
-    setFormData({
-      ...formData,
+    const newValue = value
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0); // Avoid empty strings
+
+    setFormData((prevData) => ({
+      ...prevData,
       [section]: {
-        ...formData[section],
-        [field]: value.split(",").map((item) => item.trim()), // Convert comma-separated values to an array
+        ...prevData[section],
+        [field]: newValue,
       },
-    });
+    }));
   };
 
-  // Save the updated data to the database
+//   // Save to DB and update store
   const saveFormData = async () => {
+    if (!formData) return;
+
     const { error } = await supabase
       .from("settings")
       .update({ options: formData })
-      .eq("id", 1); // Assuming the settings row has an ID of 1
+      .eq("id", 1);
+
     if (error) {
       console.error("Error saving form data:", error);
     } else {
-        showMessage('Settings Saved')
+      showMessage("Settings Saved");
+      await updateEntity("settings", formData);
     }
-    updateEntity('settings', formData)
+  };
+
+//   // Prevent rendering until data is ready
+//   if (isLoading || !formData) return <Loading />;
+
+  const renderSection = (title, sectionKey) => {
+    const sectionData = formData?.[sectionKey];
+    if (!sectionData) return null;
+
+    return (
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold mb-2">{title}</h2>
+        {Object.keys(sectionData).map((field) => (
+          <div key={field} className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">
+              {field.charAt(0).toUpperCase() + field.slice(1)}:
+            </label>
+            <input
+              type="text"
+              value={sectionData[field]?.join(", ") ?? ""}
+              onChange={(e) =>
+                handleChange(sectionKey, field, e.target.value)
+              }
+              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+              placeholder={`Enter ${field} (comma-separated)`}
+            />
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Edit Settings</h1>
+    <div className="p-6 max-w-3xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Edit Settings</h1>
 
-      {/* Render stonePropertiesForm */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">Stone Properties</h2>
-        {Object.keys(formData.stonePropertiesForm).map((field) => (
-          <div key={field} className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              {field.charAt(0).toUpperCase() + field.slice(1)}:
-            </label>
-            <input
-              type="text"
-              value={formData.stonePropertiesForm[field].join(", ")} // Convert array to comma-separated string
-              onChange={(e) =>
-                handleChange("stonePropertiesForm", field, e.target.value)
-              }
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-              placeholder={`Enter ${field} (comma-separated)`}
-            />
-          </div>
-        ))}
+      {renderSection("Stone Properties", "stonePropertiesForm")}
+      {renderSection("Form Fields", "formFields")}
+      {/* Uncomment this if customers section should be editable */}
+      {/* {renderSection("Customers", "customers")} */}
+
+      <div className="mt-6">
+        <button
+          onClick={saveFormData}
+          className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          Save Changes
+        </button>
       </div>
-
-      
-
-      {/* Render formFields */}
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">Form Fields</h2>
-        {Object.keys(formData.formFields).map((field) => (
-          <div key={field} className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              {field.charAt(0).toUpperCase() + field.slice(1)}:
-            </label>
-            <input
-              type="text"
-              value={formData.formFields[field].join(", ")} // Convert array to comma-separated string
-              onChange={(e) =>
-                handleChange("formFields", field, e.target.value)
-              }
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-              placeholder={`Enter ${field} (comma-separated)`}
-            />
-          </div>
-        ))}
-      </div>
-      {/* render Customer fields */}
-      {/* <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">Customers</h2>
-        {Object.keys(formData.customers).map((field) => (
-          <div key={field} className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              {field.charAt(0).toUpperCase() + field.slice(1)}:
-            </label>
-            <input
-              type="text"
-              value={formData.customers[field].join(", ")} // Convert array to comma-separated string
-              onChange={(e) =>
-                handleChange("customers", field, e.target.value)
-              }
-              className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-              placeholder={`Enter ${field} (comma-separated)`}
-            />
-          </div>
-        ))}
-      </div> */}
-
-      <button
-        onClick={saveFormData}
-        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-      >
-        Save Changes
-      </button>
     </div>
   );
 }
+
