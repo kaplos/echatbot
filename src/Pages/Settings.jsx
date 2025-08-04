@@ -5,7 +5,7 @@ import { useMessage } from "../components/Messages/MessageContext";
 import Loading from "../components/Loading";
 
 export default function DynamicForm() {
-  const options = useGenericStore(state => state.getEntity('settings'));
+  const {options} = useGenericStore(state => state.getEntity('settings'));
   const updateEntity = useGenericStore(state => state.updateEntity);
   const isLoading = useGenericStore(state => state.isLoading.settings);
   const errors = useGenericStore(state => state.errors.settings);
@@ -15,37 +15,33 @@ export default function DynamicForm() {
   const { supabase } = useSupabase();
   const { showMessage } = useMessage();
 
-  const [formData, setFormData] = useState(options);
+  const [formData, setFormData] = useState(null);
 
   // Initialize formData only once when data is loaded
-// useEffect(() => {
-//   if (!options) {
-//     console.warn("No options available yet from getEntity('settings')");
-//     return;
-//   }
+useEffect(() => {
+  if (!options) {
+    console.warn("No options available yet from getEntity('settings')");
+    return;
+  }
 
-//   if (!formData) {
-//     setFormData(options);
-//   }
-// }, [options]);
+  if (!formData) {
+    setFormData(options);
+  }
+}, [options]);
 
 if(isLoading){
   return <Loading />
 }
 //   // Handle input changes
-  const handleChange = (section, field, value) => {
-    const newValue = value
-      .split(",")
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0); // Avoid empty strings
+    const handleChange = (section, field, value) => {
+    setFormData({
+      ...formData,
 
-    setFormData((prevData) => ({
-      ...prevData,
       [section]: {
-        ...prevData[section],
-        [field]: newValue,
+        ...formData[section],
+        [field]: value.split(",").map((item) => item.trim()), // Convert comma-separated values to an array
       },
-    }));
+    });
   };
 
 //   // Save to DB and update store
@@ -54,14 +50,14 @@ if(isLoading){
 
     const { error } = await supabase
       .from("settings")
-      .update({ options: formData })
+      .update({ options: {...formData} })
       .eq("id", 1);
 
     if (error) {
       console.error("Error saving form data:", error);
     } else {
       showMessage("Settings Saved");
-      await updateEntity("settings", formData);
+      await updateEntity("settings", {options:{...formData}});
     }
   };
 
@@ -69,6 +65,7 @@ if(isLoading){
 //   if (isLoading || !formData) return <Loading />;
 
   const renderSection = (title, sectionKey) => {
+    console.log('title',title,sectionKey,formData)
     const sectionData = formData?.[sectionKey];
     if (!sectionData) return null;
 

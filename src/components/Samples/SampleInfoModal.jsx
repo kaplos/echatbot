@@ -25,7 +25,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
   const navigate = useNavigate();
   const { getEntityItemById, getEntity } = useGenericStore();
   const vendors = getEntity("vendors");
-  const {formFields} = getEntity("settings");
+  const {formFields} = getEntity("settings").options;
 
   // console.log(sample, "sample from design info modal");
   const { supabase } = useSupabase();

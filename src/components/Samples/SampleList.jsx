@@ -12,7 +12,6 @@ import Loading from "../Loading";
 const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, setHasMore, onSampleClick }) => {
   const { getEntity } = useGenericStore();
   const { options } = getEntity("settings");
-
   const [selectedSamples, setSelectedSamples] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   // const [page, setPage] = useState(0);
