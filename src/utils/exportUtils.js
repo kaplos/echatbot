@@ -191,7 +191,6 @@ export const exportToCSV = (products,type) => {
   }
   function flattenSampleOnly(sample,dropdown) {
     const {images,starting_info_images,cad,collection,category,vendor,plating,starting_info_id,...rest} = sample
-    console.log(sample, 'sample data for export');
     return {
       starting_info_images:images.join(' | ') ?? [] ,
       cad: cad.join(' | ') ?? [],

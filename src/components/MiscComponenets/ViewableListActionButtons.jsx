@@ -20,18 +20,27 @@ export default function ViewableListActionButtons({
     const [isSelectAll,setSelectAll] = useState(false)
     // const [isSelectionMode,setIsSelectionMode] = useState(false)
 
-    const toggleSelectAll = () => {
-        if (isSelectAll) {
-          // Deselect all items
-          handleSelections(new Set());
-        } else {
-            // Select all items
-            setIsSelectionMode(true)
-            handleSelections(new Set(allItems.map((item) => item.sample_id))); // Assuming items have an `id` property
-        }
-        // setIsSelectionMode(!isSelectionMode)
-        setSelectAll(!isSelectAll); // Toggle the state
-      };
+  const toggleSelectAll = () => {
+  const nextSelectAll = !isSelectAll;
+  setSelectAll(nextSelectAll);
+
+  const currentPageItemIds = new Set(allItems);
+
+  if (nextSelectAll) {
+    // Select all items on the current page + preserve previous selections
+    const newSelection = new Set([...selectedItems, ...currentPageItemIds]);
+    setIsSelectionMode(true);
+    handleSelections(newSelection);
+  } else {
+    // Deselect only the items on the current page
+    const newSelection = new Set(
+      [...selectedItems].filter((id) => !currentPageItemIds.has(id))
+    );
+    handleSelections(new Set(newSelection));
+    setIsSelectionMode(newSelection.size > 0);
+  }
+};
+
      
       const handleButtonSelections = () => {
         setIsSelectionMode(!isSelectionMode);
@@ -39,16 +48,19 @@ export default function ViewableListActionButtons({
         if (!isSelectionMode) {
           setIsSelectionMode(true);
         } else {
+          // if(!isSelectionMode){
           handleSelections(new Set());
           setIsSelectionMode(false);
           setSelectAll(false)
         }
       };
+
     const handleDelete = async (success)=>{
         showMessage(success? 'Items have been deleted successfully':'Error occured while deleting')
         onDelete(Array.from(selectedItems))
         handleSelections(new Set())
     }
+    
   return (
 
    
@@ -79,7 +91,8 @@ export default function ViewableListActionButtons({
           ) : (
             // Render the default export button
             <button
-              onClick={handleExport}
+              onClick={
+                handleExport}
               className="px-4 py-2 text-sm font-medium text-white bg-chabot-gold rounded-lg hover:bg-opacity-90 inline-flex items-center"
             >
               <Download className="w-4 h-4 mr-2" />

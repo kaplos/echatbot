@@ -8,11 +8,9 @@ import IdeasExportButton from "../Pdf/IdeasExportButton";
 import IdeaCard from "./IdeaCard";
 import { useSearchParams } from "react-router-dom";
 
-const IdeaBoard = ({ ideas, setIdeas, handleClick }) => {
+const IdeaBoard = ({ ideas, setIdeas, isLoading, setIsLoading, hasMore, setHasMore,  handleClick }) => {
   const [selectedIdeas, setSelectedIdeas] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const { supabase } = useSupabase();
   const PAGE_SIZE = 20;
 
@@ -21,7 +19,7 @@ const IdeaBoard = ({ ideas, setIdeas, handleClick }) => {
 
   // Fetch ideas from Supabase
   const fetchIdeas = async (pageNumber) => {
-    setLoading(true);
+    setIsLoading(true);
     const from = pageNumber * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
@@ -33,13 +31,13 @@ const IdeaBoard = ({ ideas, setIdeas, handleClick }) => {
 
     if (error) {
       console.error("Error fetching ideas:", error);
-      setLoading(false);
+      setIsLoading(false);
       return;
     }
 
     setIdeas(data); // Replace ideas with the current page's data
     setHasMore(data.length === PAGE_SIZE); // Check if there are more pages
-    setLoading(false);
+    setIsLoading(false);
   };
 
   // Fetch the current page on component mount or when the page changes
@@ -48,10 +46,7 @@ const IdeaBoard = ({ ideas, setIdeas, handleClick }) => {
   }, [page]);
 
   // Handle page navigation
-  const handlePageChange = (newPage) => {
-    if (newPage < 0 || (newPage > page && !hasMore)) return; // Prevent invalid page navigation
-    setSearchParams({ page: newPage }); // Update the URL with the new page number
-  };
+  
 
   const handleExport = async () => {
     const ideasToExport = ideas.filter((p) => selectedIdeas.has(p.id));
@@ -79,6 +74,9 @@ const IdeaBoard = ({ ideas, setIdeas, handleClick }) => {
     setSelectedIdeas(newSelection);
   };
 
+    if(isLoading){
+      return <Loading />
+    }
   return (
     <div>
       <ViewableListActionButtons
@@ -138,36 +136,6 @@ const IdeaBoard = ({ ideas, setIdeas, handleClick }) => {
               />
             ))}
         </div>
-        <div className="flex justify-between items-center mt-6">
-          <button
-            className={`btn p-2 rounded ${
-              page === 0 || loading
-                ? "bg-gray-600 opacity-50 cursor-not-allowed"
-                : "bg-blue-500 text-white hover:bg-blue-600"
-            }`}
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page === 0 || loading}
-          >
-            Previous
-          </button>
-          <span>Page {page + 1}</span>
-          <button
-            className={`btn p-2 rounded ${
-              !hasMore || loading
-                ? "bg-gray-600 opacity-50 cursor-not-allowed"
-                : "bg-blue-500 text-white hover:bg-blue-600"
-            }`}
-            onClick={() => handlePageChange(page + 1)}
-            disabled={!hasMore || loading}
-          >
-            Next
-          </button>
-        </div>
-        {loading && (
-          <div className="flex justify-center items-center mt-6">
-            <Loading />
-          </div>
-        )}
       </div>
     </div>
   );

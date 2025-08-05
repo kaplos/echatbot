@@ -9,6 +9,8 @@ import SlideEditor from "../components/Ideas/SlideEditor";
 import { useLocation } from "react-router-dom";
 import SearchBar from "../components/SearchBar";
 import FilterButton from "../components/Filters/FilterButton";
+import Pagination from "../components/MiscComponenets/Pagination";
+
 export default function Ideas() {
   const { supabase } = useSupabase();
   // console.log(supabase, 'supabase from ideas page');
@@ -17,7 +19,8 @@ export default function Ideas() {
   const [slideEditorOpen, setSlideEditorOpen] = useState(false);
   const [ideas, setIdeas] = useState([]);
   const [filteredIdeas, setFilteredIdeas] = useState([]);
-
+  const [isLoading,setIsLoading] = useState(true)
+  const [hasMore,setHasMore] = useState(false)
   const [idea, setIdea] = useState(null);
   // const [isLoading, setIsLoading] = useState(true);
   const [currentSlideData, setCurrentSlideData] = useState(null);
@@ -187,13 +190,22 @@ export default function Ideas() {
           </button>
         </div>
       </div>
+      <Pagination loading={isLoading} hasMore={hasMore} >
+      <div className="flex-grow overflow-auto px-4 pb-4"> 
 
       <IdeaBoard
         ideas={filteredIdeas}
         setIdeas={setIdeas}
+        setIsLoading={setIsLoading}
+          setHasMore={setHasMore}
+          hasMore={hasMore}
+          isLoading={isLoading}
         handleClick={handleClick}
         handleEdit={editIdeaDesign}
       />
+          </div>         
+
+      </Pagination>
 
       <AddIdeaModal
         isOpen={isAddModalOpen}

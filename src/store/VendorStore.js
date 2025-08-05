@@ -124,7 +124,7 @@ export const useGenericStore = create((set, get) => ({
   // Access helpers
   getEntity: (entityName) => {
     const { entities } = get();
-    console.log(entityName,'entity name',entities)
+    // console.log(entityName,'entity name',entities)
     return entities[entityName];
   },
 

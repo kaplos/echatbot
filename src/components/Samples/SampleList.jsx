@@ -22,7 +22,6 @@ const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, set
   const PAGE_SIZE = 20;
 
   const [searchParams, setSearchParams] = useSearchParams(); // React Router hook for query params
-  const navigate = useNavigate(); // React Router hook for navigation
   const page = parseInt(searchParams.get("page") || "0", 10);
   const collection = searchParams.getAll('collection') || ""; // Get the collection filter from the URL
   const category = searchParams.getAll('category') || ""; 
@@ -69,7 +68,9 @@ const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, set
     setHasMore(data.length === PAGE_SIZE); // Check if there are more pages
     setIsLoading(false);
   };
-
+useEffect(()=>{
+  console.log(selectedSamples,selectedSamples.size)
+},[selectedSamples])
   // Fetch the first page on component mount
   // useEffect(() => {
   //   fetchSamples(0);
@@ -79,13 +80,7 @@ const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, set
   }, [page, searchParams]);
 
   // Handle page navigation
-  const handlePageChange = (newPage) => {
-    if (newPage < 0 || (newPage > page && !hasMore)) return; // Prevent invalid page navigation
-    // setPage(newPage);
-    setSearchParams({ page: newPage }); // Update the URL with the new page number
 
-    // fetchSamples(newPage);
-  };
 
   const getDataToExport = async (arrayOfProducts) => {
     try {
@@ -118,7 +113,9 @@ const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, set
     return data;
   };
   const handleExport = async () => {
-    const samplesToExport = samples.filter((p) => selectedSamples.has(p.sample_id));
+    // const samplesToExport = samples.filter((p) => selectedSamples.has(p.sample_id));
+    const samplesToExport = Array.from(selectedSamples)
+    // console.log(samplesToExport,samplesToExport.length)
     let dataToExport = await getDataToExport(samplesToExport);
     let dropdowns = await getDropDownData();
     dropdowns = {

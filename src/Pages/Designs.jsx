@@ -10,6 +10,7 @@ import { useLocation } from "react-router-dom";
 import SearchBar from "../components/SearchBar";
 import FilterButton from "../components/Filters/FilterButton";
 import { getImages } from "../components/SupaBaseProvider";
+import Pagination from "../components/MiscComponenets/Pagination";
 
 const Designs = () => {
   const { supabase } = useSupabase();
@@ -22,6 +23,9 @@ const Designs = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [designs, setDesigns] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+
   // const [isLoading, setIsLoading] = useState(true);
   const location = useLocation(); // Access the current URL
   const queryParams = new URLSearchParams(location.search); // Parse the query string
@@ -143,13 +147,22 @@ const Designs = () => {
           </button>
         </div>
       </div>
+            <Pagination loading={isLoading} hasMore={hasMore} >
+      <div className="flex-grow overflow-auto px-4 pb-4"> 
+      
       <DesignList
         designs={filteredItems}
         setDesigns={setDesigns}
-        // setIsLoading={setIsLoading}
-        // isLoading={isLoading}
+        setIsLoading={setIsLoading}
+          setHasMore={setHasMore}
+          hasMore={hasMore}
+          isLoading={isLoading}
         onDesignClick={handleClick}
       />
+          </div>         
+
+            </Pagination>
+      
 
       <AddDesignModal
         isOpen={isAddModalOpen}

@@ -22,7 +22,6 @@ import { useMessage } from "../Messages/MessageContext";
 // import {limitInput} from '../../utils/inputUtils.js'
 import { useGenericStore } from "../../store/VendorStore";
 const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
-  const navigate = useNavigate();
   const { getEntityItemById, getEntity } = useGenericStore();
   const vendors = getEntity("vendors");
   const {formFields} = getEntity("settings").options;
