@@ -125,9 +125,16 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
             //   throw new Error(`Sample update error: ${imageError.details}`);
             // }
             const imageData = await  getImages('starting_info',FormatedFormDataId)
+            const updatedData = {
+              ...rest,
+              starting_info_id: updatedStartingInfo[0].id 
+            }
+            if(FormatedFormDataId){
+              updatedData.id = FormatedFormDataId
+            }
+
             const { data: updatedSample, error: updatedSampleError } =
-            FormatedFormDataId ?
-             await supabase.from('samples').insert([{ ...rest, starting_info_id: updatedStartingInfo[0].id }]).select() : await supabase.from('samples').upsert([{id:FormatedFormDataId, ...rest, starting_info_id: updatedInfo[0].id }], { onConflict: ['id'] }).select()
+              await supabase.from('samples').upsert([{updatedData }], { onConflict: ['id'] }).select()
 
             if (updatedSampleError) {
               throw new Error(`Sample update error: ${updatedSampleError.details}`);
