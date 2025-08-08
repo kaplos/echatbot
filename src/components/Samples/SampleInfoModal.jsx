@@ -29,33 +29,30 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
   // console.log(sample, "sample from design info modal");
   const { supabase } = useSupabase();
   const {showMessage} = useMessage()
-  const finalizeUploadRef = useRef(null)
+  const finalizeImageRef = useRef(null)
+  const finalizeCadRef = useRef(null)
   const [uploadedImages,setUploadedImages]= useState([])
     
   const { starting_info: passedStartingInfo, formData: passedFormData } =
     sample;
-
+console.log(passedStartingInfo)
   const [lossPercent, setLossPercent] = useState(0);
   const [formDataOriginal, setFormDataOriginal] = useState({
     ...passedFormData,
-  });
-  const [starting_info_original, setStarting_info_original] = useState({
-    ...passedStartingInfo,
-    images: passedStartingInfo.images ? passedStartingInfo.images : [],
-    cad: passedFormData.cad ? passedFormData.cad : [],
-    
-  });
-
-  const [starting_info, setStarting_info] = useState({
-    ...passedStartingInfo,
-    images: passedStartingInfo.images ? passedStartingInfo.images : [],
-    cad: passedFormData.cad ? passedFormData.cad : [],
-
   });
   const [formData, setFormData] = useState({
     ...passedFormData,
   });
 
+  const [starting_info_original, setStarting_info_original] = useState({
+    ...passedStartingInfo,
+      
+  });
+  const [starting_info, setStarting_info] = useState({
+    ...passedStartingInfo,
+  });
+
+  
   const [relatedQuotes, setRelatedQuotes] = useState([]);
   const [metalCost, setMetalCost] = useState();
   const vendorLossRef = useRef(null);
@@ -135,9 +132,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
     }
   };
 
-  const getRemovedImages = (originalImages, currentImages) => {
-    return originalImages.filter((image) => !currentImages.includes(image));
-  };
+  
   const getObjectDifferences = (formData, originalData) => {
     const changes = { updated_at: new Date().toISOString() }; // Initialize changes with updated_at
 
@@ -178,7 +173,19 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
 
     return { added, updated, deleted };
   };
+const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
+  const promises = [];
 
+  if (finalizeImageRef.current) {
+    promises.push(finalizeImageRef.current.finalizeUpload(entity, entityId, styleNumber));
+  }
+  if (finalizeCadRef.current) {
+    promises.push(finalizeCadRef.current.finalizeUpload(entity, entityId, styleNumber));
+  }
+
+  await Promise.all(promises);
+  // Both uploads are finished here
+}
   const handleSubmit = async (e) => {
     e.preventDefault();
     let sampleData = ''
@@ -270,13 +277,11 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
       }
     }
 
-    const removedImages = getRemovedImages(
-      starting_info_original.images,
-      starting_info.images
-    );
+   
 
 
     console.log("sample updated:", formData);
+    await finalizeMediaUpload('starting_info',starting_info.id,formData.styleNumber)
     updateSample({ ...sampleData.data });
     setFormData({
       
@@ -304,7 +309,6 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
       karat: "10K",
       status: "Working_on_it:yellow",
     });
-    finalizeUploadRef.current('sample',formData.id,formData.styleNumber,uploadedImages)
     onClose();
   };
   const handleClose = () => {
@@ -391,10 +395,10 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                           </label>
                           <ImageUpload
                             // images={formData.images || []}
-                            collection={'image'}
                             images={starting_info.images || []}
-                            onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
-                            finalizeUpload={finalizeUploadRef}
+                            collection={'image'}
+                            ref={finalizeImageRef}
+                            // onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
                             // onChange={async (images) => {
                             //   setStarting_info({
                             //     ...starting_info,
@@ -403,10 +407,10 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                             // }}
                           />
                           <ImageUpload
-                            collection="cad"
-                            // finalizeUpload={finalizeUploadRef}
-                            onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
+                            collection={"cad"}
                             images={starting_info.cad || []}
+                            ref={finalizeCadRef}
+                            // onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
                             // onChange={(cad) =>
                             //   setStarting_info({ ...starting_info, cad: cad })
                             // }
@@ -469,7 +473,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                             Style Number <span className="text-red-500">*</span>
                           </label>
                           <input
-                            required="true"
+                            required={true}
                             type="text"
                             className="mt-1 block input shadow-sm "
                             value={formData.styleNumber}
@@ -555,7 +559,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                         <textarea
                           rows={2}
                           className="mt-1 block input shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={starting_info.description}
+                          value={starting_info.description || ''}
                           onChange={(e) =>
                             setStarting_info({
                               ...starting_info,

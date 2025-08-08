@@ -92,6 +92,7 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
 
               }
               formatted[i] = {...inserted[0]}
+            console.log(typeof  id, id)
             }
           
 
@@ -105,11 +106,16 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
             }
             // console.log('formatted stylenumber:', formData.styleNumber, 'restInfo:', restInfo,'formData:', formData);
             
-            const { data: existing } = await supabase.from('samples').select('*').eq('id', formData.id).single();
+            const { data: existing } = await supabase.from('samples').select('*').eq('id', Number(formData.id)).single();
             if (existing) restInfo.id = existing.starting_info_id;
             
-            const { data: updatedInfo } = await supabase.from('starting_info').upsert([restInfo], { onConflict: ['id'] }).select();
+            const { data: updatedStartingInfo } = await supabase.from('starting_info').upsert([restInfo], { onConflict: ['id'] }).select();
+            
             const { id,...rest} = formData 
+            const FormatedFormDataId = id && !isNaN(Number(id)) ? Number(id) : null;
+
+            console.log(typeof  id, id)
+
             // const {data:imageData,error:imageError} = await supabase
             // .from('sample_images')
             // .select("*")
@@ -118,19 +124,19 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
             // if (imageError) {
             //   throw new Error(`Sample update error: ${imageError.details}`);
             // }
-            const imageData = await  getImages('starting_info',formData.id)
+            const imageData = await  getImages('starting_info',FormatedFormDataId)
             const { data: updatedSample, error: updatedSampleError } =
-            formData.id === '' || formData.id === null ?
-             await supabase.from('samples').insert([{ ...rest, starting_info_id: updatedInfo[0].id }]).select() : await supabase.from('samples').upsert([{ ...formData, starting_info_id: updatedInfo[0].id }], { onConflict: ['id'] }).select()
+            FormatedFormDataId ?
+             await supabase.from('samples').insert([{ ...rest, starting_info_id: updatedStartingInfo[0].id }]).select() : await supabase.from('samples').upsert([{id:FormatedFormDataId, ...rest, starting_info_id: updatedInfo[0].id }], { onConflict: ['id'] }).select()
 
             if (updatedSampleError) {
               throw new Error(`Sample update error: ${updatedSampleError.details}`);
             }
             const {images,cad} = imageData
-            formatted[i] = { ...updatedSample[0], starting_info: updatedInfo[0],images, cad};
+            formatted[i] = { ...updatedSample[0], starting_info: updatedStartingInfo[0],images, cad};
             
             if (stones.length > 0) {
-              await supabase.from('stones').upsert(stones.map(stone => ({ ...stone, starting_info_id: updatedInfo[0].id })), { onConflict: ['id'] });
+              await supabase.from('stones').upsert(stones.map(stone => ({ ...stone, starting_info_id: updatedStartingInfo[0].id })), { onConflict: ['id'] });
             }
           }
 

@@ -1,4 +1,6 @@
 export const formatDate = (dateString) => {
+  try{
+
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
@@ -7,18 +9,27 @@ export const formatDate = (dateString) => {
       hour: '2-digit',
       minute: '2-digit'
     }).format(date);
+  }catch(error  ){
+    console.error(error)
+  }  
   };
   
   export const formatShortDate = (dateString) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: '2-digit',
-    }).format(date);
+    try{
+
+      const date = new Date(dateString);
+      return new Intl.DateTimeFormat('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: '2-digit',
+      }).format(date);
+    } catch(error  ){
+    console.error(error)
+  }  
   };
   
   export const getRelativeTime = (dateString) => {
+    try{
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -43,4 +54,7 @@ export const formatDate = (dateString) => {
     }
   
     return formatShortDate(dateString);
+     }catch(error  ){
+    console.error(error)
+  }  
   };

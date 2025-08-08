@@ -66,7 +66,7 @@ const DesignList = ({ designs, setDesigns, isLoading, setIsLoading, hasMore, set
     const { data: designsData, error: designDataError } = await supabase
       .from('designs')
       .select('*')
-      .in('id', arrayOfProducts.map((design) => design.id));
+      .in('id', arrayOfProducts);
 
     if (designDataError) {
       console.error(designDataError, 'error in getting data for export');

@@ -18,14 +18,15 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   const vendors = getEntity("vendors");
   const { formFields } = getEntity("settings").options;
 
-  console.log(vendors, "vendors from add sample modal");
+  // console.log(vendors, "vendors from add sample modal");
   const [lossPercent, setLossPercent] = useState(0);
   const [metalCost, setMetalCost] = useState(0);
   const { showMessage } = useMessage();
-  const finalizeUploadRef = useRef(null);
+  const finalizeImageRef = useRef(null);
+  const finalizeCadRef = useRef(null);
+
   let starting_info_object = {
     description: "",
-    images: [],
     metalType: "Gold",
     karat: "10K",
     color: "Yellow",
@@ -45,7 +46,6 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     status: "Working_on_it:yellow",
   };
   let starting_formData = {
-    cad: [],
     category: "",
     collection: "",
     selling_pair: "pair",
@@ -61,7 +61,6 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
   const [starting_info, setStarting_info] = useState({
     ...starting_info_object,
   });
-  const [uploadedImages, setUploadedImages] = useState([]);
 
   useEffect(() => {
     setLossPercent(vendors[0].pricingsetting.lossPercentage);
@@ -69,6 +68,19 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     // vendorLossRef.current.textContent = data[0].pricingsetting.lossPercentage
   }, [isOpen, vendors]);
 
+const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
+  const promises = [];
+
+  if (finalizeImageRef.current) {
+    promises.push(finalizeImageRef.current.finalizeUpload(entity, entityId, styleNumber));
+  }
+  if (finalizeCadRef.current) {
+    promises.push(finalizeCadRef.current.finalizeUpload(entity, entityId, styleNumber));
+  }
+
+  await Promise.all(promises);
+  // Both uploads are finished here
+}
   const handleClose = () => {
     setFormData({
       cad: [],
@@ -110,14 +122,14 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
       return;
     }
     console.log(formData);
-    const { stones, ...startingInfo } = starting_info;
+    const { stones, images,cad,...startingInfo } = starting_info;
 
     const { data: starting_infoData, error: starting_infoError } =
       await supabase
         .from("starting_info")
         .insert([startingInfo])
-        .select("id,images");
-
+        .select("id");
+    console.log(starting_infoData)
     if (starting_infoError) {
       console.log(starting_infoError);
     }
@@ -131,7 +143,9 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     if (stoneError) {
       console.log(stoneError);
     }
+
     console.log(starting_infoData[0].id);
+
     const { data, error } = await supabase
       .from("samples")
       .insert([{ ...formData, starting_info_id: starting_infoData[0].id }])
@@ -141,11 +155,10 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
       console.log(error);
     }
     console.log(data, "data from insert samples ");
-    finalizeUploadRef.current(
+    await finalizeMediaUpload(
       "starting_info",
-      data[0].id,
+      starting_infoData[0].id,
       data[0].styleNumber,
-      uploadedImages
     );
     onSave(data[0]);
     setFormData({ ...starting_formData });
@@ -234,13 +247,13 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                           <ImageUpload
                             collection="image"
                             images={starting_info.images || []}
-                            onUpload={(newImages) =>
-                              setUploadedImages([
-                                ...uploadedImages,
-                                ...newImages,
-                              ])
-                            }
-                            finalizeUpload={finalizeUploadRef}
+                            // onUpload={(newImages) =>
+                            //   setUploadedImages([
+                            //     ...uploadedImages,
+                            //     ...newImages,
+                            //   ])
+                            // }
+                            ref={finalizeImageRef}
                             // onChange={async (images) => {
                             //   setStarting_info({
                             //     ...starting_info,
@@ -251,13 +264,13 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
                           />
                           <ImageUpload
                             collection="cad"
-                            // finalizeUpload={finalizeUploadRef}
-                            onUpload={(newImages) =>
-                              setUploadedImages([
-                                ...uploadedImages,
-                                ...newImages,
-                              ])
-                            }
+                            ref={finalizeCadRef}
+                            // onUpload={(newImages) =>
+                            //   setUploadedImages([
+                            //     ...uploadedImages,
+                            //     ...newImages,
+                            //   ])
+                            // }
                             images={starting_info.cad || []}
                             // onChange={(cad) =>
                             //   setFormData({ ...starting_info, cad: cad })

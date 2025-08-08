@@ -83,6 +83,7 @@ useEffect(()=>{
 
 
   const getDataToExport = async (arrayOfProducts) => {
+    console.log(arrayOfProducts)
     try {
       // Fetch samples and their starting_info
       const { data: samplesData, error: sampleDataError } = await supabase
@@ -90,7 +91,7 @@ useEffect(()=>{
         .select("*")
         .in(
           "sample_id",
-          arrayOfProducts.map((sample) => sample.sample_id)
+          arrayOfProducts
         );
 
       if (sampleDataError) {
@@ -101,9 +102,34 @@ useEffect(()=>{
       return samplesData; // Return samples with their stones
     } catch (error) {
       console.error("Error in getDataToExport:", error);
-      return [];
+      throw new Error(error)
+      // return [];
     }
   };
+  const fetchAllRows = async () => {
+  let allRows = [];
+  let batchSize = 1000;
+  let start = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('sample_with_stones_export')
+      .select('*')
+      .range(start, start + batchSize - 1);
+
+    if (error) {
+      console.error('Error fetching data:', error);
+      break;
+    }
+
+    allRows = allRows.concat(data);
+    hasMore = data.length === batchSize;
+    start += batchSize;
+  }
+
+  return allRows;
+};
   const getDropDownData = async () => {
     const { data, error } = await supabase.rpc("get_dropdown_options");
 
@@ -115,7 +141,9 @@ useEffect(()=>{
   const handleExport = async () => {
     // const samplesToExport = samples.filter((p) => selectedSamples.has(p.sample_id));
     const samplesToExport = Array.from(selectedSamples)
-    // console.log(samplesToExport,samplesToExport.length)
+
+    console.log(samplesToExport,samplesToExport.length)
+    // let dataToExport = await fetchAllRows()
     let dataToExport = await getDataToExport(samplesToExport);
     let dropdowns = await getDropDownData();
     dropdowns = {
@@ -139,6 +167,7 @@ useEffect(()=>{
     }
     setSelectedSamples(newSelection);
   };
+  
   if(isLoading){
     return <Loading />
     

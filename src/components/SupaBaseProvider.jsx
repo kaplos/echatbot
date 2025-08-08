@@ -90,7 +90,8 @@ export const getImages = async(entity,entityId)=>{
   // .single()
   .eq('entity',entity)
   .eq('entityId',entityId)
-
+  .single()
+  
   if(imageError){
      throw new Error(imageError.message)
   }

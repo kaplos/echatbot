@@ -72,5 +72,5 @@ export async function handleImportFile(file, type) {
  
 
   
-  return new Error();
+  // return new Error();
 }

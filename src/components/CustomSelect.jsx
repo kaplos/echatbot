@@ -15,7 +15,7 @@ function CustomSelect({ onSelect, version, setNewOption, informationFromDataBase
   const [isCreating, setIsCreating] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState("bottom"); // Track dropdown position
 
-  console.log(options)
+  // console.log(options)
   const filteredCollections = options.filter((option) =>
 
     option.name.toLowerCase().includes(searchQuery.toLowerCase())

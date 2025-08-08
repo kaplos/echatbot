@@ -25,65 +25,13 @@ export default function Samples() {
   const location = useLocation(); // Access the current URL
   const queryParams = new URLSearchParams(location.search); // Parse the query string
   const sampleId = queryParams.get("sampleId") || null;
-  // useEffect(()=>{
-  //     const fetchSamples = async () => {
-  //         setIsLoading(true);
-  //         const { data, error } = await supabase
-  //         .from('samples')
-  //         .select('*, starting_info(*)')
-  //         .order('created_at', { ascending: false }) // Replace 'created_at' with your timestamp column
-  //         .limit(12);
 
-  //         console.log(data[0],'data from samples')
-  //         if (error) {
-  //           console.error('Error fetching samples:', error);
-  //           return;
-  //         }
-  //         setSamples(data);
-  //         // console.log(data);
-  //         setIsLoading(false);
-  //       };
-  //        fetchSamples();
-  // },[])
   useEffect(() => {
     if (sampleId) {
       handleClick({ id: sampleId });
     }
   }, [sampleId]);
-  // const handleClick = async (sample) => {
-
-  //     const { data, error } = await supabase
-  //   .from('samples')
-  //   .select('*, starting_info(*)')
-  //   .eq('id', sample.id);
-
-  //   if (error) {
-  //     console.error('Error fetching sample:', error);
-  //     return;
-  //   }
-  //   const {data:stones,error:stonesError} = await supabase
-  //   .from('stones')
-  //   .select('*')
-  //   .eq('starting_info_id', data[0].starting_info.id);
-  //     if (stonesError) {
-  //         console.error('Error fetching stones:', stonesError);
-  //         return;
-  //     }
-
-  //   console.log(data,stones,'data from click');
-
-  //     const startingInfo = data[0].starting_info;
-  //     delete data[0].starting_info
-  //     const restructuredData = {
-  //         formData: data[0],
-  //         starting_info: {...startingInfo,
-  //             stones: stones
-  //         }
-
-  //     }
-  //     setSample(restructuredData);
-  //     setIsDetailsOpen(true);
-  // }
+ 
   const handleClick = async (sample) => {
     // Open the modal immediately
     setIsDetailsOpen(true);
@@ -95,14 +43,16 @@ export default function Samples() {
     const { data, error } = await supabase
       .from("samples")
       .select("*, starting_info(*)")
-      .eq("id", sample.sample_id);
+      .eq("id", sample.sample_id)
+      .single()
     // const { data:imageData,error:imageError} = await supabase
     // .from('sample_images')
     // .select('*')
     // .single()
     // .eq('sample_id',sample.sample_id)
-    const {images,cad} = await getImages('starting_info',sample.sample_id) 
-
+    // console.log(data,data.starting_info?.id)
+    const {images,cad} = await getImages('starting_info',data.starting_info?.id) 
+    console.log(images,cad)
 
     if (error) {
       console.error("Error fetching sample:", error);
@@ -113,7 +63,7 @@ export default function Samples() {
     const { data: stones, error: stonesError } = await supabase
       .from("stones")
       .select("*")
-      .eq("starting_info_id", data[0].starting_info.id);
+      .eq("starting_info_id", data.starting_info.id);
 
     if (stonesError) {
       console.error("Error fetching stones:", stonesError);
@@ -121,14 +71,14 @@ export default function Samples() {
       return;
     }
 
-    const startingInfo = data[0].starting_info;
-    delete data[0].starting_info;
+    const startingInfo = data.starting_info;
+    delete data.starting_info;
 
     const restructuredData = {
-      formData: data[0],
-      images:images,
-      cad:cad,
+      formData: data,
       starting_info: {
+        images:images,
+        cad:cad,
         ...startingInfo,
         stones: stones,
       },
@@ -138,6 +88,7 @@ export default function Samples() {
     setSample(restructuredData);
   };
   const updateSample = (updatedSamples) => {
+    console.log(updatedSamples)
     setIsDetailsOpen(false);
     setSamples((previousSample) =>
       previousSample.map((Sample) =>
