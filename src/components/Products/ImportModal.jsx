@@ -71,8 +71,8 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
       for (let i = 0; i < formatted.length; i++) {
         try {
           let { starting_info, ...formData } = formatted[i];
-          let { stones, ...restInfo } = starting_info || {};
-          // console.log('Formatted Row:', formData, 'Starting Info:', restInfo, 'Stones:', stones);
+          let { id:startingInfoIdFromImport,stones,images:dontUseImages,cad:dontUseCad, ...restOfStartingInfo } = starting_info || {};
+          // console.log('Formatted Row:', formData, 'Starting Info:', restOfStartingInfo, 'Stones:', stones);
           if (type === 'designs') {
             const { id,...rest} = formData 
             const { data: inserted ,error:insertedError} =
@@ -84,7 +84,7 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
             
 
               if(starting_info.vendor) {
-                const { data: startRow } = await supabase.from('starting_info').insert([restInfo]).select('*');
+                const { data: startRow } = await supabase.from('starting_info').insert([restOfStartingInfo]).select('*');
                 if (stones.length > 0) {
                   await supabase.from('stones').insert(stones.map(stone => ({ ...stone, starting_info_id: startRow[0].id })));
                 }
@@ -100,60 +100,68 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
             if( formData.styleNumber.trim() === '') {
               throw new Error(`missing styleNumber`);
             }
-            if(!restInfo.weight) {
+            if(!restOfStartingInfo.weight) {
               console.log('weight is missing', formData.weight);
               throw new Error(`missing weight`);
             }
-            // console.log('formatted stylenumber:', formData.styleNumber, 'restInfo:', restInfo,'formData:', formData);
+            // console.log('formatted stylenumber:', formData.styleNumber, 'restOfStartingInfo:', restOfStartingInfo,'formData:', formData);
+              const { id,...rest} = formData 
+              const FormatedFormDataId = id && !isNaN(Number(id)) ? Number(id) : null;
             
-            const { data: existing } = await supabase.from('samples').select('*').eq('id', Number(formData.id)).single();
-            if (existing) restInfo.id = existing.starting_info_id;
+           try{
+              const { data: existing } = await supabase.from('samples').select('*').eq('id',  FormatedFormDataId).single();
+              restOfStartingInfo.id =  existing.starting_info_id 
+            } catch (error) {
+              console.log('possibly a new sample, no existing found', error);
+            }
             
-            const { data: updatedStartingInfo } = await supabase.from('starting_info').upsert([restInfo], { onConflict: ['id'] }).select();
+              console.log('starting_info_ to be submitted for update:', restOfStartingInfo);
+              const { data: updatedStartingInfo } = await supabase.from('starting_info').upsert([{...restOfStartingInfo}], { onConflict: ['id'] }).select().single();
+
+
+              console.log(typeof  id, id)
+
+              // const {data:imageData,error:imageError} = await supabase
+              // .from('sample_images')
+              // .select("*")
+              // .single()
+              // .eq('sample_id',formData.id)
+              // if (imageError) {
+              //   throw new Error(`Sample update error: ${imageError.details}`);
+              // }
+              const {images,cad} = await getImages('starting_info',updatedStartingInfo.id);
+              
+              const updatedData = {
+                ...rest,
+                starting_info_id: updatedStartingInfo.id 
+              }
+              if(FormatedFormDataId){
+                console.log('using existing id for sample update:', FormatedFormDataId);
+                updatedData.id = FormatedFormDataId
+              }
+
+              const { data: updatedSample, error: updatedSampleError } =
+                await supabase.from('samples').upsert([{...updatedData}], { onConflict: ['id'] }).select()
+
+              if (updatedSampleError) {
+                throw new Error(`Sample update error: ${updatedSampleError.details}`);
+              }
+              
+              formatted[i] = { ...updatedSample[0], starting_info: updatedStartingInfo,images, cad};
+              
+              if (stones.length > 0) {
+                await supabase.from('stones').upsert(stones.map(stone => ({ ...stone, starting_info_id: updatedStartingInfo.id })), { onConflict: ['id'] });
+              }
             
-            const { id,...rest} = formData 
-            const FormatedFormDataId = id && !isNaN(Number(id)) ? Number(id) : null;
 
-            console.log(typeof  id, id)
-
-            // const {data:imageData,error:imageError} = await supabase
-            // .from('sample_images')
-            // .select("*")
-            // .single()
-            // .eq('sample_id',formData.id)
-            // if (imageError) {
-            //   throw new Error(`Sample update error: ${imageError.details}`);
-            // }
-            const imageData = await  getImages('starting_info',FormatedFormDataId)
-            const updatedData = {
-              ...rest,
-              starting_info_id: updatedStartingInfo[0].id 
+            if (type === 'designQuote') {
+              const { data: infoRow } = await supabase.from('starting_info').upsert([restOfStartingInfo], { onConflict: ['id'] }).select();
+              if (stones.length > 0) {
+                await supabase.from('stones').upsert(stones.map(stone => ({ ...stone, starting_info_id: infoRow[0].id })), { onConflict: ['id'] });
+              }
             }
-            if(FormatedFormDataId){
-              updatedData.id = FormatedFormDataId
-            }
-
-            const { data: updatedSample, error: updatedSampleError } =
-              await supabase.from('samples').upsert([{updatedData }], { onConflict: ['id'] }).select()
-
-            if (updatedSampleError) {
-              throw new Error(`Sample update error: ${updatedSampleError.details}`);
-            }
-            const {images,cad} = imageData
-            formatted[i] = { ...updatedSample[0], starting_info: updatedStartingInfo[0],images, cad};
-            
-            if (stones.length > 0) {
-              await supabase.from('stones').upsert(stones.map(stone => ({ ...stone, starting_info_id: updatedStartingInfo[0].id })), { onConflict: ['id'] });
-            }
+            successfulRows.push(formatted[i]);
           }
-
-          if (type === 'designQuote') {
-            const { data: infoRow } = await supabase.from('starting_info').upsert([restInfo], { onConflict: ['id'] }).select();
-            if (stones.length > 0) {
-              await supabase.from('stones').upsert(stones.map(stone => ({ ...stone, starting_info_id: infoRow[0].id })), { onConflict: ['id'] });
-            }
-          }
-          successfulRows.push(formatted[i]);
           // console.log('Successfully processed row:', successfulRows);
         } catch (err) {
           console.error(`Error processing row ${i + 2}:`, err);

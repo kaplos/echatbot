@@ -82,8 +82,16 @@ export const handleImageUpload = async (files) => {
   }
   return imageUrls;
 };
-
+const returnEmptyImageObject = () => {
+  return {
+    images: [],
+    cad: [],
+  };
+}
 export const getImages = async(entity,entityId)=>{
+  if(!entity||!entityId){
+    return returnEmptyImageObject();  
+  }
   const {data:imageData,error:imageError} = await supabase
   .from('entity_images')
   .select('*')
@@ -91,19 +99,17 @@ export const getImages = async(entity,entityId)=>{
   .eq('entity',entity)
   .eq('entityId',entityId)
   .single()
-  
+
   if(imageError){
-     throw new Error(imageError.message)
+    //  throw new Error(imageError.message)
+    console.log(imageError)
   }
 
   
    
   if (!imageData || imageData.length === 0) {
     // No results from Supabase
-    return {
-      images: [],
-      cad: [],
-    };
+    return returnEmptyImageObject();
   }
   return imageData
 

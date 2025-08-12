@@ -35,7 +35,7 @@ export function parseFileToJSON(file) {
       } else {
         const workbook = XLSX.read(data, { type: 'binary' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: null });
         resolve(json);
       }
     };
