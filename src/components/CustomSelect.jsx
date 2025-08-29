@@ -24,7 +24,7 @@ function CustomSelect({ onSelect, version, setNewOption, informationFromDataBase
   useEffect(() => {
     const fetchData = async () => {
       const data = await getFromDatabase();
-      setOptions([{id:null,name:'(remove selection)'},...data]);
+      setOptions([{id:null,name:'(remove selection)'}, ...data]);
     };
 
     fetchData();
@@ -89,15 +89,21 @@ function CustomSelect({ onSelect, version, setNewOption, informationFromDataBase
     }
   };
 
-  const getFromDatabase = async () => {
-    const { data, error } = await supabase.from(`${version === "collection" ? "ideas" : version}`).select("id,name");
+const getFromDatabase = async () => {
+  let query;
+  if (version === "samples") {
+    query = supabase.from("samples").select("id,name,styleNumber").order('created_at', { ascending: false });
+  } else {
+    query = supabase.from(`${version === "collection" ? "ideas" : version}`).select("id,name").order('created_at', { ascending: false });
+  }
+  const { data, error } = await query;
 
-    if (error) {
-      console.error(`Error fetching ${version}:`, error);
-    }
-
-    return data;
-  };
+  if (error) {
+    console.error(`Error fetching ${version}:`, error);
+  }
+  console.log(`${version} fetched:`, data);
+  return data
+}
 
   const handleAddCollection = async () => {
     if (newItemName.trim() !== "" && version !== "collection") {

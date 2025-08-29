@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { useSupabase } from "./SupaBaseProvider";
-
+import SearchBar from "./SearchBar";
 function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected }) {
   const {supabase} = useSupabase();
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
-
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [options, setOptions] = useState([]);
   const [selectedOptions, setSelectedOptions] = useState([]);
+  const [filteredOptions, setFilteredOptions] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,9 +48,9 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
   const handleCheckboxChange = (option) => {
     // console.log(option,selectedOptions)
     setSelectedOptions(prev => {
-      if (prev.some(selected => selected.id  === option.id)) {
+      if (prev.some(selected => selected.sample_id === option.sample_id)) {
         // console.log(selected.productId,option.id)
-        return prev.filter(selected => selected.id !== option.id);
+        return prev.filter(selected => selected.sample_id !== option.sample_id);
       } else {
         return [...prev, option];
       }
@@ -57,31 +58,35 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
   };
 
   const handleApplySelection = () => {
+    
     onSelect(selectedOptions);
     close();
   };
 
   const getFromDatabase = async () => {
     let query = supabase.from(version)
-    if(version!=="samples"){
+
+    // if(version!=="samples"){
         query = query.select('*')
-    }else{
-        query=query.select(`*,
-           startingInfo: starting_info_id(*)`);
-    }
+    // }else{
+        // query=query.select(`*,
+        //    startingInfo: starting_info_id(*)`);
+        
+    // }
+
     let { data, error } = await query
-    if(version==="samples"){
-      data = data.map(item=> {
-        let {startingInfo} =item;
-        let {id,...rest} = startingInfo
-        // delete startingInfo.id
-        // delete item.startingInfo
-        return {
-          ...item,
-          ...rest
-      }
-    })
-    }
+    // if(version==="samples_with_stones_export"){
+    //   data = data.map(item=> {
+    //     let {startingInfo} =item;
+    //     let {id,...rest} = startingInfo
+    //     // delete startingInfo.id
+    //     // delete item.startingInfo
+    //     return {
+    //       ...item,
+    //       ...rest
+    //   }
+    // })
+    // }
     // console.log(data)
 
       if (error) {
@@ -90,6 +95,7 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
 
     return data || [];
   };
+                      // console.log(filteredOptions,selectedOptions,'selectedOptions ')
 
   return (
     <Transition appear show={isOpen} as={React.Fragment}>
@@ -128,28 +134,27 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
                 </div>
 
                 <div className="mt-2">
-                  <input
+                  {/* <input
                     type="text"
                     placeholder="Search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg p-2"
-                  />
+                  /> */}
+                  <SearchBar items={options} onSearch={(items) => setFilteredOptions(items)} type={'sample_with_stones_export'} />
+
                 </div>
 
                 <ul className="max-h-40 overflow-y-auto gap-1 flex flex-col mt-2">
-                  {options
-                    .filter((option) =>
-                      option.styleNumber.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
+                  {filteredOptions
                     .map((option, index) => {
-                      const wasPreviouslySelected = selected?.some((s) => s.productId === option.id);  
-                      const isCurrentlySelected = selectedOptions.some((s) => s.id === option.id);
+                      const wasPreviouslySelected = selected?.some((s) => s.sample_id === option.sample_id);  
+                      const isCurrentlySelected = selectedOptions.some((s) => s.sample_id === option.sample_id);
                       // console.log(wasPreviouslySelected, isCurrentlySelected, option.styleNumber, selectedOptions);
 
                       return (
                         <li
-                          key={index}
+                          key={option.sample_id}
                           onClick={() => {
                             if (!wasPreviouslySelected) {
                               handleCheckboxChange(option);

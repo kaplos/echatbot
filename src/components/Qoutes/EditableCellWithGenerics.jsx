@@ -8,7 +8,7 @@ export default function EditableCellWithGeneric({
     id, 
     data
 }) {
-    console.log(data,'in editable cell')
+    // console.log(data,'in editable cell','cell type',cellType)
 
     const [customValue, setCustomValue] = useState(data);
     useEffect(() => {

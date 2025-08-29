@@ -78,7 +78,7 @@ export default function CalculateMetalCost({ type: originalType, weight, karat, 
     );
 }
 const getMetalCost = (metalPrice, weight, karat, lossPercent) => {
-    console.log(metalPrice, weight, purity[karat], lossPercent);
+    console.log(metalPrice, weight, purity["925"], lossPercent);
 
     let buyingFee = 1.01;
     const lossPercentFormatted = (lossPercent > 1 ? lossPercent / 100 : lossPercent) + 1;

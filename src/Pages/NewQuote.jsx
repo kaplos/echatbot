@@ -1,24 +1,35 @@
-import { useSupabase } from '../components/SupaBaseProvider';
-import React, { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
-import CustomSelectWithSelections from '../components/CustomSelectWithSelections';
-import { useNavigate } from 'react-router-dom';
-import { useMessage } from '../components/Messages/MessageContext';
-import useFormUpdater from '../Hooks/UseFormUpdater';
-import { getMetalCost } from '../components/Samples/CalculatePrice';
-import { useMetalPriceStore } from '../store/MetalPrices';
-import { getTotalCost } from '../components/Samples/TotalCost';
-import { useLocation } from 'react-router-dom';
-import EditableCellWithGenerics from '../components/Qoutes/EditableCellWithGenerics';
-import { useGenericStore } from '../store/VendorStore';
-import CustomSelect from '../components/CustomSelect';
+import { useSupabase } from "../components/SupaBaseProvider";
+import React, { useState, useEffect } from "react";
+import { Plus } from "lucide-react";
+import CustomSelectWithSelections from "../components/CustomSelectWithSelections";
+import { useNavigate } from "react-router-dom";
+import { useMessage } from "../components/Messages/MessageContext";
+import useFormUpdater from "../Hooks/UseFormUpdater";
+import { getMetalCost } from "../components/Samples/CalculatePrice";
+import { useMetalPriceStore } from "../store/MetalPrices";
+import { getTotalCost } from "../components/Samples/TotalCost";
+import { useLocation } from "react-router-dom";
+import EditableCellWithGenerics from "../components/Qoutes/EditableCellWithGenerics";
+import { useGenericStore } from "../store/VendorStore";
+import CustomSelect from "../components/CustomSelect";
 export default function NewQuote() {
   const navigate = useNavigate();
   const location = useLocation();
-
+  const allowedLineItemFields = [
+    "id",
+    "productId",
+    "retailPrice",
+    "internalNote",
+    "margin",
+    "totalCost",
+    "salesPrice",
+    "quoteNumber",
+    "BuyerComment",
+    // add any other fields that are valid in your lineItems table
+  ];
   const { prices } = useMetalPriceStore();
-  const {supabase,session} = useSupabase();
-  
+  const { supabase, session } = useSupabase();
+
   const { showMessage } = useMessage();
   const [productInfo, setProductInfo] = useState([]);
   const [lineItems, setlineItems] = useState([]);
@@ -32,39 +43,40 @@ export default function NewQuote() {
   //     totalCost: 0,
   //     salesPrice: 0
   // }
-// );
-  const quote = new URLSearchParams(location.search).get('quote') || null
+  // );
+  const quote = new URLSearchParams(location.search).get("quote") || null;
   const userId = session?.user?.id; // User ID
 
   const { formData, updateFormField, resetForm } = useFormUpdater({
-    buyer: '',
-    tags: '',
+    buyer: null,
+    tags: "",
     status: "Created:grey",
     agent: userId,
     gold: parseFloat(prices.gold.price),
     silver: parseFloat(prices.silver.price),
     multiplier: 4,
     bulkMargin: 0,
-    quoteTotal: 0
+    quoteTotal: 0,
+    retailPrice: 0,
   });
 
-  const {getEntityItemById,getEntity}= useGenericStore()
-const vendors = getEntity('vendors')
-  const [isLoading,setIsLoading] = useState(false)
+  const { getEntityItemById, getEntity } = useGenericStore();
+  const vendors = getEntity("vendors");
+  const [isLoading, setIsLoading] = useState(false);
   const [editingCell, setEditingCell] = useState(null);
 
   const [isOpen, setIsOpen] = useState(false);
 
-   useEffect(() => {   
-                      
-        if(quote){
-            console.log(quote,'quote from params')
-            const fetchQuote = async () => {
-                setIsLoading(true);
-                
-                const { data, error } = await supabase
-                  .from('quotes')
-                  .select(`
+  useEffect(() => {
+    if (quote) {
+      console.log(quote, "quote from params");
+      const fetchQuote = async () => {
+        setIsLoading(true);
+
+        const { data, error } = await supabase
+          .from("quotes")
+          .select(
+            `
                     *,
                     lineItems (
                       *,
@@ -73,141 +85,143 @@ const vendors = getEntity('vendors')
                        startingInfo: starting_info_id ( * )
                       )
                     )
-                  `)
-                  .eq('quoteNumber', quote)
-                  .single();
-                    // const productInfo = data.lineItems.map((lineItem)=>{
-                    //   const{ startingInfo, ...rest} = lineItem.product
-                    //   return {
+                  `
+          )
+          .eq("quoteNumber", quote)
+          .single();
+        // const productInfo = data.lineItems.map((lineItem)=>{
+        //   const{ startingInfo, ...rest} = lineItem.product
+        //   return {
 
-                    //   }
-                    // })
-                    // console.log(data)
-                  const processedLineItems = data.lineItems.map((item) => {
-                    const { startingInfo, ...productData } = item.product; // Extract startingInfo and product data
-                    const { id,...startingInfoData } = startingInfo; // Extract id and other properties from startingInfo
-                    console.log()
-                    return {
-                        ...productData, // Spread the product data into the top-level object
-                        ...startingInfoData, // Spread the startingInfo data into the top-level object
-                        retailPrice: parseFloat(item.retailPrice.toFixed(2)) || 0,
-                        salesPrice: parseFloat(item.retailPrice.toFixed(2)) || 0,
-                        
-                    };
-                });                // delete data.lineItems
-                  console.log(processedLineItems,"processed line items")
-                  setlineItems(data.lineItems)
-                  setProductInfo(processedLineItems)
-                console.log(data,'data from supabase');
+        //   }
+        // })
+        // console.log(data)
+        const processedLineItems = data.lineItems.map((item) => {
+          const { startingInfo, ...productData } = item.product; // Extract startingInfo and product data
+          const { id, ...startingInfoData } = startingInfo; // Extract id and other properties from startingInfo
+          console.log();
+          return {
+            ...productData, // Spread the product data into the top-level object
+            ...startingInfoData, // Spread the startingInfo data into the top-level object
+            retailPrice: parseFloat(item.retailPrice.toFixed(2)) || 0,
+            salesPrice: parseFloat(item.retailPrice.toFixed(2)) || 0,
+          };
+        }); // delete data.lineItems
+        console.log(processedLineItems, "processed line items");
+        setlineItems(data.lineItems);
+        setProductInfo(processedLineItems);
+        console.log(data, "data from supabase");
 
-                if (error) {
-                console.error('Error fetching samples:', error);
-                return;
-                }
-                resetForm(data);
-                setIsLoading(false);
-
-            };
-                fetchQuote();
-        }else{
-            console.log('not displaying a quote')
+        if (error) {
+          console.error("Error fetching samples:", error);
+          return;
         }
+        resetForm(data);
+        setIsLoading(false);
+      };
+      fetchQuote();
+    } else {
+      console.log("not displaying a quote");
     }
-    ,[quote]) 
-   
+  }, [quote]);
 
+  const filterLineItemFields = (item) =>
+    Object.fromEntries(
+      Object.entries(item).filter(([key]) =>
+        allowedLineItemFields.includes(key)
+      )
+    );
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (lineItems.length === 0) {
-      showMessage('Please add items to the quote', 'error');
+      showMessage("Please add items to the quote", "error");
       return;
     }
     // const submitData = formData.items.map(({ product, ...rest }) => rest);
     const quoteTotal = lineItems.reduce((acc, item) => acc + item.totalCost, 0);
-    const {lineItems: dontUse,...rest} = formData
+    const { lineItems: dontUse, ...rest } = formData;
     const submitForm = {
       ...rest,
       updated_at: new Date().toISOString(),
       quoteTotal: quoteTotal,
     };
-    if(quote){
-      await updateIfChanged(submitForm)
-      await updateLineItem()
-      await updateIfLineItemsChanged()
-      await handleLineItemsToDelete()
-      showMessage('Quote Updated', 'success');
-      navigate('/quotes')
-      return
+    if (quote) {
+      await updateIfChanged(submitForm);
+      await updateLineItem();
+      await updateIfLineItemsChanged();
+      await handleLineItemsToDelete();
+      showMessage("Quote Updated", "success");
+      navigate("/quotes");
+      return;
     }
     const { data, error } = await supabase
-      .from('quotes')
+      .from("quotes")
       .insert([submitForm])
-      .select();
+      .select()
+      .single();
+
     if (error) {
       console.error(error);
     }
-    showMessage('Quote Created', 'success');
-    const {error:lineItemError} = 
-    await supabase
-      .from('lineItems')
-      .insert(
-      lineItems.map(item => ({
-        ...item,
-        quoteNumber: data[0].quoteNumber,
-      })))
-    if(lineItemError){
-      console.error(lineItemError)
+    showMessage("Quote Created", "success");
+    const { error: lineItemError } = await supabase.from("lineItems").insert(
+      lineItems.map((item) => ({
+        ...filterLineItemFields(item),
+        quoteNumber: data.quoteNumber,
+      }))
+    );
+    if (lineItemError) {
+      console.error(lineItemError);
     }
-    resetForm({
-      agent: '',
-      buyer: '',
-      tags: '',
-      status: "Created:grey",
-      gold: parseFloat(prices.gold.price),
-      silver: parseFloat(prices.silver.price),
-      items: []
-    });
-    navigate('/quotes');
+    // resetForm({
+    //   agent: '',
+    //   buyer: '',
+    //   tags: '',
+    //   status: "Created:grey",
+    //   gold: parseFloat(prices.gold.price),
+    //   silver: parseFloat(prices.silver.price),
+    //   items: []
+    // });
+    // navigate('/quotes');
   };
   const updateIfChanged = async (submitForm) => {
     const { data: currentData, error: fetchError } = await supabase
-      .from('quotes')
-      .select('*')
-      .eq('quoteNumber', quote)
+      .from("quotes")
+      .select("*")
+      .eq("quoteNumber", quote)
       .single();
-  
+
     if (fetchError) {
-      console.error('Error fetching current data:', fetchError);
+      console.error("Error fetching current data:", fetchError);
       return;
     }
-  
 
-  
     // Find only the changed fields
 
     const changedFields = Object.keys(submitForm).reduce((acc, key) => {
-      if (submitForm[key] !== currentData[key]) { // Updated reference to formData
+      if (submitForm[key] !== currentData[key]) {
+        // Updated reference to formData
         acc[key] = submitForm[key]; // Only keep changed fields
       }
       return acc;
     }, {});
-  
+
     if (Object.keys(changedFields).length === 0) {
-      console.log('No changes detected, skipping update.');
+      console.log("No changes detected, skipping update.");
       return;
     }
-  
+
     // Update only if something changed
     const { data, error } = await supabase
-      .from('quotes')
+      .from("quotes")
       .update(changedFields)
-      .eq('quoteNumber', quote)
+      .eq("quoteNumber", quote)
       .select();
-  
+
     if (error) {
-      console.error('Error updating:', error);
+      console.error("Error updating:", error);
     } else {
-      console.log('Updated row:', data);
+      console.log("Updated row:", data);
     }
   };
   // const handleChange=(id,field,value)=>{
@@ -215,146 +229,212 @@ const vendors = getEntity('vendors')
   //   updateLineItem(id,field,value)
   // }
   const updateIfLineItemsChanged = async () => {
-      let newLineItems = lineItems.filter(lineItem => !lineItem.id )
-      console.log(newLineItems,'new line items')
+    let newLineItems = lineItems.filter((lineItem) => !lineItem.id);
+    console.log(newLineItems, "new line items");
 
-      const {  error } = await supabase
-        .from('lineItems')
-        .insert(newLineItems.map(item => ({
-              ...item,
-              quoteNumber: quote,
-            })))
+    const { error } = await supabase.from("lineItems").insert(
+      newLineItems.map((item) => ({
+        ...filterLineItemFields(item),
+        quoteNumber: quote,
+      }))
+    );
 
-        if(error){
-          console.error(error)
-        }
+    if (error) {
+      console.error(error);
+    }
+  };
+  const updateLineItem = async () => {
+    let lineItemsToUpdate = lineItems
+      .filter((lineItem) => lineItem.id)
+      .map((item) => {
+        const { product, ...rest } = item;
+        return rest;
+      });
 
-  }
-  const updateLineItem = async ()=>{
-    let lineItemsToUpdate = lineItems.filter(lineItem => lineItem.id ).map(item => {
-      const {product ,...rest} = item
-      return rest
-    })
+    const { error } = await supabase.from("lineItems").upsert(
+      lineItemsToUpdate.map((item) => ({
+        ...item,
+      })),
+      { onConflict: ["id"] }
+    );
 
-    const {  error } = await supabase
-        .from('lineItems')
-        .upsert(lineItemsToUpdate.map(item => ({
-              ...item,
-            })),{ onConflict: ['id'] })
-
-        if(error){
-          console.error(error)
-        }
-  }
+    if (error) {
+      console.error(error);
+    }
+  };
   const handleLineItemsToDelete = async () => {
-    if(lineItemsToDelete.length > 0){
+    if (lineItemsToDelete.length > 0) {
       const { error } = await supabase
-      .from('lineItems')
-      .delete()
-      .in('id', lineItemsToDelete);
+        .from("lineItems")
+        .delete()
+        .in("id", lineItemsToDelete);
 
       if (error) {
-        console.error('Error deleting line items:', error);
+        console.error("Error deleting line items:", error);
       }
-
     }
-  }
+  };
 
-    const handleLineChange = (productId, field, value) => {
-      setlineItems((prevItems) =>
-        prevItems.map((item) => {
-          if (item.productId !== productId) return item;
-    
-          const updatedItem = { ...item, [field]: value };
-    
-          // If margin was updated, calculate new salesPrice
-          if (field === 'margin') {
-            const weight = productInfo.find(item => item.productId === productId)?.weight || 0;
-            const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
-            const margin = parseInt(value) || 0;
-            const retailPrice = parseFloat((item.salesPrice * formData.multiplier ).toFixed(2)) || 0;
-            const salesPrice = parseFloat(+(totalCost / (1 - margin / 100)).toFixed(2));
-            
-            
-            console.log(+(totalCost / (1 - margin / 100)).toFixed(2),parseFloat(+(totalCost / (1 - margin / 100)).toFixed(2)),margin, 'total cost after margin')
-            updatedItem.salesPrice = salesPrice
-            updatedItem.retailPrice =retailPrice
-          }
-          if (field === 'salesPrice') {
+  const handleLineChange = (productId, field, value) => {
+    setlineItems((prevItems) =>
+      prevItems.map((item) => {
+        if (item.productId !== productId) return item;
 
-            const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
-            const salesPrice = parseFloat(value) || 0;
-            updatedItem.margin = parseFloat(+(((salesPrice - totalCost) / salesPrice) * 100).toFixed(2))
-          }
+        const updatedItem = { ...item, [field]: value };
 
-          // If salesPrice was updated, optionally recalc margin? (Only if needed)
-          console.log(updatedItem, 'updated item')
-          return updatedItem;
-        })
-      );
-    };
+        // If margin was updated, calculate new salesPrice
+        if (field === "margin") {
+          const weight =
+            productInfo.find((item) => item.productId === productId)?.weight ||
+            0;
+          const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
+          const margin = parseInt(value) || 0;
+          const retailPrice =
+            parseFloat((item.salesPrice * formData.multiplier).toFixed(2)) || 0;
+          const salesPrice = parseFloat(
+            +(totalCost / (1 - margin / 100)).toFixed(2)
+          );
+
+          console.log(
+            +(totalCost / (1 - margin / 100)).toFixed(2),
+            parseFloat(+(totalCost / (1 - margin / 100)).toFixed(2)),
+            margin,
+            "total cost after margin"
+          );
+          updatedItem.salesPrice = salesPrice;
+          updatedItem.retailPrice = retailPrice;
+        }
+        if (field === "salesPrice") {
+          const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
+          const salesPrice = parseFloat(value) || 0;
+          updatedItem.margin = parseFloat(
+            +(((salesPrice - totalCost) / salesPrice) * 100).toFixed(2)
+          );
+        }
+
+        // If salesPrice was updated, optionally recalc margin? (Only if needed)
+        console.log(updatedItem, "updated item");
+        return updatedItem;
+      })
+    );
+  };
 
   const handleCustomSelect = (items) => {
-    setProductInfo(prev=> [...prev,...items]);
-    
-    const itemData = items.map((item) => 
-      ({
-        productId: item.id,
-        retailPrice: parseFloat(totalCost(item, getEntityItemById('vendors', item.vendor).pricingsetting?.lossPercentage).toFixed(2)) * multiplier,
-        internalNote: '',
-        margin: formData.bulkMargin,
-        totalCost: parseFloat(totalCost(item, getEntityItemById('vendors', item.vendor).pricingsetting?.lossPercentage).toFixed(2)),
-        salesPrice:  parseFloat(totalCost(item, getEntityItemById('vendors', item.vendor).pricingsetting?.lossPercentage).toFixed(2))
-      })
-      
-    
-  )
-    setlineItems((prev) => [...prev, ...itemData]);
-    // const quoteTotal = submitData.reduce((acc, item) => acc + item.totalCost, 0);
+    items.forEach((element) => {
+      const lossPercentage =
+        getEntityItemById("vendors", element.vendor)?.pricingsetting
+          ?.lossPercentage || 0;
+      const cost =
+        parseFloat(totalCost(element, lossPercentage).toFixed(2)) || 0;
+      const salesPrice = cost;
+      const retailPrice =
+        parseFloat((salesPrice * (formData.multiplier || 1)).toFixed(2)) || 0;
+      console.log(cost, retailPrice, "cost and retail price");
+    });
 
-    // resetLineItems([...lineItems,...itemData]);
-    // updateFormField('items', [...formData.items, ...itemData]);
+    const itemData = items.map((item) => {
+      const lossPercentage =
+        getEntityItemById("vendors", item.vendor)?.pricingsetting
+          ?.lossPercentage || 0;
+      const cost = parseFloat(totalCost(item, lossPercentage).toFixed(2)) || 0;
+      const salesPrice = cost;
+      const retailPrice =
+        parseFloat((salesPrice * (formData.multiplier || 1)).toFixed(2)) || 0;
+      return {
+        ...item,
+        productId: item.sample_id,
+        retailPrice,
+        internalNote: "",
+        margin: formData.bulkMargin,
+        totalCost: cost,
+        salesPrice,
+      };
+    });
+    console.log(itemData, "item data to add");
+    setlineItems((prev) => [...prev, ...itemData]);
   };
-  const deleteLineItem = (event,product) => {
-    console.log(product?.id?? "no id")
-    event.preventDefault()
-    product?.id ?
-      setlineItemsToDelete((prevItems) => [...prevItems, product?.id])
-    : ""
-    setlineItems((prevItems) => prevItems.filter(item => item.productId !== product.productId));
-  }
+  const deleteLineItem = (event, product) => {
+    console.log(product?.id || product?.sample_id || "no id");
+    event.preventDefault();
+    product?.id
+      ? setlineItemsToDelete((prevItems) => [...prevItems, product?.id])
+      : "";
+    setlineItems((prevItems) =>
+      prevItems.filter((item) => item.productId !== product.productId)
+    );
+  };
+  const safeNumber = (val) => Number(val) || 0;
+  
   const totalCost = (product, lossPercentage) => {
-    const metalPrice = product.metalType === 'Gold' ? formData.gold : formData.silver;
+    const metalPrice =
+      product.metalType === "Gold"
+        ? safeNumber(formData.gold)
+        : safeNumber(formData.silver);
+    const weight = safeNumber(product.weight);
+    const karat = product.karat;
+    const loss = safeNumber(lossPercentage);
+    const miscCost = safeNumber(product.miscCost);
+    const laborCost = safeNumber(product.laborCost);
+
     if (!metalPrice) {
-      console.error('Metal price is missing!');
+      console.error("Metal price is missing!");
       return 0;
     }
 
-    const metalCost = getMetalCost(metalPrice, product.weight, product.karat, lossPercentage);
-    return getTotalCost(metalCost, product.miscCost, product.laborCost, product.stones);
+    // console.log(
+    //   {
+    //     metalPrice,
+    //     weight,
+    //     karat,
+    //     loss,
+    //     miscCost,
+    //     laborCost,
+    //     stones: product.stones,
+    //   },
+    //   "totalCost input values"
+    // );
+
+    const metalCost = getMetalCost(metalPrice, weight, karat, loss);
+    const totalCost = getTotalCost(
+      metalCost,
+      miscCost,
+      laborCost,
+      product.stones
+    );
+    console.log(metalCost, "metal cost", totalCost, "total cost calculated");
+    return totalCost;
   };
   // Update totalCost and salesPrice when metal prices change
   useEffect(() => {
     // When gold or silver price changes, update totalCost and adjust salesPrice accordingly
     setlineItems((prevItems) =>
       prevItems.map((item) => {
-        const productInfoObject = productInfo.find((p) => p.id === item.productId);
+        const productInfoObject = productInfo.find(
+          (p) => p.id === item.productId
+        );
         if (!productInfoObject) return item;
-  
-        const vendor = getEntityItemById('vendors', productInfoObject.vendor);
+
+        const vendor = getEntityItemById("vendors", productInfoObject.vendor);
         const lossPercentage = vendor?.pricingsetting?.lossPercentage || 0;
-  
+
         const oldCost = item.totalCost || 0; // Previous cost
-        const newCost = parseFloat(totalCost(productInfoObject, lossPercentage).toFixed(2)); // New cost
+        const newCost = parseFloat(
+          totalCost(productInfoObject, lossPercentage).toFixed(2)
+        ); // New cost
         const costDifference = newCost - oldCost; // Difference in cost due to metal price change
-  
+
         const oldSalesPrice = item.salesPrice || 0; // Previous sales price
-        const newSalesPrice = parseFloat((oldSalesPrice + costDifference).toFixed(2)); // Add cost difference to sales price
-  
-        const marginPercent = newSalesPrice > 0
-          ? parseFloat(((newSalesPrice - newCost) / newSalesPrice * 100).toFixed(2)) // Recalculate margin
-          : 0;
-  
+        const newSalesPrice = parseFloat(
+          (oldSalesPrice + costDifference).toFixed(2)
+        ); // Add cost difference to sales price
+
+        const marginPercent =
+          newSalesPrice > 0
+            ? parseFloat(
+                (((newSalesPrice - newCost) / newSalesPrice) * 100).toFixed(2)
+              ) // Recalculate margin
+            : 0;
+
         return {
           ...item,
           totalCost: newCost,
@@ -364,53 +444,61 @@ const vendors = getEntity('vendors')
       })
     );
   }, [formData.gold, formData.silver]);
-  
+
   useEffect(() => {
     // Recalculate salesPrice for each line item when bulkMargin changes
     setlineItems((prevItems) =>
       prevItems.map((item) => {
-        const productInfoObject = productInfo.find((p) => p.id === item.productId);
+        const productInfoObject = productInfo.find(
+          (p) => p.id === item.productId
+        );
         if (!productInfoObject) return item;
 
         const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
-        const salesPrice = parseFloat(+(totalCost / (1 - formData.bulkMargin / 100)).toFixed(2));
+        const salesPrice = parseFloat(
+          +(totalCost / (1 - formData.bulkMargin / 100)).toFixed(2)
+        );
         return {
           ...item,
           salesPrice: salesPrice,
-          margin: formData.bulkMargin
+          margin: formData.bulkMargin,
         };
       })
     );
-  },[formData.bulkMargin])
+  }, [formData.bulkMargin]);
   useEffect(() => {
-    console.log('form has been updated ')
-    setlineItems((prevItems) => 
-       prevItems.map((item) => {
-      const retailPrice = parseFloat((item.salesPrice * formData.multiplier ).toFixed(2)) || 0;
+    console.log("form has been updated ");
+    setlineItems((prevItems) =>
+      prevItems.map((item) => {
+        const retailPrice =
+          parseFloat((item.salesPrice * formData.multiplier).toFixed(2)) || 0;
 
-      return {
-        ...item,
-        retailPrice: retailPrice,
-      }
+        return {
+          ...item,
+          retailPrice: retailPrice,
+        };
       })
-    )
-  
-  },[formData.multiplier,formData.gold,formData.silver,formData.bulkMargin])
+    );
+  }, [
+    formData.multiplier,
+    formData.gold,
+    formData.silver,
+    formData.bulkMargin,
+  ]);
 
-  console.log(productInfo,lineItems,'line items')
-
+  console.log(productInfo, lineItems, "line items");
 
   return (
     <div className="flex flex-col min-h-[80vh]">
       <div className="p-6 flex-1 flex flex-col">
         {/* headers for the new quote page */}
         <div className="flex flex-row">
-          <h1 className="text-2xl font-bold text-gray-900">{quote ? 'Update Quote' : 'Create Quote'}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {quote ? "Update Quote" : "Create Quote"}
+          </h1>
           {/* this div supplies the user with a add and selection modal */}
           <div className="flex space-x-3 justify-self-end flex-col w-48 ml-auto">
             <button
-              
-
               className="bg-chabot-gold text-white px-4 py-2 rounded-lg flex items-center hover:bg-opacity-90 transition-colors"
               onClick={() => setIsOpen(true)}
             >
@@ -418,7 +506,7 @@ const vendors = getEntity('vendors')
               Add Items
             </button>
             <CustomSelectWithSelections
-              version="samples"
+              version="sample_with_stones_export"
               selected={lineItems}
               close={() => setIsOpen(false)}
               onSelect={handleCustomSelect}
@@ -430,7 +518,7 @@ const vendors = getEntity('vendors')
         <div className="flex flex-col justify-between items-end  mb-6 flex-1 h-full  ">
           <div className="flex flex-row gap-2 mt-4 w-full justify-between ">
             {/* metalPrices */}
-            <div className='flex gap-2'>
+            <div className="flex gap-2">
               {/* <span className="self-center">Metal Prices At:</span> */}
               <div className="flex flex-col mb-1">
                 <label htmlFor="gold_price">Gold Price</label>
@@ -441,7 +529,9 @@ const vendors = getEntity('vendors')
                   id="gold_price"
                   placeholder="2300"
                   value={formData.gold}
-                  onChange={(e) => updateFormField('gold',parseFloat( e.target.value))}
+                  onChange={(e) =>
+                    updateFormField("gold", parseFloat(e.target.value))
+                  }
                 />
               </div>
               <div className="flex flex-col mb-1">
@@ -453,11 +543,13 @@ const vendors = getEntity('vendors')
                   id="silver_price"
                   placeholder="32"
                   value={formData.silver}
-                  onChange={(e) => updateFormField('silver', parseFloat( e.target.value))}
+                  onChange={(e) =>
+                    updateFormField("silver", parseFloat(e.target.value))
+                  }
                 />
               </div>
             </div>
-            <div className='flex gap-2'>
+            <div className="flex gap-2">
               {/* bulk margins */}
               <div>
                 <label htmlFor="bulk-margin">Bulk Margin</label>
@@ -466,34 +558,37 @@ const vendors = getEntity('vendors')
                   className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
                   name="bulk-margin"
                   id="bulk-margin"
-                  onChange={(e) => updateFormField('bulkMargin',parseFloat(e.target.value))}
-                  value={formData.bulkMargin||0}
-                  />
+                  onChange={(e) =>
+                    updateFormField("bulkMargin", parseFloat(e.target.value))
+                  }
+                  value={formData.bulkMargin || 0}
+                />
               </div>
               {/* retail price multipler */}
               <div>
                 <label htmlFor="multiplier">Multipler</label>
-                  <input
-                    type="number"
-                    className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
-                    name="multiplier"
-                    id="multiplier"
-                    onChange={(e) => updateFormField('multiplier',parseInt(e.target.value))}
-                    value={formData.multiplier}
-                    />
+                <input
+                  type="number"
+                  className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
+                  name="multiplier"
+                  id="multiplier"
+                  onChange={(e) =>
+                    updateFormField("multiplier", parseInt(e.target.value))
+                  }
+                  value={formData.multiplier}
+                />
               </div>
             </div>
-
           </div>
 
-          <form onSubmit={handleSubmit} 
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                }}
+          <form
+            onSubmit={handleSubmit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
               }
-              className="p-6 flex flex-col flex-1 h-full"
-          
+            }}
+            className="p-6 flex flex-col flex-1 h-full"
           >
             <div className="flex flex-1 h-full">
               <div className="overflow-auto h-full border border-gray-300 flex-1">
@@ -502,95 +597,139 @@ const vendors = getEntity('vendors')
                     <tr className="bg-gray-200">
                       <th className="border border-gray-300 p-2 w-20">Item</th>
                       <th className="border border-gray-300 p-2 w-20">Image</th>
-                      <th className="border border-gray-300 p-2 w-20">Description</th>
-                      <th className="border border-gray-300 p-2 w-20">Weights</th>
-                      <th className="border border-gray-300 p-2 w-20">Total Cost</th>
-                      <th className="border border-gray-300 p-2 w-20">Margins</th>
-                      <th className="border border-gray-300 p-2 w-20">Sales Price</th>
-                      <th className="border border-gray-300 p-2 w-20">Retail Price</th>
-                      <th className="border border-gray-300 p-2 w-20">Internal Note</th>
-                      <th className="border border-gray-300 p-2 w-20">Buyer Comment</th>
-                      <th className="border border-gray-300 p-2 w-20">Actions</th>
+                      <th className="border border-gray-300 p-2 w-20">
+                        Description
+                      </th>
+                      <th className="border border-gray-300 p-2 w-20">
+                        Weights
+                      </th>
+                      <th className="border border-gray-300 p-2 w-20">
+                        Total Cost
+                      </th>
+                      <th className="border border-gray-300 p-2 w-20">
+                        Margins
+                      </th>
+                      <th className="border border-gray-300 p-2 w-20">
+                        Sales Price
+                      </th>
+                      <th className="border border-gray-300 p-2 w-20">
+                        Retail Price
+                      </th>
+                      <th className="border border-gray-300 p-2 w-20">
+                        Internal Note
+                      </th>
+                      <th className="border border-gray-300 p-2 w-20">
+                        Buyer Comment
+                      </th>
+                      <th className="border border-gray-300 p-2 w-20">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {lineItems && lineItems.map((product, index) => 
-                    {
+                    {lineItems &&
+                      lineItems.map((product, index) => {
+                        let productInfoObject = product;
+                        // console.log(
+                        //   productInfo,
+                        //   productInfoObject,
+                        //   "product info object",
+                        //   product.sample_id
+                        // );
+                        return (
+                          <tr key={index} className="h-32">
+                            <td className="border border-gray-300 p-2 text-center">
+                              {productInfoObject.styleNumber ||
+                                productInfo.name}
+                            </td>
+                            <td className="border border-gray-300 p-2 text-center">
+                              <img
+                                src={productInfoObject.images[0]}
+                                alt={productInfoObject.styleNumber}
+                              />
+                            </td>
+                            <td className="border border-gray-300 p-2 text-center">
+                              {productInfoObject.description}
+                            </td>
+                            <td className="border border-gray-300 p-2 text-center">
+                              <div className="flex flex-row items-center justify-center gap-2">
+                                <div className="flex flex-col">
+                                  <span>{productInfoObject.weight}g</span>{" "}
+                                  <span>w</span>
+                                </div>
+                                <div className="flex flex-col">
+                                  <span>{productInfoObject.salesWeight}g</span>{" "}
+                                  <span>sw</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="border border-gray-300 p-2 text-center">
+                              ${product.totalCost}
+                            </td>
+                            <td className="border border-gray-300 p-2 text-center">
+                              <input
+                                type="number"
+                                value={product.margin || 0}
+                                onChange={(e) => {
+                                  e.preventDefault();
+                                  handleLineChange(
+                                    product.productId,
+                                    "margin",
+                                    parseInt(e.target.value)
+                                  );
+                                  // handleLineChange(product.productId, 'salesPrice', parseFloat((product.totalCost + (productInfoObject.weight * parseInt(e.target.value))).toFixed(2)))
 
-                      let productInfoObject = productInfo.find((item) => item.id === product.productId)  
-                      console.log(productInfo,productInfoObject,'product info object',product.productId)
-                    return (
-                        
-                      <tr key={index} className='h-32'>
-                        <td className="border border-gray-300 p-2 text-center">{productInfoObject.styleNumber}</td>
-                        <td className="border border-gray-300 p-2 text-center">
-                          <img src={productInfoObject.images[0]} alt={productInfoObject.styleNumber} />
-                        </td>
-                        <td className="border border-gray-300 p-2 text-center">{productInfoObject.description}</td>
-                        <td className="border border-gray-300 p-2 text-center">
-                          <div className="flex flex-row items-center justify-center gap-2">
-                            <div className="flex flex-col">
-                              <span>{productInfoObject.weight}g</span> <span>w</span>
-                            </div>
-                            <div className="flex flex-col">
-                              <span>{productInfoObject.salesWeight}g</span> <span>sw</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="border border-gray-300 p-2 text-center">${product.totalCost}</td>
-                        <td className="border border-gray-300 p-2 text-center">
-                          <input
-                            type="number"
-                            value={product.margin || 0}
-                            onChange={(e) => {
-                              e.preventDefault()
-                              handleLineChange(product.productId, 'margin', parseInt(e.target.value))
-                              // handleLineChange(product.productId, 'salesPrice', parseFloat((product.totalCost + (productInfoObject.weight * parseInt(e.target.value))).toFixed(2)))
-
-                                // updateLineItem(product.productId, 'margin', e.target.value)
-                                // updateLineItem(product.productId, 'salesPrice', parseFloat((product.totalCost + (productInfoObject.weight * parseInt(e.target.value))).toFixed(2)))
-
-                            }}
-
-                            className="input w-full text-center border-none outline-none"
-                          />
-                          <span className="ml-1">%</span>
-                        </td>
-                        <EditableCellWithGenerics 
-                            handleChange={handleLineChange} 
-                            setEditingCell={setEditingCell}
-                            editingCell={editingCell}
-                            id={productInfoObject.id}
-                            cellType={'salesPrice'}
-                            data={ product.salesPrice} // Placeholder for actual data
-                        />
-                        {/* <td className="border border-gray-300 p-2 text-center">{product.retailPrice}</td> */}
-                        {/* <td className="border border-gray-300 p-2 text-center">{productInfoObject.styleNumber}</td> */}
-                        <EditableCellWithGenerics 
-                            handleChange={handleLineChange} 
-                            setEditingCell={setEditingCell}
-                            editingCell={editingCell}
-                            id={productInfoObject.id}
-                            cellType={'retailPrice'}
-                            data={product.retailPrice} // Placeholder for actual data
-                        />
-                        <EditableCellWithGenerics 
-                            handleChange={handleLineChange} 
-                            setEditingCell={setEditingCell}
-                            editingCell={editingCell}
-                            id={productInfoObject.id}
-                            cellType={'internalNote'}
-                            data={product.internalNote} // Placeholder for actual data
-                        />
-                        <td className="border border-gray-300 p-2 text-center  ">{product.BuyerComment}</td>
-                          <td className=" flex justify-center items-center">
-                            <button type='button'  onClick={(event)=>{ event.preventDefault(); deleteLineItem(event,product)}} className="border border-gray-300 p-2 text-center bg-red-500 text-white rounded-md hover:bg-red-600 ">
-                              Delete
-                            </button>
-                          </td>
-                      </tr>
-                    )
-                    })}
+                                  // updateLineItem(product.productId, 'margin', e.target.value)
+                                  // updateLineItem(product.productId, 'salesPrice', parseFloat((product.totalCost + (productInfoObject.weight * parseInt(e.target.value))).toFixed(2)))
+                                }}
+                                className="input w-full text-center border-none outline-none"
+                              />
+                              <span className="ml-1">%</span>
+                            </td>
+                            <EditableCellWithGenerics
+                              handleChange={handleLineChange}
+                              setEditingCell={setEditingCell}
+                              editingCell={editingCell}
+                              id={product.sample_id}
+                              cellType={"salesPrice"}
+                              data={product.salesPrice} // Placeholder for actual data
+                            />
+                            {/* <td className="border border-gray-300 p-2 text-center">{product.retailPrice}</td> */}
+                            {/* <td className="border border-gray-300 p-2 text-center">{productInfoObject.styleNumber}</td> */}
+                            <EditableCellWithGenerics
+                              handleChange={handleLineChange}
+                              setEditingCell={setEditingCell}
+                              editingCell={editingCell}
+                              id={product.sample_id}
+                              cellType={"retailPrice"}
+                              data={product.retailPrice} // Placeholder for actual data
+                            />
+                            <EditableCellWithGenerics
+                              handleChange={handleLineChange}
+                              setEditingCell={setEditingCell}
+                              editingCell={editingCell}
+                              id={product.sample_id}
+                              cellType={"internalNote"}
+                              data={product.internalNote} // Placeholder for actual data
+                            />
+                            <td className="border border-gray-300 p-2 text-center  ">
+                              {product.BuyerComment}
+                            </td>
+                            <td className=" flex justify-center items-center">
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  deleteLineItem(event, product);
+                                }}
+                                className="border border-gray-300 p-2 text-center bg-red-500 text-white rounded-md hover:bg-red-600 "
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -607,7 +746,7 @@ const vendors = getEntity('vendors')
                     id="reference"
                     placeholder="Customer Ref / Labels"
                     value={formData.tags}
-                    onChange={(e) => updateFormField('tags', e.target.value)}
+                    onChange={(e) => updateFormField("tags", e.target.value)}
                   />
                 </div>
                 <div className="flex flex-col mb-1">
@@ -621,10 +760,15 @@ const vendors = getEntity('vendors')
                     value={formData.buyer}
                     onChange={(e) => updateFormField('buyer', e.target.value)}
                   /> */}
-                   <CustomSelect onSelect={(option)=> {
-                      const {categories,value} =option
-                      updateFormField('buyer', value)
-                    }} version={'customers'} hidden={false} informationFromDataBase={formData.buyer}/>
+                  <CustomSelect
+                    onSelect={(option) => {
+                      const { categories, value } = option;
+                      updateFormField("buyer", value);
+                    }}
+                    version={"customers"}
+                    hidden={false}
+                    informationFromDataBase={formData.buyer}
+                  />
                 </div>
               </div>
 
@@ -632,7 +776,7 @@ const vendors = getEntity('vendors')
                 <button
                   type="button"
                   className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-md"
-                  onClick={() => navigate('/quotes')}
+                  onClick={() => navigate("/quotes")}
                 >
                   Cancel
                 </button>
@@ -640,7 +784,7 @@ const vendors = getEntity('vendors')
                   type="submit"
                   className="px-4 py-2 text-sm font-medium text-white bg-chabot-gold hover:bg-opacity-90 rounded-md"
                 >
-                 {quote? 'Update Quote' : 'Create Quote'} 
+                  {quote ? "Update Quote" : "Create Quote"}
                 </button>
               </div>
             </div>
