@@ -54,17 +54,17 @@ export const exportToExcel = async (data, fileName) => {
     { header: "Buyer Remark", key: "notes", width: 30 },
     // { header: "Metal Weight Price", key: "platingCharge", width: 20 },
   ];
-
   // 2. Add data rows (excluding embedded images for now)
   data.forEach((row) => {
+    // console.log(row.product.weight, "data for excel export");
     worksheet.addRow({
-      styleNumber: row.styleNumber,
-      imageUrl: row.images && row.images[0] ? row.images[0] : "No Image",
+      styleNumber: row.product.styleNumber,
+      imageUrl: row.product.images && row.product.images[0] ? row.product.images[0] : "No Image",
       embeddedImage: "", // Placeholder for the embedded image
-      weight: row.weight,
+      salesWeight: row.product.weight,
       totalCost: row.totalCost,
-      notes: row.notes,
-      platingCharge: row.platingCharge,
+      notes: row.product.notes,
+      platingCharge: row.product.platingCharge,
     });
   });
 

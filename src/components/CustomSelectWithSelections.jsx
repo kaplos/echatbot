@@ -3,6 +3,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import { useSupabase } from "./SupaBaseProvider";
 import SearchBar from "./SearchBar";
 function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected }) {
+  console.log(selected,"selected in custom select")
   const {supabase} = useSupabase();
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -148,7 +149,7 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
                 <ul className="max-h-40 overflow-y-auto gap-1 flex flex-col mt-2">
                   {filteredOptions
                     .map((option, index) => {
-                      const wasPreviouslySelected = selected?.some((s) => s.sample_id === option.sample_id);  
+                      const wasPreviouslySelected = selected?.some((s) => s.sample_id === option.sample_id || s.productId === option.sample_id);
                       const isCurrentlySelected = selectedOptions.some((s) => s.sample_id === option.sample_id);
                       // console.log(wasPreviouslySelected, isCurrentlySelected, option.styleNumber, selectedOptions);
 

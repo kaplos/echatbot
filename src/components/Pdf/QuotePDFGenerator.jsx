@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import html2pdf from 'html2pdf.js';
 import ViewQuote from '../../Pages/ViewQuote';
 import PDFPortal from './PdfPortal';
@@ -8,72 +8,67 @@ import { faFilePdf } from '@fortawesome/free-solid-svg-icons';
 export default function QuotePDFGenerator({ quoteNumber, quoteId }) {
   const quoteRef = useRef();
   const [renderQuote, setRenderQuote] = useState(false);
+  const viewQuoteReadyRef = useRef(null);
 
   const waitForImagesToLoad = (container) => {
     const images = container.querySelectorAll('img');
-    // console.log(images)
     const promises = Array.from(images).map(
       (img) =>
         new Promise((resolve) => {
-          console.log(`Attempting to load image: ${img.src}`); // Log image URL
+          console.log(`Attempting to load image: ${img.src}`);
           if (img.complete) {
             console.log(`Image loaded successfully: ${img.src}`);
-            resolve(); // Image is already loaded
+            resolve();
           } else {
             img.onload = () => {
               console.log(`Image loaded successfully: ${img.src}`);
               resolve();
             };
             img.onerror = () => {
-              console.error(`Error loading image: ${img.src}`); // Log error
-              resolve(); // Resolve even if the image fails to load
+              console.error(`Error loading image: ${img.src}`);
+              resolve();
             };
           }
         })
     );
-    // console.log(promises)
     return Promise.all(promises);
   };
 
-  // const handleDownloadPDF = async () => {
-  //   setRenderQuote(true);
-  //   setTimeout(async () => {
-  //     if (quoteRef.current) {
-  //       // Wait for all images to load
-  //       await waitForImagesToLoad(quoteRef.current);
+  const handleViewQuoteReady = useCallback(() => {
+    console.log('ViewQuote is ready!');
+    if (viewQuoteReadyRef.current) {
+      viewQuoteReadyRef.current();
+    }
+  }, []);
 
-  //       // Generate the PDF
-  //       html2pdf()
-  //         .set({
-  //           filename: `quote${quoteId}.pdf`,
-  //           html2canvas: { scale: 2 },
-  //           jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-  //         })
-  //         .from(quoteRef.current)
-  //         .save()
-  //         .then(() => setRenderQuote(false));
-  //     }
-  //   }, 500);
-  // };
   const handleDownloadPDF = async () => {
     setRenderQuote(true);
-    setTimeout(async () => {
+    
+    // Create a new promise for each PDF generation
+    const viewQuoteReady = new Promise((resolve) => {
+      viewQuoteReadyRef.current = resolve;
+    });
+    
+    try {
+      console.log('Waiting for ViewQuote to be ready...');
+      // Wait for ViewQuote to signal it's ready
+      await viewQuoteReady;
+      console.log('ViewQuote is ready, proceeding with PDF generation...');
+      
       if (quoteRef.current) {
         // Wait for all images to load
         await waitForImagesToLoad(quoteRef.current);
-        // await new Promise((resolve) => setTimeout(resolve, 10000));        // Generate the PDF
-        console.log(quoteRef.current.innerHTML); // Log the content of the container
-        // const pdfOptions = {
-        //   filename: `quote${quoteId}.pdf`,
-        //   html2canvas: { scale: 2, useCORS: true, logging: true }, // Enable logging
-        //   jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-        // };
+        
+        console.log(quoteRef.current.innerHTML);
+        
         const pdfOptions = {
           filename: `quote${quoteId}.pdf`,
           html2canvas: {
             scale: 2,
             useCORS: true,
             logging: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
           },
           jsPDF: {
             unit: 'in',
@@ -81,21 +76,27 @@ export default function QuotePDFGenerator({ quoteNumber, quoteId }) {
             orientation: 'portrait',
           },
         };
+        
         const pdf = html2pdf()
           .set(pdfOptions)
           .from(quoteRef.current);
   
-        // Generate the PDF as a Blob
         const blob = await pdf.outputPdf('blob');
-  
-        // Create a URL for the Blob and open it in a new tab
         const pdfUrl = URL.createObjectURL(blob);
-        window.open(pdfUrl, '_blank'); // Open the PDF in a new tab
-  
-        setRenderQuote(false);
+        window.open(pdfUrl, '_blank');
+        
+        setTimeout(() => {
+          URL.revokeObjectURL(pdfUrl);
+        }, 1000);
       }
-    }, 500);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      setRenderQuote(false);
+      viewQuoteReadyRef.current = null;
+    }
   };
+  
   return (
     <>
       <button onClick={handleDownloadPDF}>
@@ -105,9 +106,11 @@ export default function QuotePDFGenerator({ quoteNumber, quoteId }) {
       {renderQuote && (
         <PDFPortal>
           <div ref={quoteRef}>
-          {/* <img src="https://ujwdpieleyuaiammaopj.supabase.co/storage/v1/object/public/echatbot/public/WhatsApp%20Image%202025-05-16%20at%204.07.09%20PM.jpeg" alt="Test Image" /> */}
-
-            <ViewQuote quoteId={quoteNumber} forPdf={true} />
+            <ViewQuote 
+              quoteId={quoteNumber} 
+              forPdf={true} 
+              resolve={handleViewQuoteReady}
+            />
           </div>
         </PDFPortal>
       )}

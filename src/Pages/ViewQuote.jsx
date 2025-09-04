@@ -5,6 +5,7 @@ import { Dialog, Transition } from "@headlessui/react";
 import CustomSelect from "../components/CustomSelect";
 import { Plus } from "lucide-react";
 import EditableCell from "../components/Qoutes/EditableCell";
+import { getImages } from "../components/SupaBaseProvider";
 import EditableCellWithGenerics from "../components/Qoutes/EditableCellWithGenerics";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -12,7 +13,7 @@ import { useMessage } from "../components/Messages/MessageContext";
 import MoreImageModel from "../components/Qoutes/MoreImageModel";
 import { getStatusColor } from "../utils/designUtils";
 
-export default function ViewQuote({ quoteId, forPdf }) {
+export default function ViewQuote({ quoteId, forPdf,resolve }) {
   const navigate = useNavigate();
   const { supabase, session } = useSupabase();
   const isAuthenticated = session || false;
@@ -27,7 +28,6 @@ export default function ViewQuote({ quoteId, forPdf }) {
     status: "",
     gold: 2300,
     silver: 32,
-    items: [],
   });
 
   const [productInfo, setProductInfo] = useState();
@@ -56,76 +56,76 @@ export default function ViewQuote({ quoteId, forPdf }) {
     updateStatusToViewed();
   }, [isAuthenticated, quote, supabase]);
 
-  useEffect(() => {
+ 
+ useEffect(() => {
     if (quote) {
       console.log(quote, "quote from params");
       const fetchQuote = async () => {
         setIsLoading(true);
 
         const { data, error } = await supabase
-          .from("quotes")
-          .select(
-            `                       id,
-                                    quoteNumber,
-                                    agent,
-                                    buyer,
-                                    tags,
-                                    status,
-                                    gold,
-                                    silver,
-                                    lineItems (
-                                        id,
-                                        productId,
-                                        salesPrice,
-                                        internalNote,
-                                        BuyerComment,
-                                        product:productId (
-                                            id,
-                                            name,
-                                            styleNumber,
-                                            salesWeight,
-                                            startingInfo:starting_info_id (
-                                                *
-                                            )
-                                        )
-                                    )
-                                `
-          )
-          .eq("quoteNumber", quote)
-          .single();
-        const processedLineItems = data.lineItems.map((item) => {
-          const { startingInfo, ...productData } = item.product; // Extract startingInfo and product data
-          const { id, ...startingInfoData } = startingInfo; // Extract id and other properties from startingInfo
-          return {
-            ...productData, // Spread the product data into the top-level object
-            ...startingInfoData, // Spread the startingInfo data into the top-level object
-          };
-        }); // delete data.lineItems
-        const { lineItems, ...quoteInfo } = data;
-        console.log(processedLineItems);
-        setlineItems(data.lineItems);
-        setProductInfo(processedLineItems);
+            .from("quote_with_lineitems_and_product")
+            .select("*")
+            .eq("quoteNumber", quote)
+            .single();
+
+          console.log(data,"data in fetch quote")
+          
+        const { lineitems, ...quoteInfo } = data;
+        // console.log(lineitems);
+        setlineItems(lineitems);
+        // // setProductInfo(processedLineItems);
         setFormData(quoteInfo);
-        console.log(data);
+        // console.log(data);
 
         if (error) {
           console.error("Error fetching samples:", error);
+          setIsLoading(false);
+          // Call resolve on error as well
+          if(resolve) {resolve()}
           return;
         }
         // resetForm(data);
-        // setProductInfo(data)
-        // console.log(data);
+        // // setProductInfo(data)
+        // // console.log(data);
         setIsLoading(false);
+        // Remove resolve call from here - component isn't fully rendered yet
       };
       fetchQuote();
     } else {
       console.log("not displaying a quote");
+      // Call resolve when no quote to display
+      if(resolve) {resolve()}
     }
-  }, [quote]);
+  }, [quote, resolve]); // Added resolve to dependencies
 
+  // New useEffect to call resolve when component is fully loaded and rendered
+  useEffect(() => {
+    if (!isLoading && lineItems.length > 0 && resolve) {
+      console.log('ViewQuote component is fully loaded, calling resolve');
+      // Small delay to ensure DOM is fully updated
+      const timer = setTimeout(() => {
+        resolve();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, lineItems, resolve]);
+
+  // Handle case when there are no line items but loading is done
+  useEffect(() => {
+    if (!isLoading && lineItems.length === 0 && resolve && quote) {
+      console.log('ViewQuote loaded but no line items, calling resolve');
+      const timer = setTimeout(() => {
+        resolve();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, lineItems, resolve, quote]);
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.items.length === 0) {
+    if (lineItems.length === 0) {
       showMessage("Please add items to the quote", "error");
       return;
     }
@@ -146,10 +146,10 @@ export default function ViewQuote({ quoteId, forPdf }) {
       status: "",
       gold: 2300,
       silver: 32,
-      items: [],
     });
     navigate("/quotes");
   };
+
   const fetchQuotesByCustomer = async (customerName) => {
     const { data, error } = await supabase
       .from("quotes")
@@ -164,12 +164,30 @@ export default function ViewQuote({ quoteId, forPdf }) {
     return data;
   };
 
-  const handleChange = (rowIndex, field, value) => {
+  const handleChange = async (rowIndex, field, value) => {
     console.log(rowIndex, field, value, "rowIndex, field, value");
-    const updatedData = [...formData.items];
-    updatedData[rowIndex] = { ...updatedData[rowIndex], [field]: value };
-    console.log(updatedData, "updatedData");
-    setFormData({ ...formData, items: updatedData });
+    if (field === "internalNote") {
+    const lineItem = lineItems[rowIndex];
+    // Only update if value is not empty and has changed
+    if (value && value !== lineItem.internalNote) {
+      const { error } = await supabase
+        .from("lineItems")
+        .update({ internalNote: value })
+        .eq("id", lineItem.id);
+
+      if (error) {
+        console.error("Error updating internal note:", error);
+      } else {
+        console.log("Internal note updated for line item", lineItem.id);
+      }
+    }
+  }
+    setlineItems(prevItems => {
+      if (prevItems[rowIndex]) {
+        prevItems[rowIndex] = { ...prevItems[rowIndex], [field]: value };
+      }
+      return prevItems;
+    });
   };
   const handleChangeUnauthenticated = async (rowIndex, field, value) => {
     console.log(
@@ -188,19 +206,7 @@ export default function ViewQuote({ quoteId, forPdf }) {
       console.error("Error updating quote:", error);
     }
   };
-  const handleCustomSelect = (items) => {
-    const itemData = items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      styleNumber: item.styleNumber,
-      images: item.images,
-      description: item.description,
-      salesWeight: item.salesWeight,
-      internalNote: "",
-    }));
-    console.log(itemData, "itemData");
-    setFormData({ ...formData, items: [...formData.items, ...itemData] });
-  };
+  
   const updateIfChanged = async () => {
     const { data: currentData, error: fetchError } = await supabase
       .from("quotes")
@@ -338,14 +344,16 @@ export default function ViewQuote({ quoteId, forPdf }) {
                     </thead>
                     <tbody>
                       {lineItems.map((lineItem, index) => {
-                        console.log(
-                          lineItem.productId,
-                          "lineItem.productId in view Quote"
-                        );
+                        // console.log(
+                        //   lineItem.productId,
+                        //   "lineItem.productId in view Quote"
+                        // );
 
-                        let product = productInfo.find(
-                          (product) => product.id === lineItem.productId
-                        );
+                        let product = lineItem.product
+                        
+                        // productInfo.find(
+                        //   (product) => product.id === lineItem.productId
+                        // );
                         console.log(product, "product in view Quote");
                         // console.log(product,'product')
                         return (
@@ -430,19 +438,18 @@ export default function ViewQuote({ quoteId, forPdf }) {
                     />
                   </div>
                   <div className="flex flex-col mb-1">
-                    <label htmlFor="">Prepared For</label>
-                    <input
-                      type="text"
-                      className=" block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
-                      name="buyer"
-                      id=""
-                      placeholder="Prepared By"
-                      value={formData.buyer}
-                      onChange={(e) =>
-                        setFormData({ ...formData, buyer: e.target.value })
-                      }
-                    />
-                  </div>
+                  <label htmlFor="buyer">Prepared For</label>
+                  <CustomSelect
+                    onSelect={(option) => {
+                      const { categories, value } = option;
+                      setFormData({...formData, "buyer": value});
+                    }}
+                    version={"customers"}
+                    hidden={false}
+                    informationFromDataBase={formData.buyer}
+                  />
+                </div>
+                 
                 </div>
 
                 <div className="mt-6 flex justify-self-end space-x-3">
@@ -608,9 +615,8 @@ export default function ViewQuote({ quoteId, forPdf }) {
                     </tbody> */}
                     <tbody>
                       {lineItems.map((lineItem, index) => {
-                        let product = productInfo.find(
-                          (product) => product.id === lineItem.productId
-                        );
+                        let product = lineItem.product
+                        
 
                         return (
                           <tr

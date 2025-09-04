@@ -665,6 +665,7 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                       {/*this is weight sectiion  */}
 
                       <div className="flex flex-row gap-2 w-full">
+                        
                         <div className="w-full">
                           <label htmlFor="">Weight <span className="text-red-500">*</span></label>
                           <div className="flex items-center gap-1 ">

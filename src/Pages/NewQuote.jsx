@@ -1,6 +1,7 @@
 import { useSupabase } from "../components/SupaBaseProvider";
 import React, { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
+import { getImages } from "../components/SupaBaseProvider";
 import CustomSelectWithSelections from "../components/CustomSelectWithSelections";
 import { useNavigate } from "react-router-dom";
 import { useMessage } from "../components/Messages/MessageContext";
@@ -12,6 +13,7 @@ import { useLocation } from "react-router-dom";
 import EditableCellWithGenerics from "../components/Qoutes/EditableCellWithGenerics";
 import { useGenericStore } from "../store/VendorStore";
 import CustomSelect from "../components/CustomSelect";
+
 export default function NewQuote() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,16 +36,6 @@ export default function NewQuote() {
   const [productInfo, setProductInfo] = useState([]);
   const [lineItems, setlineItems] = useState([]);
   const [lineItemsToDelete, setlineItemsToDelete] = useState([]);
-  // const {formData: lineItems, updateFormField: updateLineItem, resetForm: resetLineItems} =  useFormUpdater([]
-  //   {
-  //     productId:" ",
-  //     retailPrice: 0,
-  //     internalNote: '',
-  //     margin: 0,
-  //     totalCost: 0,
-  //     salesPrice: 0
-  // }
-  // );
   const quote = new URLSearchParams(location.search).get("quote") || null;
   const userId = session?.user?.id; // User ID
 
@@ -57,7 +49,7 @@ export default function NewQuote() {
     multiplier: 4,
     bulkMargin: 0,
     quoteTotal: 0,
-    retailPrice: 0,
+    // retailPrice: 0,
   });
 
   const { getEntityItemById, getEntity } = useGenericStore();
@@ -67,77 +59,91 @@ export default function NewQuote() {
 
   const [isOpen, setIsOpen] = useState(false);
 
+  // Fetch quote and line items if quote param exists
   useEffect(() => {
-    if (quote) {
-      console.log(quote, "quote from params");
-      const fetchQuote = async () => {
-        setIsLoading(true);
+  if (quote) {
+    console.log(quote, "quote from params");
+    const fetchQuote = async () => {
+      setIsLoading(true);
 
-        const { data, error } = await supabase
-          .from("quotes")
-          .select(
-            `
-                    *,
-                    lineItems (
-                      *,
-                      product:productId ( 
-                       *,
-                       startingInfo: starting_info_id ( * )
-                      )
-                    )
-                  `
-          )
-          .eq("quoteNumber", quote)
-          .single();
-        // const productInfo = data.lineItems.map((lineItem)=>{
-        //   const{ startingInfo, ...rest} = lineItem.product
-        //   return {
+      const { data, error } = await supabase
+        .from("quote_with_lineitems_and_product")
+        .select('*')
+        .eq("quoteNumber", quote)
+        .single();
 
-        //   }
-        // })
-        // console.log(data)
-        const processedLineItems = data.lineItems.map((item) => {
-          const { startingInfo, ...productData } = item.product; // Extract startingInfo and product data
-          const { id, ...startingInfoData } = startingInfo; // Extract id and other properties from startingInfo
-          console.log();
+      console.log(data, "data from supabase");
+
+      // Process line items and fetch images
+      const processedLineItems = await Promise.all(
+        data.lineitems.map(async (item) => {
+          const {product,internalNote,margin,lineItemId,BuyerComment,bulkMargin} = item
+          const {styleNumber, images,cad,sample_id,starting_description,weight,salesWeight} = product || {}
+          console.log(product,"product in line item")
+
+          // Calculate cost, salesPrice, retailPrice like handleCustomSelect
+          const vendor = getEntityItemById("vendors", product.vendor);
+          const lossPercentage = vendor?.pricingsetting?.lossPercentage || 0;
+          const cost = parseFloat(
+            totalCost(
+              product,
+              lossPercentage
+            ).toFixed(2)
+          ) || 0;
+          const salesPrice = cost;
+          const retailPrice =
+            parseFloat((salesPrice * (formData.multiplier || 1)).toFixed(2)) || 0;
+
           return {
-            ...productData, // Spread the product data into the top-level object
-            ...startingInfoData, // Spread the startingInfo data into the top-level object
-            retailPrice: parseFloat(item.retailPrice.toFixed(2)) || 0,
-            salesPrice: parseFloat(item.retailPrice.toFixed(2)) || 0,
+            ...product,
+            productId: sample_id,
+            // styleNumber, images,cad,
+            description:starting_description||'',
+            retailPrice,
+            weight,
+            salesWeight,
+            internalNote: internalNote || "",
+            margin: margin ?? formData.bulkMargin,
+            bulkMargin: bulkMargin || 0,
+            totalCost: cost,
+            salesPrice,
+            id: lineItemId, // keep the line item id for updates
+            BuyerComment: BuyerComment || '',
           };
-        }); // delete data.lineItems
-        console.log(processedLineItems, "processed line items");
-        setlineItems(data.lineItems);
-        setProductInfo(processedLineItems);
-        console.log(data, "data from supabase");
+        })
+      );
+      console.log(processedLineItems, "processed line items");
+      setlineItems(processedLineItems);
 
-        if (error) {
-          console.error("Error fetching samples:", error);
-          return;
-        }
-        resetForm(data);
-        setIsLoading(false);
-      };
-      fetchQuote();
-    } else {
-      console.log("not displaying a quote");
-    }
-  }, [quote]);
+      if (error) {
+        console.error("Error fetching samples:", error);
+        return;
+      }
+      const { lineitems, ...dataWithoutLineItems } = data;
+      resetForm(dataWithoutLineItems);
+      setIsLoading(false);
+    };
+    fetchQuote();
+  } else {
+    console.log("not displaying a quote");
+  }
+},[quote])
 
+  // Filter only allowed fields for DB insert/update
   const filterLineItemFields = (item) =>
     Object.fromEntries(
       Object.entries(item).filter(([key]) =>
         allowedLineItemFields.includes(key)
       )
     );
+
+  // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (lineItems.length === 0) {
       showMessage("Please add items to the quote", "error");
       return;
     }
-    // const submitData = formData.items.map(({ product, ...rest }) => rest);
     const quoteTotal = lineItems.reduce((acc, item) => acc + item.totalCost, 0);
     const { lineItems: dontUse, ...rest } = formData;
     const submitForm = {
@@ -173,17 +179,9 @@ export default function NewQuote() {
     if (lineItemError) {
       console.error(lineItemError);
     }
-    // resetForm({
-    //   agent: '',
-    //   buyer: '',
-    //   tags: '',
-    //   status: "Created:grey",
-    //   gold: parseFloat(prices.gold.price),
-    //   silver: parseFloat(prices.silver.price),
-    //   items: []
-    // });
-    // navigate('/quotes');
   };
+
+  // Update quote if changed
   const updateIfChanged = async (submitForm) => {
     const { data: currentData, error: fetchError } = await supabase
       .from("quotes")
@@ -197,11 +195,9 @@ export default function NewQuote() {
     }
 
     // Find only the changed fields
-
     const changedFields = Object.keys(submitForm).reduce((acc, key) => {
       if (submitForm[key] !== currentData[key]) {
-        // Updated reference to formData
-        acc[key] = submitForm[key]; // Only keep changed fields
+        acc[key] = submitForm[key];
       }
       return acc;
     }, {});
@@ -224,10 +220,8 @@ export default function NewQuote() {
       console.log("Updated row:", data);
     }
   };
-  // const handleChange=(id,field,value)=>{
-  //   console.log(id,field,value)
-  //   updateLineItem(id,field,value)
-  // }
+
+  // Insert new line items if changed
   const updateIfLineItemsChanged = async () => {
     let newLineItems = lineItems.filter((lineItem) => !lineItem.id);
     console.log(newLineItems, "new line items");
@@ -243,17 +237,20 @@ export default function NewQuote() {
       console.error(error);
     }
   };
+
+  // Upsert (update) existing line items
   const updateLineItem = async () => {
+    console.log(lineItems, "line items to update");
     let lineItemsToUpdate = lineItems
       .filter((lineItem) => lineItem.id)
       .map((item) => {
-        const { product, ...rest } = item;
-        return rest;
+        return filterLineItemFields(item);
       });
 
     const { error } = await supabase.from("lineItems").upsert(
       lineItemsToUpdate.map((item) => ({
         ...item,
+        quoteNumber: quote,
       })),
       { onConflict: ["id"] }
     );
@@ -262,6 +259,8 @@ export default function NewQuote() {
       console.error(error);
     }
   };
+
+  // Delete line items marked for deletion
   const handleLineItemsToDelete = async () => {
     if (lineItemsToDelete.length > 0) {
       const { error } = await supabase
@@ -275,14 +274,15 @@ export default function NewQuote() {
     }
   };
 
+  // Handle changes to a line item (margin, salesPrice, etc.)
   const handleLineChange = (productId, field, value) => {
     setlineItems((prevItems) =>
       prevItems.map((item) => {
-        if (item.productId !== productId) return item;
-
+        console.log(productId, field, value, "productId, field, value",(item.productId ?? item.sample_id) !== productId,'item.productId || item.sample_id!== productId');
+        if ((item.productId ?? item.sample_id) !== productId) return item;
         const updatedItem = { ...item, [field]: value };
 
-        // If margin was updated, calculate new salesPrice
+        // If margin was updated, calculate new salesPrice and retailPrice
         if (field === "margin") {
           const weight =
             productInfo.find((item) => item.productId === productId)?.weight ||
@@ -304,6 +304,7 @@ export default function NewQuote() {
           updatedItem.salesPrice = salesPrice;
           updatedItem.retailPrice = retailPrice;
         }
+        // If salesPrice was updated, recalc margin
         if (field === "salesPrice") {
           const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
           const salesPrice = parseFloat(value) || 0;
@@ -312,13 +313,14 @@ export default function NewQuote() {
           );
         }
 
-        // If salesPrice was updated, optionally recalc margin? (Only if needed)
+        // Log updated item for debugging
         console.log(updatedItem, "updated item");
         return updatedItem;
       })
     );
   };
 
+  // Handle selection of new products/items
   const handleCustomSelect = (items) => {
     items.forEach((element) => {
       const lossPercentage =
@@ -329,6 +331,7 @@ export default function NewQuote() {
       const salesPrice = cost;
       const retailPrice =
         parseFloat((salesPrice * (formData.multiplier || 1)).toFixed(2)) || 0;
+      // Log cost and retail price for debugging
       console.log(cost, retailPrice, "cost and retail price");
     });
 
@@ -340,6 +343,19 @@ export default function NewQuote() {
       const salesPrice = cost;
       const retailPrice =
         parseFloat((salesPrice * (formData.multiplier || 1)).toFixed(2)) || 0;
+      // Log each item for debugging
+      console.log(
+        {
+          ...item,
+          productId: item.sample_id,
+          retailPrice,
+          internalNote: "",
+          margin: formData.bulkMargin,
+          totalCost: cost,
+          salesPrice,
+        },
+        "item to add"
+      );
       return {
         ...item,
         productId: item.sample_id,
@@ -353,6 +369,8 @@ export default function NewQuote() {
     console.log(itemData, "item data to add");
     setlineItems((prev) => [...prev, ...itemData]);
   };
+
+  // Remove a line item from the list
   const deleteLineItem = (event, product) => {
     console.log(product?.id || product?.sample_id || "no id");
     event.preventDefault();
@@ -363,8 +381,11 @@ export default function NewQuote() {
       prevItems.filter((item) => item.productId !== product.productId)
     );
   };
+
+  // Helper to safely convert to number
   const safeNumber = (val) => Number(val) || 0;
-  
+
+  // Calculate total cost for a product
   const totalCost = (product, lossPercentage) => {
     const metalPrice =
       product.metalType === "Gold"
@@ -381,18 +402,19 @@ export default function NewQuote() {
       return 0;
     }
 
-    // console.log(
-    //   {
-    //     metalPrice,
-    //     weight,
-    //     karat,
-    //     loss,
-    //     miscCost,
-    //     laborCost,
-    //     stones: product.stones,
-    //   },
-    //   "totalCost input values"
-    // );
+    // Log all input values for debugging
+    console.log(
+      {
+        metalPrice,
+        weight,
+        karat,
+        loss,
+        miscCost,
+        laborCost,
+        stones: product.stones,
+      },
+      "totalCost input values"
+    );
 
     const metalCost = getMetalCost(metalPrice, weight, karat, loss);
     const totalCost = getTotalCost(
@@ -401,39 +423,50 @@ export default function NewQuote() {
       laborCost,
       product.stones
     );
+    // Log calculated costs for debugging
     console.log(metalCost, "metal cost", totalCost, "total cost calculated");
     return totalCost;
   };
+
   // Update totalCost and salesPrice when metal prices change
   useEffect(() => {
-    // When gold or silver price changes, update totalCost and adjust salesPrice accordingly
     setlineItems((prevItems) =>
       prevItems.map((item) => {
-        const productInfoObject = productInfo.find(
-          (p) => p.id === item.productId
-        );
-        if (!productInfoObject) return item;
+        
 
-        const vendor = getEntityItemById("vendors", productInfoObject.vendor);
+        const vendor = getEntityItemById("vendors", item.vendor);
         const lossPercentage = vendor?.pricingsetting?.lossPercentage || 0;
 
-        const oldCost = item.totalCost || 0; // Previous cost
+        const oldCost = item.totalCost || 0;
         const newCost = parseFloat(
-          totalCost(productInfoObject, lossPercentage).toFixed(2)
-        ); // New cost
-        const costDifference = newCost - oldCost; // Difference in cost due to metal price change
+          totalCost(item, lossPercentage).toFixed(2)
+        );
+        const costDifference = newCost - oldCost;
 
-        const oldSalesPrice = item.salesPrice || 0; // Previous sales price
+        const oldSalesPrice = item.salesPrice || 0;
         const newSalesPrice = parseFloat(
           (oldSalesPrice + costDifference).toFixed(2)
-        ); // Add cost difference to sales price
+        );
 
         const marginPercent =
           newSalesPrice > 0
             ? parseFloat(
                 (((newSalesPrice - newCost) / newSalesPrice) * 100).toFixed(2)
-              ) // Recalculate margin
+              )
             : 0;
+
+        // Log recalculated values
+        console.log(
+          {
+            oldCost,
+            newCost,
+            costDifference,
+            oldSalesPrice,
+            newSalesPrice,
+            marginPercent,
+          },
+          "recalculated line item values"
+        );
 
         return {
           ...item,
@@ -445,18 +478,22 @@ export default function NewQuote() {
     );
   }, [formData.gold, formData.silver]);
 
+  // Recalculate salesPrice for each line item when bulkMargin changes
   useEffect(() => {
-    // Recalculate salesPrice for each line item when bulkMargin changes
     setlineItems((prevItems) =>
       prevItems.map((item) => {
-        const productInfoObject = productInfo.find(
-          (p) => p.id === item.productId
-        );
-        if (!productInfoObject) return item;
-
         const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
         const salesPrice = parseFloat(
           +(totalCost / (1 - formData.bulkMargin / 100)).toFixed(2)
+        );
+        // Log recalculated salesPrice
+        console.log(
+          {
+            totalCost,
+            salesPrice,
+            bulkMargin: formData.bulkMargin,
+          },
+          "recalculated salesPrice for bulkMargin change"
         );
         return {
           ...item,
@@ -466,13 +503,23 @@ export default function NewQuote() {
       })
     );
   }, [formData.bulkMargin]);
+
+  // Recalculate retailPrice for each line item when multiplier or metal prices change
   useEffect(() => {
     console.log("form has been updated ");
     setlineItems((prevItems) =>
       prevItems.map((item) => {
         const retailPrice =
           parseFloat((item.salesPrice * formData.multiplier).toFixed(2)) || 0;
-
+        // Log recalculated retailPrice
+        console.log(
+          {
+            salesPrice: item.salesPrice,
+            multiplier: formData.multiplier,
+            retailPrice,
+          },
+          "recalculated retailPrice"
+        );
         return {
           ...item,
           retailPrice: retailPrice,
@@ -486,6 +533,7 @@ export default function NewQuote() {
     formData.bulkMargin,
   ]);
 
+  // Log productInfo and lineItems for debugging
   console.log(productInfo, lineItems, "line items");
 
   return (
@@ -519,7 +567,6 @@ export default function NewQuote() {
           <div className="flex flex-row gap-2 mt-4 w-full justify-between ">
             {/* metalPrices */}
             <div className="flex gap-2">
-              {/* <span className="self-center">Metal Prices At:</span> */}
               <div className="flex flex-col mb-1">
                 <label htmlFor="gold_price">Gold Price</label>
                 <input
@@ -629,36 +676,31 @@ export default function NewQuote() {
                   <tbody>
                     {lineItems &&
                       lineItems.map((product, index) => {
-                        let productInfoObject = product;
-                        // console.log(
-                        //   productInfo,
-                        //   productInfoObject,
-                        //   "product info object",
-                        //   product.sample_id
-                        // );
+                        console.log(product, "product in lineItems");
+                        // let product = product;
                         return (
                           <tr key={index} className="h-32">
                             <td className="border border-gray-300 p-2 text-center">
-                              {productInfoObject.styleNumber ||
+                              {product.styleNumber ||
                                 productInfo.name}
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
                               <img
-                                src={productInfoObject.images[0]}
-                                alt={productInfoObject.styleNumber}
+                                src={product.images[0]}
+                                alt={product.styleNumber}
                               />
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
-                              {productInfoObject.description}
+                              {product.description}
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
                               <div className="flex flex-row items-center justify-center gap-2">
                                 <div className="flex flex-col">
-                                  <span>{productInfoObject.weight}g</span>{" "}
+                                  <span>{product.weight}g</span>{" "}
                                   <span>w</span>
                                 </div>
                                 <div className="flex flex-col">
-                                  <span>{productInfoObject.salesWeight}g</span>{" "}
+                                  <span>{product.salesWeight}g</span>{" "}
                                   <span>sw</span>
                                 </div>
                               </div>
@@ -673,14 +715,10 @@ export default function NewQuote() {
                                 onChange={(e) => {
                                   e.preventDefault();
                                   handleLineChange(
-                                    product.productId,
+                                    product.productId || product.sample_id,
                                     "margin",
                                     parseInt(e.target.value)
                                   );
-                                  // handleLineChange(product.productId, 'salesPrice', parseFloat((product.totalCost + (productInfoObject.weight * parseInt(e.target.value))).toFixed(2)))
-
-                                  // updateLineItem(product.productId, 'margin', e.target.value)
-                                  // updateLineItem(product.productId, 'salesPrice', parseFloat((product.totalCost + (productInfoObject.weight * parseInt(e.target.value))).toFixed(2)))
                                 }}
                                 className="input w-full text-center border-none outline-none"
                               />
@@ -690,27 +728,25 @@ export default function NewQuote() {
                               handleChange={handleLineChange}
                               setEditingCell={setEditingCell}
                               editingCell={editingCell}
-                              id={product.sample_id}
+                              id={product.productId}
                               cellType={"salesPrice"}
-                              data={product.salesPrice} // Placeholder for actual data
+                              data={product.salesPrice}
                             />
-                            {/* <td className="border border-gray-300 p-2 text-center">{product.retailPrice}</td> */}
-                            {/* <td className="border border-gray-300 p-2 text-center">{productInfoObject.styleNumber}</td> */}
                             <EditableCellWithGenerics
                               handleChange={handleLineChange}
                               setEditingCell={setEditingCell}
                               editingCell={editingCell}
-                              id={product.sample_id}
+                              id={product.productId}
                               cellType={"retailPrice"}
-                              data={product.retailPrice} // Placeholder for actual data
+                              data={product.retailPrice}
                             />
                             <EditableCellWithGenerics
                               handleChange={handleLineChange}
                               setEditingCell={setEditingCell}
                               editingCell={editingCell}
-                              id={product.sample_id}
+                              id={product.productId || product.sample_id}
                               cellType={"internalNote"}
-                              data={product.internalNote} // Placeholder for actual data
+                              data={product.internalNote}
                             />
                             <td className="border border-gray-300 p-2 text-center  ">
                               {product.BuyerComment}
@@ -751,15 +787,6 @@ export default function NewQuote() {
                 </div>
                 <div className="flex flex-col mb-1">
                   <label htmlFor="buyer">Prepared For</label>
-                  {/* <input
-                    type="text"
-                    className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
-                    name="buyer"
-                    id="buyer"
-                    placeholder="Prepared By"
-                    value={formData.buyer}
-                    onChange={(e) => updateFormField('buyer', e.target.value)}
-                  /> */}
                   <CustomSelect
                     onSelect={(option) => {
                       const { categories, value } = option;

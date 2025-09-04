@@ -50,27 +50,29 @@ const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
   };
   const handleExportToExcel = async (quoteNumber, quoteId) => {
     const { data, error } = await supabase
-      .from("lineItems")
+      .from("quote_with_lineitems_and_product")
       .select(
-        `
-        *,product:samples(*,starting_info(*,stones(*)))`
+        '*'
       )
-      .eq("quoteNumber", quoteNumber);
+      .eq("quoteNumber", quoteNumber)
+        .single();
+
     if (error) {
       console.error("Error fetching quote for Excel export:", error);
       return;
     }
-    const processedLineItems = data.map((item) => {
-      console.log(item);
-      const { starting_info, ...productData } = item.product; // Extract startingInfo and product data
-      const { id, ...startingInfoData } = starting_info; // Extract id and other properties from startingInfo
-      return {
-        ...productData, // Spread the product data into the top-level object
-        ...startingInfoData, // Spread the startingInfo data into the top-level object
-      };
-    });
-    console.log(processedLineItems, "sample data");
-    exportToExcel(processedLineItems, `Quote_${quoteId}`);
+    const lineItems = data.lineitems || [];
+    // const processedLineItems = data.map((item) => {
+    //   console.log(item);
+    //   const { starting_info, ...productData } = item.product; // Extract startingInfo and product data
+    //   const { id, ...startingInfoData } = starting_info; // Extract id and other properties from startingInfo
+    //   return {
+    //     ...productData, // Spread the product data into the top-level object
+    //     ...startingInfoData, // Spread the startingInfo data into the top-level object
+    //   };
+    // });
+    console.log(lineItems, "sample data");
+    exportToExcel(lineItems, `Quote_${quoteId}`);
   };
 
   const handleEditQuote = (quoteNumber) => {
