@@ -5,7 +5,7 @@ export const exportToCsv = (data, fileName) => {
       { label: 'Style Code', key: 'styleNumber' },
       { label: 'Image', key: 'images' },
       { label: 'Weight (g)', key: 'weight' },
-      { label: 'Price', key: 'totalCost' },
+      { label: 'Price', key: 'salesPrice' },
       { label: 'Buyer Remark', key: 'notes' },
       { label: 'Metal Weight Price', key: 'platingCharge' },
       { label: 'Images', key: 'images' },
@@ -50,7 +50,7 @@ export const exportToExcel = async (data, fileName) => {
     { header: "Image URL", key: "imageUrl", width: 40 },
     { header: "Image", key: "embeddedImage", width: 15 },
     { header: "Weight (g)", key: "salesWeight", width: 15 },
-    { header: "Price", key: "totalCost", width: 15 },
+    { header: "Price", key: "salesPrice", width: 15 },
     { header: "Buyer Remark", key: "notes", width: 30 },
     // { header: "Metal Weight Price", key: "platingCharge", width: 20 },
   ];
@@ -62,7 +62,7 @@ export const exportToExcel = async (data, fileName) => {
       imageUrl: row.product.images && row.product.images[0] ? row.product.images[0] : "No Image",
       embeddedImage: "", // Placeholder for the embedded image
       salesWeight: row.product.weight,
-      totalCost: row.totalCost,
+      salesPrice: row.salesPrice,
       notes: row.product.notes,
       platingCharge: row.product.platingCharge,
     });
