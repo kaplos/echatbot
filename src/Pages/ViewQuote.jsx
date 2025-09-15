@@ -12,8 +12,8 @@ import { useLocation } from "react-router-dom";
 import { useMessage } from "../components/Messages/MessageContext";
 import MoreImageModel from "../components/Qoutes/MoreImageModel";
 import { getStatusColor } from "../utils/designUtils";
-
-export default function ViewQuote({ quoteId, forPdf,resolve }) {
+import Loading from "../components/Loading";
+export default function ViewQuote({ quoteId, forPdf, resolve }) {
   const navigate = useNavigate();
   const { supabase, session } = useSupabase();
   const isAuthenticated = session || false;
@@ -30,13 +30,12 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
     silver: 32,
   });
 
-  const [productInfo, setProductInfo] = useState();
+  // const [productInfo, setProductInfo] = useState();
   const [lineItems, setlineItems] = useState([]);
   const [isImageModelOpen, setImageModelOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [editingCell, setEditingCell] = useState(null);
-  const [filter, setFilters] = useState();
-
+  // const [filter, setFilters] = useState();
   useEffect(() => {
     const updateStatusToViewed = async () => {
       if (!isAuthenticated && quote) {
@@ -56,21 +55,20 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
     updateStatusToViewed();
   }, [isAuthenticated, quote, supabase]);
 
- 
- useEffect(() => {
+  useEffect(() => {
     if (quote) {
       console.log(quote, "quote from params");
       const fetchQuote = async () => {
         setIsLoading(true);
 
         const { data, error } = await supabase
-            .from("quote_with_lineitems_and_product")
-            .select("*")
-            .eq("quoteNumber", quote)
-            .single();
+          .from("quote_with_lineitems_and_product")
+          .select("*")
+          .eq("quoteNumber", quote)
+          .single();
 
-          console.log(data,"data in fetch quote")
-          
+        console.log(data, "data in fetch quote");
+
         const { lineitems, ...quoteInfo } = data;
         // console.log(lineitems);
         setlineItems(lineitems);
@@ -82,7 +80,9 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
           console.error("Error fetching samples:", error);
           setIsLoading(false);
           // Call resolve on error as well
-          if(resolve) {resolve()}
+          if (resolve) {
+            resolve();
+          }
           return;
         }
         // resetForm(data);
@@ -95,19 +95,21 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
     } else {
       console.log("not displaying a quote");
       // Call resolve when no quote to display
-      if(resolve) {resolve()}
+      if (resolve) {
+        resolve();
+      }
     }
   }, [quote, resolve]); // Added resolve to dependencies
 
   // New useEffect to call resolve when component is fully loaded and rendered
   useEffect(() => {
     if (!isLoading && lineItems.length > 0 && resolve) {
-      console.log('ViewQuote component is fully loaded, calling resolve');
+      console.log("ViewQuote component is fully loaded, calling resolve");
       // Small delay to ensure DOM is fully updated
       const timer = setTimeout(() => {
         resolve();
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isLoading, lineItems, resolve]);
@@ -115,11 +117,11 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
   // Handle case when there are no line items but loading is done
   useEffect(() => {
     if (!isLoading && lineItems.length === 0 && resolve && quote) {
-      console.log('ViewQuote loaded but no line items, calling resolve');
+      console.log("ViewQuote loaded but no line items, calling resolve");
       const timer = setTimeout(() => {
         resolve();
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isLoading, lineItems, resolve, quote]);
@@ -167,36 +169,39 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
   const handleChange = async (rowIndex, field, value) => {
     console.log(rowIndex, field, value, "rowIndex, field, value");
     if (field === "internalNote") {
-    const lineItem = lineItems[rowIndex];
-    // Only update if value is not empty and has changed
-    if (value && value !== lineItem.internalNote) {
-      const { error } = await supabase
-        .from("lineItems")
-        .update({ internalNote: value })
-        .eq("id", lineItem.id);
+      const lineItem = lineItems[rowIndex];
+      // Only update if value is not empty and has changed
+      if (value && value !== lineItem.internalNote) {
+        const { error } = await supabase
+          .from("lineItems")
+          .update({ internalNote: value })
+          .eq("id", lineItem.id);
 
-      if (error) {
-        console.error("Error updating internal note:", error);
-      } else {
-        console.log("Internal note updated for line item", lineItem.id);
+        if (error) {
+          console.error("Error updating internal note:", error);
+        } else {
+          console.log("Internal note updated for line item", lineItem.id);
+        }
       }
     }
-  }
-    setlineItems(prevItems => {
+    setlineItems((prevItems) => {
       if (prevItems[rowIndex]) {
         prevItems[rowIndex] = { ...prevItems[rowIndex], [field]: value };
       }
       return prevItems;
     });
   };
-  const handleChangeUnauthenticated = async (rowIndex, field, value) => {
+  const handleChangeUnauthenticated = async (rowIndex, field, value ) => {
     console.log(
       rowIndex,
       field,
       value,
       "rowIndex, field, value in unauthenticated"
     );
-
+    if(value===null){
+      console.log("Empty value, not updating");
+      return;
+    }
     const { data, error } = await supabase
       .from("lineItems")
       .update({ BuyerComment: value })
@@ -206,7 +211,7 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
       console.error("Error updating quote:", error);
     }
   };
-  
+
   const updateIfChanged = async () => {
     const { data: currentData, error: fetchError } = await supabase
       .from("quotes")
@@ -246,8 +251,6 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
       console.log("Updated row:", data);
     }
   };
-
-  useEffect(() => {}, []);
 
   const isAuthenticatedRender = () => {
     return (
@@ -342,82 +345,86 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
                         )}
                       </tr>
                     </thead>
-                    <tbody>
-                      {lineItems.map((lineItem, index) => {
-                        // console.log(
-                        //   lineItem.productId,
-                        //   "lineItem.productId in view Quote"
-                        // );
+                    {isLoading ? (
+                      <Loading />
+                    ) : (
+                      <tbody>
+                        {lineItems.map((lineItem, index) => {
+                          // console.log(
+                          //   lineItem.productId,
+                          //   "lineItem.productId in view Quote"
+                          // );
 
-                        let product = lineItem.product
-                        
-                        // productInfo.find(
-                        //   (product) => product.id === lineItem.productId
-                        // );
-                        console.log(product, "product in view Quote");
-                        // console.log(product,'product')
-                        return (
-                          <tr key={index}>
-                            <td className="border border-gray-300 p-2 text-center">
-                              <span className="flex flex-col">
-                                {product.styleNumber}
-                              </span>
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center">
-                              <div className="flex flex-col">
-                                <img
-                                  src={product.images[0]}
-                                  alt={product.styleNumber}
-                                />
-                                {product.images.length > 1 ? (
-                                  <button
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      setImageModelOpen(true);
-                                    }}
-                                    className="px-2 py-2 bg-chabot-gold text-white rounded"
-                                  >
-                                    {" "}
-                                    More Photos
-                                  </button>
-                                ) : (
-                                  ""
-                                )}
-                                <MoreImageModel
-                                  onClose={() => setImageModelOpen(false)}
-                                  images={product.images}
-                                  isOpen={isImageModelOpen}
-                                />
-                              </div>
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center">
-                              {product.description}
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center">
-                              {product.salesWeight}g
-                            </td>
-                            <td className="border border-gray-300 p-2 text-center">
-                              ${lineItem.salesPrice}
-                            </td>
-                            <EditableCellWithGenerics
-                              handleChange={handleChange}
-                              setEditingCell={setEditingCell}
-                              editingCell={editingCell}
-                              id={index}
-                              cellType={"internalNote"}
-                              data={lineItem.internalNote} // Placeholder for actual data
-                            />
-                            {forPdf ? (
-                              ""
-                            ) : (
+                          let product = lineItem.product;
+
+                          // productInfo.find(
+                          //   (product) => product.id === lineItem.productId
+                          // );
+                          console.log(product, "product in view Quote");
+                          // console.log(product,'product')
+                          return (
+                            <tr key={index}>
                               <td className="border border-gray-300 p-2 text-center">
-                                {formData.buyerComments || "No Remarks"}
+                                <span className="flex flex-col">
+                                  {product.styleNumber}
+                                </span>
                               </td>
-                            )}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
+                              <td className="border border-gray-300 p-2 text-center">
+                                <div className="flex flex-col">
+                                  <img
+                                    src={product.images[0]}
+                                    alt={product.styleNumber}
+                                  />
+                                  {product.images.length > 1 ? (
+                                    <button
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        setImageModelOpen(true);
+                                      }}
+                                      className="px-2 py-2 bg-chabot-gold text-white rounded"
+                                    >
+                                      {" "}
+                                      More Photos
+                                    </button>
+                                  ) : (
+                                    ""
+                                  )}
+                                  <MoreImageModel
+                                    onClose={() => setImageModelOpen(false)}
+                                    images={product.images}
+                                    isOpen={isImageModelOpen}
+                                  />
+                                </div>
+                              </td>
+                              <td className="border border-gray-300 p-2 text-center">
+                                {product.description}
+                              </td>
+                              <td className="border border-gray-300 p-2 text-center">
+                                {product.salesWeight}g
+                              </td>
+                              <td className="border border-gray-300 p-2 text-center">
+                                ${lineItem.salesPrice}
+                              </td>
+                              <EditableCellWithGenerics
+                                handleChange={handleChange}
+                                setEditingCell={setEditingCell}
+                                editingCell={editingCell}
+                                id={index}
+                                cellType={"internalNote"}
+                                data={lineItem.internalNote} // Placeholder for actual data
+                              />
+                              {forPdf ? (
+                                ""
+                              ) : (
+                                <td className="border border-gray-300 p-2 text-center">
+                                  {formData.buyerComments || "No Remarks"}
+                                </td>
+                              )}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    )}
                   </table>
                 </div>
               </div>
@@ -438,18 +445,17 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
                     />
                   </div>
                   <div className="flex flex-col mb-1">
-                  <label htmlFor="buyer">Prepared For</label>
-                  <CustomSelect
-                    onSelect={(option) => {
-                      const { categories, value } = option;
-                      setFormData({...formData, "buyer": value});
-                    }}
-                    version={"customers"}
-                    hidden={false}
-                    informationFromDataBase={formData.buyer}
-                  />
-                </div>
-                 
+                    <label htmlFor="buyer">Prepared For</label>
+                    <CustomSelect
+                      onSelect={(option) => {
+                        const { categories, value } = option;
+                        setFormData({ ...formData, buyer: value });
+                      }}
+                      version={"customers"}
+                      hidden={false}
+                      informationFromDataBase={formData.buyer}
+                    />
+                  </div>
                 </div>
 
                 <div className="mt-6 flex justify-self-end space-x-3">
@@ -504,9 +510,7 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
                 </div>
 
                 <div className="flex flex-row justify-between">
-                  <h1 className=" py-5 text-xl font-bold">
-                    Quote
-                  </h1>
+                  <h1 className=" py-5 text-xl font-bold">Quote</h1>
                   <div className="flex flex-row gap-2">
                     {/* <span className="self-center">Metal Prices At:</span> */}
                     <div className="flex flex-col gap-2 mb-1">
@@ -614,9 +618,9 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
                       })}
                     </tbody> */}
                     <tbody>
+                      {isLoading ? <Loading /> : ""}
                       {lineItems.map((lineItem, index) => {
-                        let product = lineItem.product
-                        
+                        let product = lineItem.product;
 
                         return (
                           <tr
@@ -653,12 +657,12 @@ export default function ViewQuote({ quoteId, forPdf,resolve }) {
                                 handleChange={handleChangeUnauthenticated}
                                 setEditingCell={setEditingCell}
                                 editingCell={editingCell}
-                                id={lineItem.id}
+                                id={lineItem.lineItemId}
                                 cellType={"BuyerComments"}
                                 data={
                                   lineItem.BuyerComment.trim() === ""
                                     ? null
-                                    : lineItem.buyerComment
+                                    : lineItem.BuyerComment
                                 } // Placeholder for actual data
                               />
                             ) : (
