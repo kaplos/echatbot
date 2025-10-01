@@ -41,8 +41,8 @@ const AddSampleModal = ({ isOpen, onClose, onSave }) => {
     plating: 1,
     necklace: false,
     necklaceCost: 0,
-    collection: "",
-    category: "",
+    collection: null,
+    category: null,
     status: "Working_on_it:yellow",
   };
   let starting_formData = {
@@ -116,54 +116,112 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
     onClose();
   };
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (formData.styleNumber === "") {
-      showMessage("Please add a styleNumber");
+  e.preventDefault();
+
+  // Validate required fields
+  if (!formData.styleNumber) {
+    showMessage("Please add a styleNumber");
+    return;
+  }
+
+  console.log("Form Data:", formData);
+
+  // Destructure and sanitize starting_info
+  const { stones, images, cad, ...startingInfo } = starting_info;
+
+  const sanitizedStartingInfo = {
+    ...startingInfo,
+    vendor: startingInfo.vendor ? Number(startingInfo.vendor) : null,
+    weight: startingInfo.weight ? parseFloat(startingInfo.weight) : null,
+    length: startingInfo.length ? parseFloat(startingInfo.length) : null,
+    width: startingInfo.width ? parseFloat(startingInfo.width) : null,
+    height: startingInfo.height ? parseFloat(startingInfo.height) : null,
+    platingCharge: startingInfo.platingCharge
+      ? parseFloat(startingInfo.platingCharge)
+      : null,
+    laborCost: startingInfo.laborCost ? parseFloat(startingInfo.laborCost) : null,
+    miscCost: startingInfo.miscCost ? parseFloat(startingInfo.miscCost) : null,
+    necklaceCost: startingInfo.necklaceCost
+      ? parseFloat(startingInfo.necklaceCost)
+      : null,
+    necklace:
+      startingInfo.necklace === "true"
+        ? true
+        : startingInfo.necklace === "false"
+        ? false
+        : !!startingInfo.necklace,
+  };
+
+  // Sanitize formData
+  const sanitizedFormData = {
+    ...formData,
+    back_type_quantity: formData.back_type_quantity
+      ? Number(formData.back_type_quantity)
+      : null,
+    salesWeight: formData.salesWeight ? parseFloat(formData.salesWeight) : null,
+  };
+
+  try {
+    // Insert sanitized starting_info
+    const { data: startingInfoData, error: startingInfoError } = await supabase
+      .from("starting_info")
+      .insert([sanitizedStartingInfo])
+      .select("id");
+
+    if (startingInfoError) {
+      console.error("Error inserting starting_info:", startingInfoError);
+      showMessage("Failed to save starting info.");
       return;
     }
-    console.log(formData);
-    const { stones, images,cad,...startingInfo } = starting_info;
 
-    const { data: starting_infoData, error: starting_infoError } =
-      await supabase
-        .from("starting_info")
-        .insert([startingInfo])
-        .select("id");
-    console.log(starting_infoData)
-    if (starting_infoError) {
-      console.log(starting_infoError);
-    }
-    const { error: stoneError } = await supabase.from("stones").insert(
-      stones.map((stone) => ({
+    const startingInfoId = startingInfoData[0]?.id;
+
+    // Insert stones if any
+    if (stones && stones.length > 0) {
+      const sanitizedStones = stones.map((stone) => ({
         ...stone,
-        starting_info_id: starting_infoData[0].id,
-      }))
-    );
+        starting_info_id: startingInfoId,
+        size: stone.size ? parseFloat(stone.size) : null,
+        weight: stone.weight ? parseFloat(stone.weight) : null,
+        count: stone.count ? Number(stone.count) : null,
+      }));
 
-    if (stoneError) {
-      console.log(stoneError);
+      const { error: stoneError } = await supabase
+        .from("stones")
+        .insert(sanitizedStones);
+
+      if (stoneError) {
+        console.error("Error inserting stones:", stoneError);
+        showMessage("Failed to save stones.");
+        return;
+      }
     }
 
-    console.log(starting_infoData[0].id);
-
-    const { data, error } = await supabase
+    // Insert sanitized formData into samples
+    const { data: sampleData, error: sampleError } = await supabase
       .from("samples")
-      .insert([{ ...formData, starting_info_id: starting_infoData[0].id }])
+      .insert([{ ...sanitizedFormData, starting_info_id: startingInfoId }])
       .select("*, starting_info(*)");
 
-    if (error) {
-      console.log(error);
+    if (sampleError) {
+      console.error("Error inserting sample:", sampleError);
+      showMessage("Failed to save sample.");
+      return;
     }
-    console.log(data, "data from insert samples ");
-    await finalizeMediaUpload(
-      "starting_info",
-      starting_infoData[0].id,
-      data[0].styleNumber,
-    );
-    onSave(data[0]);
+
+    // Finalize media uploads
+    await finalizeMediaUpload("starting_info", startingInfoId, formData.styleNumber);
+
+    // Reset form and close modal
+    onSave(sampleData[0]);
     setFormData({ ...starting_formData });
     setStarting_info({ ...starting_info_object });
-  };
+    showMessage("Sample added successfully!");
+  } catch (error) {
+    console.error("Unexpected error:", error);
+    showMessage("An unexpected error occurred.");
+  }
+};
   const handleCustomSelect = (option) => {
     console.log(option, "option from custom select");
     const { categories, value } = option;
