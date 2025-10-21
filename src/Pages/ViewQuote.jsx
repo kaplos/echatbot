@@ -65,7 +65,8 @@ export default function ViewQuote({ quoteId, forPdf, resolve }) {
           .from("quote_with_lineitems_and_product")
           .select("*")
           .eq("quoteNumber", quote)
-          .single();
+          .single()
+          // .explain({ format: 'json' });
 
         console.log(data, "data in fetch quote");
 

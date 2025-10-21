@@ -55,7 +55,7 @@ const GridComponent = ({ quotes, setQuotes, selected,setSelected}) => {
         '*'
       )
       .eq("quoteNumber", quoteNumber)
-        .single();
+      .single();
 
     if (error) {
       console.error("Error fetching quote for Excel export:", error);

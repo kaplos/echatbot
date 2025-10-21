@@ -12,6 +12,7 @@ export default function EditableCellWithGeneric({
 
     const [customValue, setCustomValue] = useState(data);
     useEffect(() => {
+        console.log('data changed',data);
         setCustomValue(data);
     }, [data]);
     useEffect(() => {
@@ -44,7 +45,7 @@ export default function EditableCellWithGeneric({
                     />
                 
             ) : (
-                !customValue || customValue ==='' ?  "Click to edit": cellType.toLowerCase().includes('price') ? `$${customValue}` : customValue 
+                !customValue || customValue === '' ?  "Click to edit": cellType.toLowerCase().includes('price') ? `$${customValue}` : customValue
             )}
         </td>
     );

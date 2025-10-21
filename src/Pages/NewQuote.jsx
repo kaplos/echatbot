@@ -13,6 +13,7 @@ import { useLocation } from "react-router-dom";
 import EditableCellWithGenerics from "../components/Qoutes/EditableCellWithGenerics";
 import { useGenericStore } from "../store/VendorStore";
 import CustomSelect from "../components/CustomSelect";
+import Loading from "../components/Loading";
 
 export default function NewQuote() {
   const navigate = useNavigate();
@@ -674,12 +675,12 @@ export default function NewQuote() {
                     </tr>
                   </thead>
                   <tbody>
-                    {lineItems &&
-                      lineItems.map((product, index) => {
-                        console.log(product, "product in lineItems");
-                        // let product = product;
-                        return (
-                          <tr key={index} className="h-32">
+                    {isLoading && <Loading />}
+                    {lineItems && !isLoading && lineItems.map((product, index) => {
+                      console.log(product, "product in lineItems");
+                      // let product = product;
+                      return (
+                        <tr key={index} className="h-32">
                             <td className="border border-gray-300 p-2 text-center">
                               {product.styleNumber ||
                                 productInfo.name}
