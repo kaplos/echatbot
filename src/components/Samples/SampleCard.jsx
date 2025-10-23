@@ -5,6 +5,7 @@ import { formatShortDate } from '../../utils/dateUtils';
 import { MessageSquare, Calendar, Tag,Pencil } from 'lucide-react';
 
 const SampleCard = ({ 
+    key,
     sample, 
     onClick, 
     selected = false,
@@ -21,6 +22,7 @@ const SampleCard = ({
            <div
              role="button"
              tabIndex={0}
+             key={key}
              onClick={handleClick}
              onKeyDown={(e) => e.key === 'Enter' && handleClick(e)}
              className={`relative bg-white rounded-lg shadow-sm border ${

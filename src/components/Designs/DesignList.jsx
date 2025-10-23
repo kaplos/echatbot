@@ -119,7 +119,7 @@ const DesignList = ({ designs, setDesigns, isLoading, setIsLoading, hasMore, set
         handleExport={handleExport}
         handleSelections={(selected) => setSelectedDesigns(selected)}
         selectedItems={selectedDesigns}
-        allItems={designs}
+        allItems={designs.map((d) => d.id)}
         onDelete={(deletedSelectedItems) =>
           setDesigns(designs.filter((d) => !deletedSelectedItems.includes(d.id)))
         }
@@ -133,7 +133,7 @@ const DesignList = ({ designs, setDesigns, isLoading, setIsLoading, hasMore, set
               key={design.id}
               design={design}
               onClick={isSelectionMode ? toggleDesignSelection : onDesignClick}
-              selected={[...selectedDesigns].some(d => d.id === design.id)}
+              selected={selectedDesigns.has( design.id)}
               selectable={isSelectionMode}
             />
           ))}

@@ -16,7 +16,7 @@ import { metalTypes, getMetalType } from "../../utils/MetalTypeUtil";
 import StonePropertiesForm from "../Products/StonePropertiesForm";
 import CalculatePrice from "./CalculatePrice";
 import TotalCost from "./TotalCost";
-import {  useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useMessage } from "../Messages/MessageContext";
 
 // import {limitInput} from '../../utils/inputUtils.js'
@@ -24,18 +24,18 @@ import { useGenericStore } from "../../store/VendorStore";
 const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
   const { getEntityItemById, getEntity } = useGenericStore();
   const vendors = getEntity("vendors");
-  const {formFields} = getEntity("settings").options;
+  const { formFields } = getEntity("settings").options;
 
   // console.log(sample, "sample from design info modal");
   const { supabase } = useSupabase();
-  const {showMessage} = useMessage()
-  const finalizeImageRef = useRef(null)
-  const finalizeCadRef = useRef(null)
-  const [uploadedImages,setUploadedImages]= useState([])
-    
+  const { showMessage } = useMessage();
+  const finalizeImageRef = useRef(null);
+  const finalizeCadRef = useRef(null);
+  const [uploadedImages, setUploadedImages] = useState([]);
+
   const { starting_info: passedStartingInfo, formData: passedFormData } =
     sample;
-console.log(passedStartingInfo)
+  console.log(passedStartingInfo);
   const [lossPercent, setLossPercent] = useState(0);
   const [formDataOriginal, setFormDataOriginal] = useState({
     ...passedFormData,
@@ -46,15 +46,13 @@ console.log(passedStartingInfo)
 
   const [starting_info_original, setStarting_info_original] = useState({
     ...passedStartingInfo,
-      
   });
   const [starting_info, setStarting_info] = useState({
     ...passedStartingInfo,
   });
 
-  
   const [relatedQuotes, setRelatedQuotes] = useState([]);
-  const [metalCost, setMetalCost] = useState();
+  const [metalCost, setMetalCost] = useState(0);
   const vendorLossRef = useRef(null);
 
   useEffect(() => {
@@ -71,15 +69,13 @@ console.log(passedStartingInfo)
     setStarting_info_original({
       ...passedStartingInfo,
       images: passedStartingInfo.images ? passedStartingInfo.images : [],
-    cad: passedFormData.cad ? passedFormData.cad : [],
-
+      cad: passedFormData.cad ? passedFormData.cad : [],
     });
 
     setStarting_info({
       ...passedStartingInfo,
       images: passedStartingInfo.images ? passedStartingInfo.images : [],
-    cad: passedFormData.cad ? passedFormData.cad : [],
-
+      cad: passedFormData.cad ? passedFormData.cad : [],
     });
   }, [isOpen]);
 
@@ -101,7 +97,8 @@ console.log(passedStartingInfo)
     };
     fetchQuoteNumber();
     setLossPercent(
-      getEntityItemById('vendors',sample.starting_info.vendor).pricingsetting.lossPercentage
+      getEntityItemById("vendors", sample.starting_info.vendor).pricingsetting
+        .lossPercentage
     );
   }, [isOpen]);
 
@@ -132,7 +129,6 @@ console.log(passedStartingInfo)
     }
   };
 
-  
   const getObjectDifferences = (formData, originalData) => {
     const changes = { updated_at: new Date().toISOString() }; // Initialize changes with updated_at
 
@@ -173,22 +169,26 @@ console.log(passedStartingInfo)
 
     return { added, updated, deleted };
   };
-const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
-  const promises = [];
+  const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
+    const promises = [];
 
-  if (finalizeImageRef.current) {
-    promises.push(finalizeImageRef.current.finalizeUpload(entity, entityId, styleNumber));
-  }
-  if (finalizeCadRef.current) {
-    promises.push(finalizeCadRef.current.finalizeUpload(entity, entityId, styleNumber));
-  }
+    if (finalizeImageRef.current) {
+      promises.push(
+        finalizeImageRef.current.finalizeUpload(entity, entityId, styleNumber)
+      );
+    }
+    if (finalizeCadRef.current) {
+      promises.push(
+        finalizeCadRef.current.finalizeUpload(entity, entityId, styleNumber)
+      );
+    }
 
-  await Promise.all(promises);
-  // Both uploads are finished here
-}
+    await Promise.all(promises);
+    // Both uploads are finished here
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
-    let sampleData = ''
+    let sampleData = "";
     if (
       areObjectsEqual(formData, formDataOriginal) &&
       areObjectsEqual(starting_info, starting_info_original)
@@ -207,15 +207,15 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
     // Proceed with the update logic'
     if (Object.keys(sampleUpdates).length !== 0) {
       console.log(" changes in starting_info");
-      const {  error } = await supabase
+      const { error } = await supabase
         .from("samples")
         .update(sampleUpdates)
-        .eq("id", passedFormData.id)
-        // .select();
+        .eq("id", passedFormData.id);
+      // .select();
       sampleData = await supabase
-      .from('sample_with_stones_export')
-      .select('*')
-      .eq('sample_id',passedFormData.id)
+        .from("sample_with_stones_export")
+        .select("*")
+        .eq("sample_id", passedFormData.id);
 
       if (error) {
         console.error("Error updating sample:", error);
@@ -277,14 +277,14 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
       }
     }
 
-   
-
-
     console.log("sample updated:", formData);
-    await finalizeMediaUpload('starting_info',starting_info.id,formData.styleNumber)
+    await finalizeMediaUpload(
+      "starting_info",
+      starting_info.id,
+      formData.styleNumber
+    );
     updateSample({ ...sampleData.data });
     setFormData({
-      
       category: "",
       collection: "",
       name: "",
@@ -396,7 +396,7 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                           <ImageUpload
                             // images={formData.images || []}
                             images={starting_info.images || []}
-                            collection={'image'}
+                            collection={"image"}
                             ref={finalizeImageRef}
                             // onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
                             // onChange={async (images) => {
@@ -414,7 +414,6 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                             // onChange={(cad) =>
                             //   setStarting_info({ ...starting_info, cad: cad })
                             // }
-                          
                           />
                         </div>
                         {/* this is the status function */}
@@ -488,7 +487,8 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
 
                         <div className="w-full ">
                           <label className="block text-sm font-medium text-gray-700">
-                            Manufacturer Code <span className="text-red-500">*</span>
+                            Manufacturer Code{" "}
+                            <span className="text-red-500">*</span>
                           </label>
                           <input
                             required
@@ -533,8 +533,10 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                                   vendor: e.target.value,
                                 });
                                 setLossPercent(
-                                  getEntityItemById('vendors',Number(e.target.value))
-                                    .pricingsetting.lossPercentage
+                                  getEntityItemById(
+                                    "vendors",
+                                    Number(e.target.value)
+                                  ).pricingsetting.lossPercentage
                                 );
                               }}
                               value={starting_info.vendor}
@@ -559,7 +561,7 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                         <textarea
                           rows={2}
                           className="mt-1 block input shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={starting_info.description || ''}
+                          value={starting_info.description || ""}
                           onChange={(e) =>
                             setStarting_info({
                               ...starting_info,
@@ -665,9 +667,10 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                       {/*this is weight sectiion  */}
 
                       <div className="flex flex-row gap-2 w-full">
-                        
                         <div className="w-full">
-                          <label htmlFor="">Weight <span className="text-red-500">*</span></label>
+                          <label htmlFor="">
+                            Weight <span className="text-red-500">*</span>
+                          </label>
                           <div className="flex items-center gap-1 ">
                             <span className="w-full relative">
                               <input
@@ -679,7 +682,9 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                                 onChange={(e) =>
                                   setStarting_info({
                                     ...starting_info,
-                                    weight: e.target.value,
+                                    weight:
+                                      e.target.value 
+                                        
                                   })
                                 }
                               />
@@ -716,10 +721,10 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                       <div className="w-full">
                         <CalculatePrice
                           type={starting_info.metalType}
-                          weight={starting_info.weight}
+                          weight={starting_info.weight} // ensure numeric prop
                           karat={starting_info.karat}
                           lossPercent={lossPercent}
-                          onMetalCostChange={setMetalCost}
+                          onMetalCostChange={(cost) => {console.log(cost); setMetalCost(cost)}}
                         />
                       </div>
 
@@ -817,7 +822,6 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                           </div>
                         </div>
                       </div>
-                     
 
                       <div className="flex flex-row justify-center gap-2  ">
                         <div className="flex w-full flex-col">
@@ -836,15 +840,16 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                                   })
                                 }
                               >
-                                {formFields?.backType?.map((backType, index) => (
-                                  <option
-                                    key={index}
-                                    value={backType.toLowerCase()}
-                                  >
-                                    {backType}
-                                  </option>
-                                ))}
-                                
+                                {formFields?.backType?.map(
+                                  (backType, index) => (
+                                    <option
+                                      key={index}
+                                      value={backType.toLowerCase()}
+                                    >
+                                      {backType}
+                                    </option>
+                                  )
+                                )}
                               </select>
                               <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
                               {formData.back_type === "other" && (
@@ -864,24 +869,24 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                             </div>
                           </div>
                         </div>
-                          <div className=" w-full">
-                            <label htmlFor="back_type_quantity">
-                              Back Type Quantity
-                            </label>
-                            <input
-                              type="number"
-                              className="mt-1 input pr-7 pl-3 py-2"
-                              value={formData.back_type_quantity}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  back_type_quantity: e.target.value,
-                                })
-                              }
-                            />
-                          </div>
+                        <div className=" w-full">
+                          <label htmlFor="back_type_quantity">
+                            Back Type Quantity
+                          </label>
+                          <input
+                            type="number"
+                            className="mt-1 input pr-7 pl-3 py-2"
+                            value={formData.back_type_quantity}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                back_type_quantity: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
                       </div>
-                      
+
                       <div className="flex flex-col  ">
                         <label htmlFor="selling_pair">Selling type</label>
                         <div className="relative w-full">
@@ -898,13 +903,10 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                             }
                           >
                             {formFields?.sellingType?.map((type, index) => (
-                                  <option
-                                    key={index}
-                                    value={type.toLowerCase()}
-                                  >
-                                    {type}
-                                  </option>
-                                ))}
+                              <option key={index} value={type.toLowerCase()}>
+                                {type}
+                              </option>
+                            ))}
                           </select>
                           <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
                         </div>
@@ -912,13 +914,33 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                       {/* category and collection */}
                       <div className="flex flex-row gap-2">
                         <div>
-                            <label htmlFor="board" className="text-sm font-medium text-gray-700">Board</label>
-                            <CustomSelect onSelect={handleCustomSelect} informationFromDataBase={starting_info.collection} version={'collection'} hidden={true}/>
+                          <label
+                            htmlFor="board"
+                            className="text-sm font-medium text-gray-700"
+                          >
+                            Board
+                          </label>
+                          <CustomSelect
+                            onSelect={handleCustomSelect}
+                            informationFromDataBase={starting_info.collection}
+                            version={"collection"}
+                            hidden={true}
+                          />
                         </div>
 
-                        <div className='mb-10'>
-                            <label htmlFor="category" className="text-sm font-medium text-gray-700">Category</label>
-                            <CustomSelect  onSelect={handleCustomSelect} informationFromDataBase={starting_info.category} version={'category'} hidden={false} />
+                        <div className="mb-10">
+                          <label
+                            htmlFor="category"
+                            className="text-sm font-medium text-gray-700"
+                          >
+                            Category
+                          </label>
+                          <CustomSelect
+                            onSelect={handleCustomSelect}
+                            informationFromDataBase={starting_info.category}
+                            version={"category"}
+                            hidden={false}
+                          />
                         </div>
                       </div>
                       {/* necklace */}
@@ -928,22 +950,23 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                             Necklace
                           </label>
                           <div className="mt-1 relative rounded-md shadow-sm ">
-                            
-                          <select
-                              
+                            <select
                               name="necklace"
                               value={starting_info.necklace || false}
-                              onChange={(e)=> setStarting_info({...starting_info, necklace:e.target.value})}
-                            //   className="w-full input pl-7 pr-3 py-2"
+                              onChange={(e) =>
+                                setStarting_info({
+                                  ...starting_info,
+                                  necklace: e.target.value,
+                                })
+                              }
+                              //   className="w-full input pl-7 pr-3 py-2"
                               className={` mt-1  border border-gray-300 rounded-md p-2 appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 w-full`}
-
                             >
-                                <option value="false">No</option>
-                                <option value="true">Yes</option>
+                              <option value="false">No</option>
+                              <option value="true">Yes</option>
                             </select>
-                            
-                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
 
+                            <ChevronDown className="absolute top-4 right-3 text-gray-500 pointer-events-none" />
                           </div>
                         </div>
                         <div className="w-full">
@@ -1031,7 +1054,6 @@ const finalizeMediaUpload = async (entity, entityId, styleNumber) => {
                           </div>
                         </div>
                       </div>
-                      
 
                       <div className="flex flex-col w-full">
                         <label htmlFor="notes">Notes</label>

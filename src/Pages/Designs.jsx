@@ -30,25 +30,6 @@ const Designs = () => {
   const location = useLocation(); // Access the current URL
   const queryParams = new URLSearchParams(location.search); // Parse the query string
   const designId = queryParams.get("designId") || null;
-  // console.log(selectedDesign, 'designs');
-  // useEffect(()=>{
-  //     const fetchIdeas = async () => {
-  //         setIsLoading(true);
-  //         const { data, error } = await supabase.from('designs')
-  //         .select('*')
-  //         .order('created_at', { ascending: false }) // Replace 'created_at' with your timestamp column
-  //         .limit(12);
-
-  //         if (error) {
-  //           console.error('Error fetching designs:', error);
-  //           return;
-  //         }
-  //         setDesigns(data);
-  //         // console.log(data);
-  //         setIsLoading(false);
-  //       };
-  //        fetchIdeas();
-  // },[])
   useEffect(() => {
     if (designId && !design) {
       // Only fetch if designId exists and design is not already set
@@ -56,20 +37,7 @@ const Designs = () => {
     }
   }, [designId, design]);
 
-  // const handleClick = async (design) => {
-  //     const { data, error } = await supabase
-  //   .from('designs')
-  //   .select('*')
-  //   .eq('id', design.id);
-
-  //   if (error) {
-  //     console.error('Error fetching design:', error);
-  //     return;
-  //   }
-  //   console.log(data,'data from click');
-  //     setDesign(data[0]);
-  //     setIsDetailsOpen(true);
-  // }
+  // 
   const handleClick = async (design) => {
     // Open the modal immediately
     setIsDetailsOpen(true);

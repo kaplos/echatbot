@@ -84,7 +84,7 @@ const IdeaBoard = ({ ideas, setIdeas, isLoading, setIsLoading, hasMore, setHasMo
         setIsSelectionMode={setIsSelectionMode}
         handleSelections={(selected) => setSelectedIdeas(selected)}
         handleExport={handleExport}
-        allItems={ideas}
+        allItems={ideas.map((i) => i.id)}
         selectedItems={selectedIdeas}
         onDelete={(deletedSelectedItems) =>
           setIdeas(ideas.filter((i) => !deletedSelectedItems.includes(i.id)))

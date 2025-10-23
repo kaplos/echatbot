@@ -31,7 +31,7 @@ export default function Samples() {
       handleClick({ id: sampleId });
     }
   }, [sampleId]);
- 
+
   const handleClick = async (sample) => {
     // Open the modal immediately
     setIsDetailsOpen(true);
@@ -44,15 +44,18 @@ export default function Samples() {
       .from("samples")
       .select("*, starting_info(*)")
       .eq("id", sample.sample_id)
-      .single()
+      .single();
     // const { data:imageData,error:imageError} = await supabase
     // .from('sample_images')
     // .select('*')
     // .single()
     // .eq('sample_id',sample.sample_id)
     // console.log(data,data.starting_info?.id)
-    const {images,cad} = await getImages('starting_info',data.starting_info?.id) 
-    console.log(images,cad)
+    const { images, cad } = await getImages(
+      "starting_info",
+      data.starting_info?.id
+    );
+    console.log(images, cad);
 
     if (error) {
       console.error("Error fetching sample:", error);
@@ -77,8 +80,8 @@ export default function Samples() {
     const restructuredData = {
       formData: data,
       starting_info: {
-        images:images,
-        cad:cad,
+        images: images,
+        cad: cad,
         ...startingInfo,
         stones: stones,
       },
@@ -88,7 +91,7 @@ export default function Samples() {
     setSample(restructuredData);
   };
   const updateSample = (updatedSamples) => {
-    console.log(updatedSamples)
+    console.log(updatedSamples);
     setIsDetailsOpen(false);
     setSamples((previousSample) =>
       previousSample.map((Sample) =>
@@ -109,12 +112,12 @@ export default function Samples() {
           <div className="flex gap-2">
             <SearchBar
               items={samples}
-              type={'sample_with_stones_export'}
+              type={"sample_with_stones_export"}
               onSearch={(filteredItems) => {
                 setFilteredItems(filteredItems);
               }}
             />
-            <FilterButton type={'samples'}/>
+            <FilterButton type={"samples"} />
           </div>
         </div>
         <div className="flex space-x-3">
@@ -134,18 +137,18 @@ export default function Samples() {
           </button>
         </div>
       </div>
-      <Pagination loading={isLoading} hasMore={hasMore} >
-      <div className="flex-grow overflow-auto px-4 pb-4"> 
-        <SampleList
-          samples={filteredItems}
-          setSamples={setSamples}
-          setIsLoading={setIsLoading}
-          setHasMore={setHasMore}
-          hasMore={hasMore}
-          isLoading={isLoading}
-          onSampleClick={handleClick}
+      <Pagination loading={isLoading} hasMore={hasMore}>
+        <div className="flex-grow overflow-auto px-4 pb-4">
+          <SampleList
+            samples={filteredItems}
+            setSamples={setSamples}
+            setIsLoading={setIsLoading}
+            setHasMore={setHasMore}
+            hasMore={hasMore}
+            isLoading={isLoading}
+            onSampleClick={handleClick}
           />
-          </div>         
+        </div>
       </Pagination>
       <AddSampleModal
         isOpen={isAddModalOpen}
@@ -166,30 +169,38 @@ export default function Samples() {
         />
       )}
       <ImportModal
-  isOpen={isImportModalOpen}
-  onClose={() => setIsImportModalOpen(false)}
-  onImport={(importedSamples) => {
-    setSamples((prev) => {
-      // Create a map of existing samples for quick lookup
-      const existingSamplesMap = new Map(prev.map((sample) => [sample.sample_id, sample]));
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={(importedSamples) => {
+          setSamples((prev) => {
+            // Create a map of existing samples for quick lookup
+            const existingSamplesMap = new Map(
+              prev.map((sample) => [sample.sample_id, sample])
+            );
 
-      // Merge or add imported samples
-      importedSamples.forEach((importedSample) => {
-        if (existingSamplesMap.has(importedSample.sample_id)) {
-          // Update the existing sample
-          existingSamplesMap.set(importedSample.sample_id, importedSample);
-        } else {
-          // Add the new sample
-          existingSamplesMap.set(importedSample.sample_id, importedSample);
-        }
-      });
+            // Merge or add imported samples
+            importedSamples.forEach((importedSample) => {
+              if (existingSamplesMap.has(importedSample.sample_id)) {
+                // Update the existing sample
+                existingSamplesMap.set(
+                  importedSample.sample_id,
+                  importedSample
+                );
+              } else {
+                // Add the new sample
+                existingSamplesMap.set(
+                  importedSample.sample_id,
+                  importedSample
+                );
+              }
+            });
 
-      // Return the updated list of samples
-      return Array.from(existingSamplesMap.values());
-    });
-  }}
-  type="samples"
-/>
+            // Return the updated list of samples
+            return Array.from(existingSamplesMap.values());
+          });
+        }}
+        type="samples"
+      />
     </div>
   );
 }

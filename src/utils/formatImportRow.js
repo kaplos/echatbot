@@ -24,6 +24,7 @@ export const formatImportRow = (row, type, dropdown, prices) => {
   const mappedCollectionId = dropdown.collection.find(c => c.name === row['Collection'])?.id ?? null;
   const mappedCategoryId = dropdown.category.find(c => c.name === row['Category'])?.id ?? null;
   // if()
+  
   const starting_info = {
     id: row['starting_info_id']||'',
     necklace: row['Necklace True Or False'] || false,
@@ -47,23 +48,46 @@ export const formatImportRow = (row, type, dropdown, prices) => {
     designId: row['ID (Design)'] || null,
     miscCost: parseFloat(row['Misc Cost'] || 0),
     laborCost: parseFloat(row['Labor Cost'] || 0),
-    totalCost: parseFloat(
-      row['Total Cost'] ||
-        getTotalCost(
-          getMetalCost(
-            prices[row['Metal Type'].toLowerCase()]?.price || 0,
-            row['Weight'] || 0,
-            row['Karat'],
-            dropdown.vendors.find(v => v.id === mappedVendorId)?.pricingsetting?.lossPercentage
-          ),
-          parseFloat(row['Misc Cost'] || 0),
-          parseFloat(row['Labor Cost'] || 0),
-          stones
-        ) || 0
-    ),
+    totalCost: (() => {
+      try {
+        // Diagnostic log so you can confirm this runs during import
+        console.log('formatImportRow calculating totalCost for row:', row['Style Number'] || row['Sku'] || row);
+
+        const metalTypeKey = (row['Metal Type'] || '').toLowerCase();
+        const metalPriceEntry = prices?.[metalTypeKey];
+        // support both { price: number } or numeric value
+        const metalPrice = metalPriceEntry?.price ?? metalPriceEntry ?? 0;
+
+        const weight = parseFloat(row['Weight'] || row['Weight (g)'] || 0) || 0;
+        const karat = row['Karat'] || '';
+        const vendorObj = dropdown?.vendors?.find(v => v.id === mappedVendorId) || {};
+        // tolerate different casing for pricingSetting/pricingsetting
+        const lossPercent =
+          vendorObj?.pricingsetting?.lossPercentage ??
+          vendorObj?.pricingSetting?.lossPercentage ??
+          vendorObj?.lossPercentage ??
+          0;
+
+        const metalCost = getMetalCost(metalPrice, weight, karat, lossPercent) || 0;
+        const misc = parseFloat(row['Misc Cost'] || 0) || 0;
+        const labor = parseFloat(row['Labor Cost'] || 0) || 0;
+
+        const computed = getTotalCost(metalCost, misc, labor, stones) || 0;
+
+        const providedTotal = parseFloat(row['Total Cost']);
+        const finalTotal = Number.isFinite(providedTotal) ? providedTotal : computed;
+
+        console.log({ metalTypeKey, metalPrice, weight, karat, lossPercent, metalCost, misc, labor, computed, providedTotal, finalTotal });
+
+        return parseFloat(finalTotal) || 0;
+      } catch (err) {
+        console.error('Error computing totalCost in formatImportRow:', err);
+        return 0;
+      }
+    })(),
   };
 
-  if (type === 'designs') {
+if (type === 'designs') {
     return {
       id: row['ID (Design)'] || '',
       name: row['Name'] || '',

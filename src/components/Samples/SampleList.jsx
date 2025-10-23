@@ -161,8 +161,10 @@ useEffect(()=>{
    const toggleSampleSelection = (sample) => {
     const newSelection = new Set(selectedSamples);
     if (newSelection.has(sample.sample_id)) {
+      console.log('already selected', sample.sample_id);
       newSelection.delete(sample.sample_id);
     } else {
+      console.log('not selected, adding', sample.sample_id);
       newSelection.add(sample.sample_id);
     }
     setSelectedSamples(newSelection);
@@ -182,22 +184,28 @@ useEffect(()=>{
         onDelete={(deletedSelectedItems) =>
           setSamples(samples.filter((s) => !deletedSelectedItems.includes(s.id)))
         }
-        allItems={samples}
+        allItems={samples.map((s) => s.sample_id)}
         selectedItems={selectedSamples}
         type="Samples"
       />
       
       <div className="flex flex-col overflow-auto max-h-screen">
         <div className="h-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {samples.map((sample) => (
-            <SampleCard
-              key={sample.sample_id}
-              sample={sample}
-              onClick={isSelectionMode ? toggleSampleSelection : onSampleClick}
-              selected={selectedSamples.has(sample.sample_id)}
-              selectable={isSelectionMode}
+          {samples.map((sample) => 
+          
+          {
+            // console.log(selectedSamples,'selected samples')
+            // console.log([...selectedSamples].some(s=> s.sample_id === sample.sample_id),sample.sample_id,'selected')
+
+            return <SampleCard
+            key={sample.sample_id}
+            sample={sample}
+            onClick={isSelectionMode ? toggleSampleSelection : onSampleClick}
+            selected={selectedSamples.has(sample.sample_id)}
+            selectable={isSelectionMode}
             />
-          ))}
+          }
+          )}
         </div>
         
         

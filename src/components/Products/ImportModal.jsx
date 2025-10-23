@@ -53,6 +53,10 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
     if (error) throw new Error('Dropdown fetch failed');
     return data;
   };
+  const checkIfKaratIsValid = (karat) => {
+    const karats = ['14K','18K','10K','9K','24K','22K','925','950'];
+    return karats.includes(karat);
+  }
 
   const handleFileChange = async (e) => {
     // console.log('File change event:', e);
@@ -103,6 +107,10 @@ const ImportModal = ({ isOpen, onClose,onImport, type }) => {
             if(!restOfStartingInfo.weight) {
               console.log('weight is missing', formData.weight);
               throw new Error(`missing weight`);
+            }
+            if(!checkIfKaratIsValid(restOfStartingInfo.karat)) {
+              console.log('invalid karat:', restOfStartingInfo.karat);
+              throw new Error(`invalid karat: ${restOfStartingInfo.karat}`);
             }
             // console.log('formatted stylenumber:', formData.styleNumber, 'restOfStartingInfo:', restOfStartingInfo,'formData:', formData);
               const { id,...rest} = formData 
