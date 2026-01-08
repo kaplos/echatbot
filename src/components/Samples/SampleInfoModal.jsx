@@ -417,7 +417,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                           />
                         </div>
                         {/* this is the status function */}
-                        <div className="mt-6 mb-2 flex justify-center w-full ">
+                        <div className="mt-6 mb-2 flex justify-center w-full gap-2 ">
                           <div className="flex flex-col ">
                             <label htmlFor="status" className="self-start">
                               Status:
@@ -429,6 +429,7 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                                   ...formData,
                                   status: e.target.value,
                                 })
+
                               }
                               value={formData.status}
                               className={`${getStatusColor(
@@ -446,6 +447,45 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                               </option>
                               <option value="Dead:red">Dead</option>
                             </select>
+                          </div>
+                          
+                          <div className="flex flex-col w-full overflow-hidden">
+                            <span className="text-black text-sm">
+                              Related Quotes
+                            </span>
+                            <div className="overflow-y-auto max-h-[200px] border border-gray-300 rounded-md p-2">
+                              {relatedQuotes.length > 0
+                                ? relatedQuotes.map((quote, index) => {
+                                    return (
+                                      <div
+                                        key={index}
+                                        className="flex flex-col items-center"
+                                      >
+                                        <div className="flex justify-evenly items-center gap-2">
+                                          <span>#{quote.quote.id}</span>
+                                          <span>
+                                            Last Updated:{" "}
+                                            {formatShortDate(
+                                              quote.quote.updated_at
+                                            )}
+                                          </span>
+                                          <button
+                                            onClick={() =>
+                                              navigate(
+                                                `/newQuote?quote=${quote.quote.quoteNumber}`
+                                              )
+                                            }
+                                            className="bg-chabot-gold text-white px-1 rounded-lg flex items-center hover:bg-gray-300 hover:rounded transition-colors"
+                                          >
+                                            Go to quote
+                                          </button>
+                                        </div>
+                                        <hr className="border-t border-gray-500 w-full my-1" />
+                                      </div>
+                                    );
+                                  })
+                                : "No quotes found for this sample"}
+                            </div>
                           </div>
                         </div>
                         <div className="w-full">

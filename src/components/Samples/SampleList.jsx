@@ -76,6 +76,9 @@ useEffect(()=>{
   //   fetchSamples(0);
   // }, []);
   useEffect(() => {
+    if(searchParams.get('search')){
+      return
+    }
     fetchSamples(page); // Fetch samples whenever the page changes
   }, [page, searchParams]);
 
@@ -106,6 +109,7 @@ useEffect(()=>{
       // return [];
     }
   };
+
   const fetchAllRows = async () => {
   let allRows = [];
   let batchSize = 1000;
@@ -138,13 +142,13 @@ useEffect(()=>{
     }
     return data;
   };
-  const handleExport = async () => {
+  const handleExport = async (type='') => {
     // const samplesToExport = samples.filter((p) => selectedSamples.has(p.sample_id));
     const samplesToExport = Array.from(selectedSamples)
 
     console.log(samplesToExport,samplesToExport.length)
     // let dataToExport = await fetchAllRows()
-    let dataToExport = await getDataToExport(samplesToExport);
+    let dataToExport =type==='all'? await fetchAllRows() : await getDataToExport(samplesToExport);
     let dropdowns = await getDropDownData();
     dropdowns = {
       ...dropdowns,
@@ -156,7 +160,8 @@ useEffect(()=>{
     exportData(dataToExport, dropdowns, "samples");
     setSelectedSamples(new Set());
     setIsSelectionMode(false);
-  };
+  }; 
+   
 
    const toggleSampleSelection = (sample) => {
     const newSelection = new Set(selectedSamples);
@@ -181,6 +186,7 @@ useEffect(()=>{
         setIsSelectionMode={setIsSelectionMode}
         handleSelections={(selected) => setSelectedSamples(selected)}
         handleExport={handleExport}
+        handleExportAll={() => handleExport('all')}
         onDelete={(deletedSelectedItems) =>
           setSamples(samples.filter((s) => !deletedSelectedItems.includes(s.id)))
         }

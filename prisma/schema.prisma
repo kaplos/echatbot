@@ -374,6 +374,7 @@ model designs {
   samples_samples_designIdTodesigns                     samples?        @relation("samples_designIdTodesigns")
   starting_info_starting_info_designIdTodesigns         starting_info[] @relation("starting_info_designIdTodesigns")
 
+  @@index([name])
   @@schema("public")
 }
 
@@ -391,6 +392,7 @@ model ideas {
   designs       designs[]
   starting_info starting_info[]
 
+  @@index([name])
   @@schema("public")
 }
 
@@ -468,6 +470,7 @@ model quotes {
   users       users?      @relation(fields: [agent], references: [id])
   customers   customers?  @relation(fields: [buyer], references: [id], onDelete: Restrict)
 
+  @@index([id])
   @@schema("public")
 }
 
@@ -494,6 +497,8 @@ model samples {
   designs_samples_designIdTodesigns  designs?      @relation("samples_designIdTodesigns", fields: [designId], references: [id])
   starting_info                      starting_info @relation(fields: [starting_info_id], references: [id], onDelete: SetNull)
 
+  @@index([styleNumber])
+  @@index([name])
   @@schema("public")
 }
 

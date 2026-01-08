@@ -17,7 +17,7 @@ export default function Samples() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [sample, setSample] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [samples, setSamples] = useState([]);
   const [filteredItems, setFilteredItems] = useState([]);
   const [hasMore, setHasMore] = useState(true);

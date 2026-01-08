@@ -178,7 +178,7 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
           break;
         case "sample_with_stones_export":
           selects = "*";
-          filters = `styleNumber.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`;
+          filters = `styleNumber.ilike.${searchTerm}%,name.ilike.%${searchTerm}%`;
           break;
         case "ideas":
           selects = "*";
