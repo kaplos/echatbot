@@ -181,11 +181,11 @@ export default function SearchBar({ items: collectionItems, onSearch,type, setIs
           break;
         case "ideas":
           selects = "*";
-          filters = `name.ilike.%${searchTerm}%`;
+          filters = `name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`;
           break;
         case "designs":
           selects = "*";
-          filters = `name.ilike.%${searchTerm}%`;
+          filters = `name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`;
           break;
         default:
           throw new Error("Invalid search type");
