@@ -4,7 +4,7 @@ import { useSupabase } from '../components/SupaBaseProvider';
 import { useNavigate } from 'react-router-dom';
 import SearchBar from './SearchBar';
 
-const Header = () => {
+export default function Header() {
   const { session, supabase } = useSupabase();
   const displayName = session?.user?.user_metadata?.full_name || session?.user?.email || 'User';
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -71,5 +71,3 @@ const Header = () => {
     </header>
   );
 };
-
-export default Header;

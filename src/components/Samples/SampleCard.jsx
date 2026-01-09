@@ -45,12 +45,10 @@ const SampleCard = ({
                 <img
                   src={images[0]}
                   alt={sample.name}
-                  className="w-full h-full object-contain max-h-full"
+                  className="w-full h-full object-contain "
                 />
               
-                   {/* <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white px-2 py-1 text-center">
-                     <span className="text-sm font-medium">hi</span>
-                     </div> */}
+                  
                  
                      </div>
                ) 

@@ -142,7 +142,7 @@ export default function Ideas() {
 
   if (slideEditorOpen) {
     return (
-      <div className="w-full h-screen">
+      <div className="w-full p-4">
         <div className="bg-gray-100 p-2 flex justify-between items-center mb-2">
           <h2 className="text-lg font-semibold">
             {idea ? `Editing: ${idea.name}` : "Creating New Design"}
@@ -164,7 +164,7 @@ export default function Ideas() {
   }
 
   return (
-    <div className="p-6 w-full">
+    <div className="p-4">
       <div className="flex justify-between items-center mb-6">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold text-gray-900">Ideas Board</h1>
@@ -176,6 +176,8 @@ export default function Ideas() {
                 console.log(filteredItems);
                 setFilteredIdeas(filteredItems);
               }}
+              isLoading={isLoading}
+              setIsLoading={setIsLoading}
             />
             {/* <FilterButton />   */}
           </div>

@@ -7,7 +7,7 @@ import VendorFormEdit from '../components/Vendor/VendorFormEdit';
 import Loading from '../components/Loading';
 import { useGenericStore } from '../store/VendorStore';
 
-const Vendors = () => {
+export default function Vendors() {
     const {getEntity,updateEntity} = useGenericStore()
     const vendors = getEntity('vendors');
     const {supabase} = useSupabase();
@@ -15,7 +15,7 @@ const Vendors = () => {
     const [isEditFormOpen, setIsEditFormOpen] = useState(false);
     const [selectedDesign, setSelectedDesign] = useState(null);
     const [isLoading,setIsLoading] = useState(false)
-    const [selectedVendor, setSelectedVendor] = useState();
+    const [selectedVendor, setSelectedVendor] = useState(null);
     // const [vendors, setVendors] = useState([]);
 
     // useEffect(() => {
@@ -55,18 +55,18 @@ const Vendors = () => {
 
           addVendor(vendorData);
           setIsFormOpen(false);
-          setSelectedVendor(undefined);
+          setSelectedVendor(null);
     }
     if(isLoading){
       return <Loading/>
     }
     return (
-        <div className="p-6">
+        <div className="p-6 ">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Vendors</h1>
             <button
               onClick={() => {
-                setSelectedVendor(undefined);
+                setSelectedVendor(null);
                 setIsFormOpen(true);
               }}
               className="flex items-center px-4 py-2 text-white bg-chabot-gold rounded-lg hover:bg-opacity-90"
@@ -85,7 +85,7 @@ const Vendors = () => {
             isOpen={isFormOpen}
             onClose={() => {
               setIsFormOpen(false);
-              setSelectedVendor(undefined);
+              setSelectedVendor(null);
             }}
             onSave={(vendor) => {
               console.log(vendor)
@@ -98,7 +98,7 @@ const Vendors = () => {
                 isOpen={isEditFormOpen}
                 onClose={() => {
                   setIsEditFormOpen(false);
-                  setSelectedVendor(undefined);
+                  setSelectedVendor(null);
                 }}
                 updateVendor={(data)=> updateEntity('vendors', data)}
             />
@@ -106,7 +106,6 @@ const Vendors = () => {
         </div>
       );
     }
-    export default Vendors;
  
 
 

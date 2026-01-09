@@ -5,6 +5,7 @@ export default function EditableCellWithGeneric({
     setEditingCell, 
     editingCell, 
     cellType, 
+    inputType = 'text',
     id, 
     data
 }) {
@@ -26,7 +27,7 @@ export default function EditableCellWithGeneric({
             {editingCell?.field === cellType && editingCell?.id === id ? (
                     
                     <input
-                        type="text"
+                        type={inputType}
                         value={customValue}
                         onChange={(e) => setCustomValue(e.target.value)}
                         onBlur={() => {

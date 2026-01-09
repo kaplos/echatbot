@@ -61,7 +61,7 @@ export default function NewQuote() {
   const [isOpen, setIsOpen] = useState(false);
 
   // Fetch quote and line items if quote param exists
-  useEffect(() => {
+useEffect(() => {
   if (quote) {
     console.log(quote, "quote from params");
     const fetchQuote = async () => {
@@ -75,12 +75,18 @@ export default function NewQuote() {
 
       console.log(data, "data from supabase");
 
+      if (error) {
+        console.error("Error fetching samples:", error);
+        setIsLoading(false);
+        return;
+      }
+
       // Process line items and fetch images
       const processedLineItems = await Promise.all(
         data.lineitems.map(async (item) => {
-          const {product,internalNote,margin,lineItemId,BuyerComment,bulkMargin} = item
-          const {styleNumber, images,cad,sample_id,starting_description,weight,salesWeight} = product || {}
-          console.log(product,"product in line item")
+          console.log(item, "line item before processing");
+          const {product, internalNote, margin, lineItemId, BuyerComment, bulkMargin} = item;
+          const {styleNumber, images, cad, sample_id, starting_description, weight, salesWeight} = product || {};
 
           // Calculate cost, salesPrice, retailPrice like handleCustomSelect
           const vendor = getEntityItemById("vendors", product.vendor);
@@ -91,20 +97,27 @@ export default function NewQuote() {
               lossPercentage
             ).toFixed(2)
           ) || 0;
-          const salesPrice = cost;
+
+          // Use existing margin if available, otherwise fall back to bulkMargin or formData
+          const itemMargin = margin ?? bulkMargin ?? formData.bulkMargin ?? 0;
+          
+          // Calculate salesPrice using the margin
+          const salesPrice = parseFloat(
+            (cost / (1 - itemMargin / 100)).toFixed(2)
+          ) || cost;
+          
           const retailPrice =
             parseFloat((salesPrice * (formData.multiplier || 1)).toFixed(2)) || 0;
 
           return {
             ...product,
             productId: sample_id,
-            // styleNumber, images,cad,
-            description:starting_description||'',
+            description: starting_description || '',
             retailPrice,
             weight,
             salesWeight,
             internalNote: internalNote || "",
-            margin: margin ?? formData.bulkMargin,
+            margin: itemMargin,
             bulkMargin: bulkMargin || 0,
             totalCost: cost,
             salesPrice,
@@ -116,10 +129,6 @@ export default function NewQuote() {
       console.log(processedLineItems, "processed line items");
       setlineItems(processedLineItems);
 
-      if (error) {
-        console.error("Error fetching samples:", error);
-        return;
-      }
       const { lineitems, ...dataWithoutLineItems } = data;
       resetForm(dataWithoutLineItems);
       setIsLoading(false);
@@ -128,7 +137,7 @@ export default function NewQuote() {
   } else {
     console.log("not displaying a quote");
   }
-},[quote])
+}, [quote])
 
   // Filter only allowed fields for DB insert/update
   const filterLineItemFields = (item) =>
@@ -444,7 +453,13 @@ export default function NewQuote() {
         );
         const costDifference = newCost - oldCost;
 
-        const oldSalesPrice = item.salesPrice || 0;
+        const oldSalesPrice = Number.parseFloat(item.salesPrice) || 0;
+
+        console.log(
+          {
+            oldCost, newCost, costDifference, oldSalesPrice
+          }
+        );
         const newSalesPrice = parseFloat(
           (oldSalesPrice + costDifference).toFixed(2)
         );

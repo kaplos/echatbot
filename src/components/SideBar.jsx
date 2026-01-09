@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Profiler } from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -15,8 +15,9 @@ import {
   Pen,
   Images
 } from 'lucide-react';
-
+import ProfileButton from './MiscComponenets/ProfileButton';
 export default function Sidebar  ()  {
+
   const navItems = [
     // { icon: LayoutDashboard, label: 'Dashboard', to: '/' },
     { icon: Lightbulb, label: 'Ideas', to: '/ideas' },
@@ -32,33 +33,36 @@ export default function Sidebar  ()  {
   ];
 
   return (
-    <div className="w-64 bg-white h-screen border-r border-gray-200 fixed left-0 top-0 z-200">
-      <div className="p-6">
-        <div className="flex flex-col items-center">
-          <div className="text-[#C5A572] text-3xl font-serif tracking-wider">
-            E CHABOT
-          </div>
-          <div className="text-[#C5A572] text-sm mt-1">
-            EST. 1993
+    <div className="w-64 bg-white h-screen border-r border-gray-200 fixed left-0 top-0 z-200 justify-between flex flex-col">
+      <div>
+        <div className="p-6">
+          <div className="flex flex-col items-center">
+            <div className="text-[#C5A572] text-3xl font-serif tracking-wider">
+              E CHABOT
+            </div>
+            <div className="text-[#C5A572] text-sm mt-1">
+              EST. 1993
+            </div>
           </div>
         </div>
+        <nav className="mt-6">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50 ${
+                  isActive ? 'bg-gray-50 border-r-4 border-[#C5A572]' : ''
+                }`
+              }
+            >
+              <item.icon className="w-5 h-5 mr-3" />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
       </div>
-      <nav className="mt-6">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) =>
-              `flex items-center px-6 py-3 text-gray-700 hover:bg-gray-50 ${
-                isActive ? 'bg-gray-50 border-r-4 border-[#C5A572]' : ''
-              }`
-            }
-          >
-            <item.icon className="w-5 h-5 mr-3" />
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
-      </nav>
+      <ProfileButton/>
     </div>
   );
 };

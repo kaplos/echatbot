@@ -5,11 +5,10 @@ import { Link } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
 import { use } from "react";
 
-const SearchBar = ({ items: collectionItems, onSearch,type }) => {
+export default function SearchBar({ items: collectionItems, onSearch,type, setIsLoading, isLoading }) {
   const { supabase } = useSupabase();
   const [searchTerm, setSearchTerm] = useState("");
   const [items, setItems] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
     const [searchParams, setSearchParams] = useSearchParams(); // React Router hook for query params
     const page = parseInt(searchParams.get("page") || "0", 10);
@@ -44,7 +43,7 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
     const { data: samples, error: samplesError } = await supabase
         .from("samples")
         .select("*")
-        .or(`styleNumber.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`);
+        .or(`styleNumber.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%,starting_description.ilike.%${searchTerm}%`);
 
       if (samplesError) throw samplesError;
 
@@ -156,7 +155,7 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
     setError(null);
     const from = page * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
@@ -178,7 +177,7 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
           break;
         case "sample_with_stones_export":
           selects = "*";
-          filters = `styleNumber.ilike.${searchTerm}%,name.ilike.%${searchTerm}%`;
+          filters = `styleNumber.ilike.${searchTerm}%,name.ilike.%${searchTerm}%,starting_description.ilike.%${searchTerm}%`;
           break;
         case "ideas":
           selects = "*";
@@ -220,7 +219,7 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
       setError("Error fetching search results");
       console.error(err);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -301,17 +300,16 @@ const SearchBar = ({ items: collectionItems, onSearch,type }) => {
               ))}
             </ul>
           ) : (
-            !loading && (
+            !isLoading && (
               <div className="p-2 text-sm text-gray-500">No results found</div>
             )
           )}
         </ul>
       )}
 
-      {/* {loading && <p className="text-sm text-gray-500 mt-1">Loading...</p>} */}
+      {/* {isLoading && <p className="text-sm text-gray-500 mt-1">isLoading...</p>} */}
       {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
     </div>
   );
 };
 
-export default SearchBar;

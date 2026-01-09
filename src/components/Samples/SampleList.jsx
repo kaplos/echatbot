@@ -42,10 +42,10 @@ const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, set
 
 
     if (collection.length > 0 && collection) {
-      query = query.in("collection", collection);
+      query = query.in("sample_collection", collection);
     }
     if (category.length > 0 && category) {
-      query = query.in("category", category);
+      query = query.in("sample_category", category);
     }
     if (metals.length > 0 && metals) {
       query = query.in("metalType", metals);

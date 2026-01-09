@@ -37,8 +37,8 @@ return (
               />
             </div>
           )}
-          
-          <div className="relative aspect-square bg-gray-100 rounded-t-lg overflow-hidden">
+           <div className="relative object-contain aspect-[2/1] bg-gray-100 rounded-t-lg overflow-hidden">
+
             {images && images.length > 0 ? (
               <>
                 <img

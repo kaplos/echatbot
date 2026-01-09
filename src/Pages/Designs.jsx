@@ -83,7 +83,7 @@ const Designs = () => {
   // },[isLoading])
 
   return (
-    <div className="p-6">
+    <div className="p-4 ">
       <div className="flex justify-between items-center mb-6">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold text-gray-900">Designs</h1>
@@ -94,6 +94,8 @@ const Designs = () => {
               onSearch={(filteredItems) => {
                 setFilteredItems(filteredItems);
               }}
+              setIsLoading={setIsLoading}
+              isLoading={isLoading}
             />
             <FilterButton type={"designs"} />
           </div>

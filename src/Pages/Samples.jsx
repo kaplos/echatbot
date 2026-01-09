@@ -105,8 +105,8 @@ export default function Samples() {
   // }
 
   return (
-    <div className=" h-full bg-gray-100">
-      <div className="flex justify-between items-center ">
+    <div className=" p-4 ">
+      <div className="flex justify-between items-center mb-6">
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold text-gray-900">Samples</h1>
           <div className="flex gap-2">
@@ -116,6 +116,8 @@ export default function Samples() {
               onSearch={(filteredItems) => {
                 setFilteredItems(filteredItems);
               }}
+              setIsLoading={setIsLoading}
+              isLoading={isLoading}
             />
             <FilterButton type={"samples"} />
           </div>
@@ -137,6 +139,7 @@ export default function Samples() {
           </button>
         </div>
       </div>
+
       <Pagination loading={isLoading} hasMore={hasMore}>
         <div className="flex-grow overflow-auto px-4 pb-4">
           <SampleList
