@@ -1,4 +1,4 @@
-import React, { useState, Fragment, useEffect,useRef } from "react";
+import React, { useState, Fragment, useEffect, useRef } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import ImageUpload from "../ImageUpload";
 import { useSupabase } from "../SupaBaseProvider";
@@ -12,8 +12,8 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
   const { supabase } = useSupabase();
   const navigate = useNavigate();
   const [hasQuotes, setHasQuotes] = useState(false);
-   const [uploadedImages,setUploadedImages]= useState([])
-        const finalizeUploadRef = useRef(null)
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const finalizeUploadRef = useRef(null);
   const [originalData, setOriginalData] = useState({
     id: design.id,
     name: design.name,
@@ -22,7 +22,7 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
     collection: design.collection,
     category: design.category,
     images: design.images,
-    cad:design.cad,
+    cad: design.cad,
     status: design.status,
   });
   const [formData, setFormData] = useState({ ...originalData });
@@ -80,21 +80,29 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
   // const getRemovedImages = (originalImages, currentImages) => {
   //   return originalImages.filter((image) => !currentImages.includes(image));
   // };
-  const handleUpdateImageManufactoreCode= async(designQuotesId,manufacturerCode)=>{
-    const {data,error} = await supabase.from('image_link').update({styleNumber:manufacturerCode}).eq('entityId',designQuotesId).eq('entity','design').select('styleNumber')
-    if(error){
-      console.error('style code was not updated');
+  const handleUpdateImageManufactoreCode = async (
+    designQuotesId,
+    manufacturerCode
+  ) => {
+    const { data, error } = await supabase
+      .from("image_link")
+      .update({ styleNumber: manufacturerCode })
+      .eq("entityId", designQuotesId)
+      .eq("entity", "design")
+      .select("styleNumber");
+    if (error) {
+      console.error("style code was not updated");
     }
-    console.log('style number was updated :',data[0].styleNumber)
-  }
+    console.log("style number was updated :", data[0].styleNumber);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const updates = {};
-    if (formData.name !== originalData.name){
+    if (formData.name !== originalData.name) {
       updates.name = formData.name;
-      await handleUpdateImageStyleNumber(design.id,design.name)
-    } 
+      await handleUpdateImageStyleNumber(design.id, design.name);
+    }
     if (formData.description !== originalData.description)
       updates.description = formData.description;
     if (formData.images !== originalData.images)
@@ -123,22 +131,23 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
         .single()
         .select();
 
-
       if (error) {
         console.error("Error updating design:", error);
+      }
 
-
-      } 
-       
-      
       console.log("design updated:", data);
-      updateDesign({ ...data});
+      updateDesign({ ...data });
       setOriginalData({ ...formData });
     }
 
-        // Call the update function to update the idea in the parent component
-        finalizeUploadRef.current('design',design.id,design.name,uploadedImages)
-
+    // Call the update function to update the idea in the parent component
+    if (finalizeUploadRef.current?.finalizeUpload) {
+      await finalizeUploadRef.current.finalizeUpload(
+        "design",
+        design.id,
+        formData.name
+      );
+    }
     onClose();
   };
 
@@ -193,8 +202,13 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
                           <ImageUpload
                             collection="image"
                             images={formData.images || []}
-                            onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
-                            finalizeUpload={finalizeUploadRef}
+                            onUpload={(newImages) =>
+                              setUploadedImages([
+                                ...uploadedImages,
+                                ...newImages,
+                              ])
+                            }
+                            ref={finalizeUploadRef}
                             // onChange={async (images) => {
                             //   setFormData({ ...formData, images });
                             // }}
@@ -255,7 +269,7 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
                     <div className=" flex-1 space-y-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700">
-                          Name  <span className="text-red-500">*</span>
+                          Name <span className="text-red-500">*</span>
                         </label>
                         <input
                           required={true}

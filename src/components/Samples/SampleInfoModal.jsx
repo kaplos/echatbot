@@ -3,7 +3,6 @@ import React, {
   Fragment,
   useEffect,
   useRef,
-  useCallback,
 } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import ImageUpload from "../ImageUpload";
@@ -31,7 +30,6 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
   const { showMessage } = useMessage();
   const finalizeImageRef = useRef(null);
   const finalizeCadRef = useRef(null);
-  const [uploadedImages, setUploadedImages] = useState([]);
 
   const { starting_info: passedStartingInfo, formData: passedFormData } =
     sample;
@@ -394,26 +392,16 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
                             Images
                           </label>
                           <ImageUpload
-                            // images={formData.images || []}
                             images={starting_info.images || []}
                             collection={"image"}
                             ref={finalizeImageRef}
-                            // onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
-                            // onChange={async (images) => {
-                            //   setStarting_info({
-                            //     ...starting_info,
-                            //     images: images,
-                            //   });
-                            // }}
+                            
                           />
                           <ImageUpload
                             collection={"cad"}
                             images={starting_info.cad || []}
                             ref={finalizeCadRef}
-                            // onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
-                            // onChange={(cad) =>
-                            //   setStarting_info({ ...starting_info, cad: cad })
-                            // }
+                          
                           />
                         </div>
                         {/* this is the status function */}

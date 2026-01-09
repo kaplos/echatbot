@@ -107,7 +107,7 @@ export default function DesignQuoteForm({
                             collection="image"
                             images={formData.images || []}
                             onUpload={onUpload}
-                            finalizeUpload={finalizeUploadRef}
+                            ref={finalizeUploadRef}
                             // onChange={async (images) => {
                             //   setFormData({ ...formData, images });
                             //   // await updateDataBaseWithImages(images, sample.id)

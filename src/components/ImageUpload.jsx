@@ -2,15 +2,7 @@ import { useEffect, useState,forwardRef,useImperativeHandle } from "react";
 import { Upload } from "lucide-react";
 import { useSupabase } from "./SupaBaseProvider";
 import { v4 as uuid  } from "uuid";
-const ImageUpload = (props,ref) => {
-  const {
-    images: inital,
-    onChange,
-    collection = 'image',
-    // onUpload,
-    // finalizeUpload,
-    forDisplay,
-  } = props;
+export default function ImageUpload({images: inital,onChange,    collection = 'image',    forDisplay,props,ref}) {
 
   // console.log(inital, "images from ImageUpload");
   const { supabase } = useSupabase();
@@ -460,4 +452,3 @@ const handleImageUpload = async (files) => {
   );
 };
 
-export default forwardRef(ImageUpload);

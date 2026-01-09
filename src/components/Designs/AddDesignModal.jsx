@@ -44,7 +44,10 @@ const AddDesignModal = ({ isOpen, onClose,onSave }) => {
     }
     console.log(data, 'data from insert designs ');
 
-    finalizeUploadRef.current('design',data[0].id,data[0].name,uploadedImages)
+      if (finalizeUploadRef.current?.finalizeUpload) {
+      await finalizeUploadRef.current.finalizeUpload(
+      'design',data[0].id,data[0].name,uploadedImages)
+      }
     onSave(data[0]);
     setFormData({
         name: '',
@@ -117,7 +120,7 @@ const handleCustomSelect = (option) => {
                             collection="image"
                             images={formData.images || []}
                             onUpload={(newImages)=> setUploadedImages([...uploadedImages,...newImages])}
-                            finalizeUpload={finalizeUploadRef}
+                            ref={finalizeUploadRef}
                             // onChange={async (images) => {
                             //   setFormData({ ...formData, images });
                             // }}

@@ -83,8 +83,10 @@ const AddDesignQuoteModal = ({ isOpen, onClose, onSave }) => {
     if (designIdError) {
       console.log(designIdError);
     }
-    finalizeUploadRef.current('starting_info',data[0].id,data[0].manufacturerCode,uploadedImages)
-
+    if (finalizeUploadRef.current?.finalizeUpload) {
+      await finalizeUploadRef.current.finalizeUpload(
+      'starting_info',data[0].id,data[0].manufacturerCode,uploadedImages)
+    }
     onSave(data[0]);
     setFormData({
       description: "",
