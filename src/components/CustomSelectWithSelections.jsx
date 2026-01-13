@@ -12,7 +12,8 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
   const [options, setOptions] = useState([]);
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [filteredOptions, setFilteredOptions] = useState([]);
-
+  const [isLoading, setIsLoading] = useState(false);
+  
   useEffect(() => {
     const fetchData = async () => {
       const data = await getFromDatabase();
@@ -142,7 +143,7 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg p-2"
                   /> */}
-                  <SearchBar items={options} onSearch={(items) => setFilteredOptions(items)} type={'sample_with_stones_export'} />
+                  <SearchBar items={options} onSearch={(items) => setFilteredOptions(items)} type={'sample_with_stones_export'} isLoading={isLoading} setIsLoading={setIsLoading} />
 
                 </div>
 

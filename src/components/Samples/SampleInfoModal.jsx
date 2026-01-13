@@ -20,7 +20,7 @@ import { useMessage } from "../Messages/MessageContext";
 
 // import {limitInput} from '../../utils/inputUtils.js'
 import { useGenericStore } from "../../store/VendorStore";
-const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
+export default function SampleInfoModal({ isOpen, onClose, sample, updateSample }) {
   const { getEntityItemById, getEntity } = useGenericStore();
   const vendors = getEntity("vendors");
   const { formFields } = getEntity("settings").options;
@@ -1135,4 +1135,3 @@ const SampleInfoModal = ({ isOpen, onClose, sample, updateSample }) => {
   );
 };
 
-export default SampleInfoModal;
