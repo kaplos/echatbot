@@ -13,6 +13,7 @@ const ImageManager = () => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const {showMessage} = useMessage()
 
   // Fetch images from the selected folder
@@ -81,6 +82,8 @@ setSelected(new Set())
             onSearch={(filteredItems) => {
               setFileredImages(filteredItems);
             }}
+            isLoading={isLoading}
+            setIsLoading={setIsLoading}
           />
         </div>
           {filteredImages.length > 0 && (
