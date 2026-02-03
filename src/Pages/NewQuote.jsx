@@ -1,5 +1,5 @@
 import { useSupabase } from "../components/SupaBaseProvider";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Plus } from "lucide-react";
 import { getImages } from "../components/SupaBaseProvider";
 import CustomSelectWithSelections from "../components/CustomSelectWithSelections";
@@ -37,6 +37,10 @@ export default function NewQuote() {
   const [productInfo, setProductInfo] = useState([]);
   const [lineItems, setlineItems] = useState([]);
   const [lineItemsToDelete, setlineItemsToDelete] = useState([]);
+  const [savedBulkMargin, setSavedBulkMargin] = useState(null); // Store the DB value for display only
+
+  const isInitialLoadRef = useRef(true);
+
   const quote = new URLSearchParams(location.search).get("quote") || null;
   const userId = session?.user?.id; // User ID
 
@@ -48,7 +52,7 @@ export default function NewQuote() {
     gold: parseFloat(prices.gold.price),
     silver: parseFloat(prices.silver.price),
     multiplier: 4,
-    bulkMargin: 0,
+    bulkMargin: null,
     quoteTotal: 0,
     // retailPrice: 0,
   });
@@ -61,83 +65,94 @@ export default function NewQuote() {
   const [isOpen, setIsOpen] = useState(false);
 
   // Fetch quote and line items if quote param exists
-useEffect(() => {
-  if (quote) {
-    console.log(quote, "quote from params");
-    const fetchQuote = async () => {
-      setIsLoading(true);
+  useEffect(() => {
+    if (quote) {
+      console.log(quote, "quote from params");
+      const fetchQuote = async () => {
+        setIsLoading(true);
 
-      const { data, error } = await supabase
-        .from("quote_with_lineitems_and_product")
-        .select('*')
-        .eq("quoteNumber", quote)
-        .single();
+        const { data, error } = await supabase
+          .from("quote_with_lineitems_and_product")
+          .select('*')
+          .eq("quoteNumber", quote)
+          .single();
 
-      console.log(data, "data from supabase");
+        console.log(data, "data from supabase");
 
-      if (error) {
-        console.error("Error fetching samples:", error);
+        if (error) {
+          console.error("Error fetching samples:", error);
+          setIsLoading(false);
+          return;
+        }
+
+        // Process line items and fetch images
+        const processedLineItems = await Promise.all(
+          data.lineitems.map(async (item) => {
+            console.log(item, "line item before processing");
+            const {product, internalNote, margin, lineItemId, BuyerComment, bulkMargin} = item;
+            const {styleNumber, images, cad, sample_id, starting_description, weight, salesWeight} = product || {};
+
+            // Calculate cost, salesPrice, retailPrice like handleCustomSelect
+            const vendor = getEntityItemById("vendors", product.vendor);
+            const lossPercentage = vendor?.pricingsetting?.lossPercentage || 0;
+            const cost = parseFloat(
+              totalCost(
+                product,
+                lossPercentage
+              ).toFixed(2)
+            ) || 0;
+
+            // Use the line item's margin directly from the database
+            const itemMargin = margin ?? (formData.bulkMargin || 0);
+            
+            // Calculate salesPrice using the margin
+            const salesPrice = parseFloat(
+              (cost / (1 - itemMargin / 100)).toFixed(2)
+            ) || cost;
+            
+            const retailPrice =
+              parseFloat((salesPrice * (formData.multiplier || 1)).toFixed(2)) || 0;
+
+            return {
+              ...product,
+              productId: sample_id,
+              description: starting_description || '',
+              retailPrice,
+              weight,
+              salesWeight,
+              internalNote: internalNote || "",
+              margin: itemMargin,
+              bulkMargin: bulkMargin || 0,
+              totalCost: cost,
+              salesPrice,
+              id: lineItemId,
+              BuyerComment: BuyerComment || '',
+            };
+          })
+        );
+        console.log(processedLineItems, "processed line items");
+        setlineItems(processedLineItems);
+
+        const { lineitems, bulkMargin, ...dataWithoutLineItems } = data;
+        
+        // Store the bulk margin for display only (as placeholder)
+        setSavedBulkMargin(bulkMargin || null);
+        
+        // Don't load bulkMargin into formData - keep it null
+        resetForm(dataWithoutLineItems);
         setIsLoading(false);
-        return;
-      }
-
-      // Process line items and fetch images
-      const processedLineItems = await Promise.all(
-        data.lineitems.map(async (item) => {
-          console.log(item, "line item before processing");
-          const {product, internalNote, margin, lineItemId, BuyerComment, bulkMargin} = item;
-          const {styleNumber, images, cad, sample_id, starting_description, weight, salesWeight} = product || {};
-
-          // Calculate cost, salesPrice, retailPrice like handleCustomSelect
-          const vendor = getEntityItemById("vendors", product.vendor);
-          const lossPercentage = vendor?.pricingsetting?.lossPercentage || 0;
-          const cost = parseFloat(
-            totalCost(
-              product,
-              lossPercentage
-            ).toFixed(2)
-          ) || 0;
-
-          // Use existing margin if available, otherwise fall back to bulkMargin or formData
-          const itemMargin = margin ?? bulkMargin ?? formData.bulkMargin ?? 0;
-          
-          // Calculate salesPrice using the margin
-          const salesPrice = parseFloat(
-            (cost / (1 - itemMargin / 100)).toFixed(2)
-          ) || cost;
-          
-          const retailPrice =
-            parseFloat((salesPrice * (formData.multiplier || 1)).toFixed(2)) || 0;
-
-          return {
-            ...product,
-            productId: sample_id,
-            description: starting_description || '',
-            retailPrice,
-            weight,
-            salesWeight,
-            internalNote: internalNote || "",
-            margin: itemMargin,
-            bulkMargin: bulkMargin || 0,
-            totalCost: cost,
-            salesPrice,
-            id: lineItemId, // keep the line item id for updates
-            BuyerComment: BuyerComment || '',
-          };
-        })
-      );
-      console.log(processedLineItems, "processed line items");
-      setlineItems(processedLineItems);
-
-      const { lineitems, ...dataWithoutLineItems } = data;
-      resetForm(dataWithoutLineItems);
-      setIsLoading(false);
-    };
-    fetchQuote();
-  } else {
-    console.log("not displaying a quote");
-  }
-}, [quote])
+        
+        // Mark initial load as complete after everything is set
+        setTimeout(() => {
+          isInitialLoadRef.current = false;
+        }, 0);
+      };
+      fetchQuote();
+    } else {
+      isInitialLoadRef.current = false;
+      console.log("not displaying a quote");
+    }
+  }, [quote]);
 
   // Filter only allowed fields for DB insert/update
   const filterLineItemFields = (item) =>
@@ -189,6 +204,7 @@ useEffect(() => {
     if (lineItemError) {
       console.error(lineItemError);
     }
+    navigate("/quotes");
   };
 
   // Update quote if changed
@@ -443,7 +459,6 @@ useEffect(() => {
     setlineItems((prevItems) =>
       prevItems.map((item) => {
         
-
         const vendor = getEntityItemById("vendors", item.vendor);
         const lossPercentage = vendor?.pricingsetting?.lossPercentage || 0;
 
@@ -451,44 +466,29 @@ useEffect(() => {
         const newCost = parseFloat(
           totalCost(item, lossPercentage).toFixed(2)
         );
-        const costDifference = newCost - oldCost;
 
-        const oldSalesPrice = Number.parseFloat(item.salesPrice) || 0;
-
-        console.log(
-          {
-            oldCost, newCost, costDifference, oldSalesPrice
-          }
-        );
+        // Use the item's existing margin to calculate new sales price
+        const itemMargin = item.margin ?? 0;
         const newSalesPrice = parseFloat(
-          (oldSalesPrice + costDifference).toFixed(2)
+          (newCost / (1 - itemMargin / 100)).toFixed(2)
         );
-
-        const marginPercent =
-          newSalesPrice > 0
-            ? parseFloat(
-                (((newSalesPrice - newCost) / newSalesPrice) * 100).toFixed(2)
-              )
-            : 0;
 
         // Log recalculated values
         console.log(
           {
             oldCost,
             newCost,
-            costDifference,
-            oldSalesPrice,
+            itemMargin,
             newSalesPrice,
-            marginPercent,
           },
-          "recalculated line item values"
+          "recalculated line item values for metal price change"
         );
 
         return {
           ...item,
           totalCost: newCost,
           salesPrice: newSalesPrice,
-          margin: marginPercent,
+          // Keep the existing margin, don't recalculate it
         };
       })
     );
@@ -496,21 +496,30 @@ useEffect(() => {
 
   // Recalculate salesPrice for each line item when bulkMargin changes
   useEffect(() => {
+    // Skip on initial load
+    if (isInitialLoadRef.current) {
+      return;
+    }
+    
     setlineItems((prevItems) =>
       prevItems.map((item) => {
+        const itemMargin = formData.bulkMargin;
+        
         const totalCost = parseFloat(item.totalCost.toFixed(2)) || 0;
         const salesPrice = parseFloat(
-          +(totalCost / (1 - formData.bulkMargin / 100)).toFixed(2)
+          +(totalCost / (1 - itemMargin / 100)).toFixed(2)
         );
-        // Log recalculated salesPrice
+        
         console.log(
           {
             totalCost,
             salesPrice,
+            itemMargin,
             bulkMargin: formData.bulkMargin,
           },
           "recalculated salesPrice for bulkMargin change"
         );
+        
         return {
           ...item,
           salesPrice: salesPrice,
@@ -519,36 +528,6 @@ useEffect(() => {
       })
     );
   }, [formData.bulkMargin]);
-
-  // Recalculate retailPrice for each line item when multiplier or metal prices change
-  useEffect(() => {
-    console.log("form has been updated ");
-    setlineItems((prevItems) =>
-      prevItems.map((item) => {
-        const retailPrice =
-          parseFloat((item.salesPrice * formData.multiplier).toFixed(2)) || 0;
-        // Log recalculated retailPrice
-        console.log(
-          {
-            salesPrice: item.salesPrice,
-            multiplier: formData.multiplier,
-            retailPrice,
-          },
-          "recalculated retailPrice"
-        );
-        return {
-          ...item,
-          retailPrice: retailPrice,
-        };
-      })
-    );
-  }, [
-    formData.multiplier,
-    formData.gold,
-    formData.silver,
-    formData.bulkMargin,
-  ]);
-
   // Log productInfo and lineItems for debugging
   console.log(productInfo, lineItems, "line items");
 
@@ -621,10 +600,11 @@ useEffect(() => {
                   className="block input shadow-sm focus:border-blue-500 focus:ring-blue-500 flex-1"
                   name="bulk-margin"
                   id="bulk-margin"
+                  placeholder={savedBulkMargin ? `${savedBulkMargin}` : "0"}
                   onChange={(e) =>
                     updateFormField("bulkMargin", parseFloat(e.target.value))
                   }
-                  value={formData.bulkMargin || 0}
+                  value={ formData.bulkMargin || savedBulkMargin }
                 />
               </div>
               {/* retail price multipler */}
