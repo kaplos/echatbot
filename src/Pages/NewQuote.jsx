@@ -65,6 +65,7 @@ export default function NewQuote() {
   const [isOpen, setIsOpen] = useState(false);
 
   // Fetch quote and line items if quote param exists
+ 
   useEffect(() => {
     if (quote) {
       console.log(quote, "quote from params");
@@ -528,6 +529,35 @@ export default function NewQuote() {
       })
     );
   }, [formData.bulkMargin]);
+  // Update retailPrice when multiplier changes
+  useEffect(() => {
+    // Skip on initial load
+    if (isInitialLoadRef.current) {
+      return;
+    }
+    
+    setlineItems((prevItems) =>
+      prevItems.map((item) => {
+        const newRetailPrice = parseFloat(
+          (item.salesPrice * (formData.multiplier || 1)).toFixed(2)
+        );
+
+        console.log(
+          {
+            salesPrice: item.salesPrice,
+            multiplier: formData.multiplier,
+            newRetailPrice,
+          },
+          "recalculated retailPrice for multiplier change"
+        );
+
+        return {
+          ...item,
+          retailPrice: newRetailPrice,
+        };
+      })
+    );
+  }, [formData.multiplier]);
   // Log productInfo and lineItems for debugging
   console.log(productInfo, lineItems, "line items");
 
