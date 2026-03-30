@@ -3,6 +3,7 @@ import React from 'react';
 import { getStatusColor } from '../../utils/designUtils';
 import {formatShortDate} from '../../utils/dateUtils'
 import { MessageSquare, Calendar, Tag,Pencil } from 'lucide-react';
+import { getImages } from '../SupaBaseProvider';
 
 
 const DesignCard = ({ 
@@ -17,7 +18,10 @@ const DesignCard = ({
       e.preventDefault();
       onClick(design);
     };
-   let images=design.images
+  //   console.log(design)
+   let images = design.images
+  //  let images = await getImages("design", design.id);
+  //  images= images.images
 return (
         <div
           role="button"
@@ -42,7 +46,7 @@ return (
             {images && images.length > 0 ? (
               <>
                 <img
-                  src={`${process.env.DB_HOST_URL}${images[0]}`}
+                  src={`${images[0]}`}
                   alt={design.name}
                   className="w-full h-full object-contain"
                 />

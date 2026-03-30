@@ -58,7 +58,7 @@ const Designs = () => {
       return;
     }
     const {images,cad} = await getImages("design", design.id);
-    console.log(images,cad)
+    console.log(images,cad,'images and cad for designs')
     // Update the design data in the modal
     setDesign({
       ...data,

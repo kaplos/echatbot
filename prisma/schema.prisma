@@ -1,11 +1,10 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions", "views"]
+  previewFeatures = ["postgresqlExtensions", "views", "partialIndexes"]
 }
 
 datasource db {
   provider   = "postgresql"
-  url        = env("DATABASE_URL")
   extensions = [uuid_ossp(map: "uuid-ossp", schema: "extensions")]
   schemas    = ["auth", "public"]
 }
@@ -26,18 +25,23 @@ model audit_log_entries {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model flow_state {
-  id                     String                @id @db.Uuid
-  user_id                String?               @db.Uuid
-  auth_code              String
-  code_challenge_method  code_challenge_method
-  code_challenge         String
+  id                     String                 @id @db.Uuid
+  user_id                String?                @db.Uuid
+  auth_code              String?
+  code_challenge_method  code_challenge_method?
+  code_challenge         String?
   provider_type          String
   provider_access_token  String?
   provider_refresh_token String?
-  created_at             DateTime?             @db.Timestamptz(6)
-  updated_at             DateTime?             @db.Timestamptz(6)
+  created_at             DateTime?              @db.Timestamptz(6)
+  updated_at             DateTime?              @db.Timestamptz(6)
   authentication_method  String
-  auth_code_issued_at    DateTime?             @db.Timestamptz(6)
+  auth_code_issued_at    DateTime?              @db.Timestamptz(6)
+  invite_token           String?
+  referrer               String?
+  oauth_client_state_id  String?                @db.Uuid
+  linking_target_id      String?                @db.Uuid
+  email_optional         Boolean                @default(false)
   saml_relay_states      saml_relay_states[]
 
   @@index([created_at(sort: Desc)])
@@ -111,22 +115,24 @@ model mfa_challenges {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model mfa_factors {
-  id                   String           @id @db.Uuid
-  user_id              String           @db.Uuid
-  friendly_name        String?
-  factor_type          factor_type
-  status               factor_status
-  created_at           DateTime         @db.Timestamptz(6)
-  updated_at           DateTime         @db.Timestamptz(6)
-  secret               String?
-  phone                String?
-  last_challenged_at   DateTime?        @unique @db.Timestamptz(6)
-  web_authn_credential Json?
-  web_authn_aaguid     String?          @db.Uuid
-  mfa_challenges       mfa_challenges[]
-  users                users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                           String           @id @db.Uuid
+  user_id                      String           @db.Uuid
+  friendly_name                String?
+  factor_type                  factor_type
+  status                       factor_status
+  created_at                   DateTime         @db.Timestamptz(6)
+  updated_at                   DateTime         @db.Timestamptz(6)
+  secret                       String?
+  phone                        String?
+  last_challenged_at           DateTime?        @unique @db.Timestamptz(6)
+  web_authn_credential         Json?
+  web_authn_aaguid             String?          @db.Uuid
+  last_webauthn_challenge_data Json?
+  mfa_challenges               mfa_challenges[]
+  users                        users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([user_id, phone], map: "unique_phone_factor_per_user")
+  @@unique([friendly_name, user_id], map: "mfa_factors_user_friendly_name_unique", where: raw("(TRIM(BOTH FROM friendly_name) <> ''::text)"))
   @@index([user_id, created_at], map: "factor_id_created_at_idx")
   @@index([user_id])
   @@schema("auth")
@@ -223,22 +229,25 @@ model schema_migrations {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model sessions {
-  id              String           @id @db.Uuid
-  user_id         String           @db.Uuid
-  created_at      DateTime?        @db.Timestamptz(6)
-  updated_at      DateTime?        @db.Timestamptz(6)
-  factor_id       String?          @db.Uuid
-  aal             aal_level?
-  not_after       DateTime?        @db.Timestamptz(6)
-  refreshed_at    DateTime?        @db.Timestamp(6)
-  user_agent      String?
-  ip              String?          @db.Inet
-  tag             String?
-  oauth_client_id String?          @db.Uuid
-  mfa_amr_claims  mfa_amr_claims[]
-  refresh_tokens  refresh_tokens[]
-  oauth_clients   oauth_clients?   @relation(fields: [oauth_client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users           users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                     String           @id @db.Uuid
+  user_id                String           @db.Uuid
+  created_at             DateTime?        @db.Timestamptz(6)
+  updated_at             DateTime?        @db.Timestamptz(6)
+  factor_id              String?          @db.Uuid
+  aal                    aal_level?
+  not_after              DateTime?        @db.Timestamptz(6)
+  refreshed_at           DateTime?        @db.Timestamp(6)
+  user_agent             String?
+  ip                     String?          @db.Inet
+  tag                    String?
+  oauth_client_id        String?          @db.Uuid
+  refresh_token_hmac_key String?
+  refresh_token_counter  BigInt?
+  scopes                 String?
+  mfa_amr_claims         mfa_amr_claims[]
+  refresh_tokens         refresh_tokens[]
+  oauth_clients          oauth_clients?   @relation(fields: [oauth_client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                  users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([not_after(sort: Desc)])
   @@index([user_id])
@@ -290,15 +299,15 @@ model users {
   id                          String                 @id @db.Uuid
   aud                         String?                @db.VarChar(255)
   role                        String?                @db.VarChar(255)
-  email                       String?                @db.VarChar(255)
+  email                       String?                @unique(map: "users_email_partial_key", where: raw("(is_sso_user = false)")) @db.VarChar(255)
   encrypted_password          String?                @db.VarChar(255)
   email_confirmed_at          DateTime?              @db.Timestamptz(6)
   invited_at                  DateTime?              @db.Timestamptz(6)
-  confirmation_token          String?                @db.VarChar(255)
+  confirmation_token          String?                @unique(map: "confirmation_token_idx", where: raw("((confirmation_token)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
   confirmation_sent_at        DateTime?              @db.Timestamptz(6)
-  recovery_token              String?                @db.VarChar(255)
+  recovery_token              String?                @unique(map: "recovery_token_idx", where: raw("((recovery_token)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
   recovery_sent_at            DateTime?              @db.Timestamptz(6)
-  email_change_token_new      String?                @db.VarChar(255)
+  email_change_token_new      String?                @unique(map: "email_change_token_new_idx", where: raw("((email_change_token_new)::text !~ '^[0-9 ]*$'::text)")) @db.VarChar(255)
   email_change                String?                @db.VarChar(255)
   email_change_sent_at        DateTime?              @db.Timestamptz(6)
   last_sign_in_at             DateTime?              @db.Timestamptz(6)
@@ -313,10 +322,10 @@ model users {
   phone_change_token          String?                @default("") @db.VarChar(255)
   phone_change_sent_at        DateTime?              @db.Timestamptz(6)
   confirmed_at                DateTime?              @default(dbgenerated("LEAST(email_confirmed_at, phone_confirmed_at)")) @db.Timestamptz(6)
-  email_change_token_current  String?                @default("") @db.VarChar(255)
+  email_change_token_current  String?                @unique(map: "email_change_token_current_idx", where: raw("((email_change_token_current)::text !~ '^[0-9 ]*$'::text)")) @default("") @db.VarChar(255)
   email_change_confirm_status Int?                   @default(0) @db.SmallInt
   banned_until                DateTime?              @db.Timestamptz(6)
-  reauthentication_token      String?                @default("") @db.VarChar(255)
+  reauthentication_token      String?                @unique(map: "reauthentication_token_idx", where: raw("((reauthentication_token)::text !~ '^[0-9 ]*$'::text)")) @default("") @db.VarChar(255)
   reauthentication_sent_at    DateTime?              @db.Timestamptz(6)
   is_sso_user                 Boolean                @default(false)
   deleted_at                  DateTime?              @db.Timestamptz(6)
@@ -327,6 +336,8 @@ model users {
   oauth_consents              oauth_consents[]
   one_time_tokens             one_time_tokens[]
   sessions                    sessions[]
+  webauthn_challenges         webauthn_challenges[]
+  webauthn_credentials        webauthn_credentials[]
   quotes                      quotes[]
 
   @@index([instance_id])
@@ -349,6 +360,7 @@ model category {
   name                                           String          @default("\"")
   created_at                                     DateTime        @default(now()) @db.Timestamptz(6)
   designs_designs_categoryTocategory             designs[]       @relation("designs_categoryTocategory")
+  samples_samples_categoryTocategory             samples[]       @relation("samples_categoryTocategory")
   starting_info_starting_info_categoryTocategory starting_info[] @relation("starting_info_categoryTocategory")
 
   @@schema("public")
@@ -359,7 +371,6 @@ model designs {
   name                                                  String
   description                                           String?
   link                                                  String?
-  images                                                Json?           @default("[]")
   status                                                String          @default("working_on_it")
   created_at                                            DateTime?       @default(now()) @db.Timestamptz(6)
   updated_at                                            DateTime?       @default(now()) @db.Timestamptz(6)
@@ -374,7 +385,7 @@ model designs {
   samples_samples_designIdTodesigns                     samples?        @relation("samples_designIdTodesigns")
   starting_info_starting_info_designIdTodesigns         starting_info[] @relation("starting_info_designIdTodesigns")
 
-  @@index([name])
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "designs_name_trgm_idx", type: Gin)
   @@schema("public")
 }
 
@@ -390,9 +401,10 @@ model ideas {
   comments      String?         @default("")
   slides        Json            @default("[]")
   designs       designs[]
+  samples       samples[]
   starting_info starting_info[]
 
-  @@index([name])
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "ideas_name_trgm_idx", type: Gin)
   @@schema("public")
 }
 
@@ -470,35 +482,35 @@ model quotes {
   users       users?      @relation(fields: [agent], references: [id])
   customers   customers?  @relation(fields: [buyer], references: [id], onDelete: Restrict)
 
-  @@index([id])
   @@schema("public")
 }
 
 model samples {
-  id                                 Int           @id @default(autoincrement())
-  styleNumber                        String?       @unique @db.VarChar(255)
-  name                               String?       @db.VarChar(255)
-  collection                         String?       @db.VarChar(255)
-  category                           String?       @db.VarChar(255)
-  notes                              String?
-  status                             String?       @default("working_on_it") @db.VarChar(50)
-  cad                                Json?         @default("[]")
-  created_at                         DateTime?     @default(now()) @db.Timestamptz(6)
-  updated_at                         DateTime?     @default(now()) @db.Timestamptz(6)
-  salesWeight                        Float?        @db.Real
-  starting_info_id                   Int
-  selling_pair                       String?
-  back_type                          String?
-  custom_back_type                   String?
-  back_type_quantity                 Int?          @default(1)
-  designId                           Int?          @unique
-  designs_designs_sample_idTosamples designs[]     @relation("designs_sample_idTosamples")
-  lineItems                          lineItems[]
-  designs_samples_designIdTodesigns  designs?      @relation("samples_designIdTodesigns", fields: [designId], references: [id])
-  starting_info                      starting_info @relation(fields: [starting_info_id], references: [id], onDelete: SetNull)
+  id                                  Int           @id @default(autoincrement())
+  styleNumber                         String?       @unique @db.VarChar(255)
+  name                                String?       @db.VarChar(255)
+  collection                          BigInt?
+  category                            BigInt?
+  notes                               String?
+  status                              String?       @default("working_on_it") @db.VarChar(50)
+  created_at                          DateTime?     @default(now()) @db.Timestamptz(6)
+  updated_at                          DateTime?     @default(now()) @db.Timestamptz(6)
+  salesWeight                         Float?        @db.Real
+  starting_info_id                    Int
+  selling_pair                        String?
+  back_type                           String?
+  custom_back_type                    String?
+  back_type_quantity                  Int?          @default(1)
+  designId                            Int?          @unique
+  designs_designs_sample_idTosamples  designs[]     @relation("designs_sample_idTosamples")
+  lineItems                           lineItems[]
+  category_samples_categoryTocategory category?     @relation("samples_categoryTocategory", fields: [category], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ideas                               ideas?        @relation(fields: [collection], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  designs_samples_designIdTodesigns   designs?      @relation("samples_designIdTodesigns", fields: [designId], references: [id])
+  starting_info                       starting_info @relation(fields: [starting_info_id], references: [id], onDelete: SetNull)
 
-  @@index([styleNumber])
-  @@index([name])
+  @@index([name(ops: raw("gin_trgm_ops"))], map: "samples_name_trgm_idx", type: Gin)
+  @@index([styleNumber(ops: raw("gin_trgm_ops"))], map: "samples_stylenumber_trgm_idx", type: Gin)
   @@schema("public")
 }
 
@@ -609,29 +621,32 @@ model oauth_authorizations {
   created_at            DateTime                   @default(now()) @db.Timestamptz(6)
   expires_at            DateTime                   @default(dbgenerated("(now() + '00:03:00'::interval)")) @db.Timestamptz(6)
   approved_at           DateTime?                  @db.Timestamptz(6)
+  nonce                 String?
   oauth_clients         oauth_clients              @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users                 users?                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([expires_at], map: "oauth_auth_pending_exp_idx", where: raw("(status = 'pending'::auth.oauth_authorization_status)"))
   @@schema("auth")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model oauth_clients {
-  id                   String                  @id @db.Uuid
-  client_secret_hash   String?
-  registration_type    oauth_registration_type
-  redirect_uris        String
-  grant_types          String
-  client_name          String?
-  client_uri           String?
-  logo_uri             String?
-  created_at           DateTime                @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime                @default(now()) @db.Timestamptz(6)
-  deleted_at           DateTime?               @db.Timestamptz(6)
-  client_type          oauth_client_type       @default(confidential)
-  oauth_authorizations oauth_authorizations[]
-  oauth_consents       oauth_consents[]
-  sessions             sessions[]
+  id                         String                  @id @db.Uuid
+  client_secret_hash         String?
+  registration_type          oauth_registration_type
+  redirect_uris              String
+  grant_types                String
+  client_name                String?
+  client_uri                 String?
+  logo_uri                   String?
+  created_at                 DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime                @default(now()) @db.Timestamptz(6)
+  deleted_at                 DateTime?               @db.Timestamptz(6)
+  client_type                oauth_client_type       @default(confidential)
+  token_endpoint_auth_method String
+  oauth_authorizations       oauth_authorizations[]
+  oauth_consents             oauth_consents[]
+  sessions                   sessions[]
 
   @@index([deleted_at])
   @@schema("auth")
@@ -650,6 +665,8 @@ model oauth_consents {
 
   @@unique([user_id, client_id], map: "oauth_consents_user_client_unique")
   @@index([user_id, granted_at(sort: Desc)], map: "oauth_consents_user_order_idx")
+  @@index([client_id], map: "oauth_consents_active_client_idx", where: raw("(revoked_at IS NULL)"))
+  @@index([user_id, client_id], map: "oauth_consents_active_user_client_idx", where: raw("(revoked_at IS NULL)"))
   @@schema("auth")
 }
 
@@ -660,6 +677,87 @@ model customers {
   quotes     quotes[]
 
   @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model custom_oauth_providers {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_type         String
+  identifier            String    @unique
+  name                  String
+  client_id             String
+  client_secret         String
+  acceptable_client_ids String[]  @default([])
+  scopes                String[]  @default([])
+  pkce_enabled          Boolean   @default(true)
+  attribute_mapping     Json      @default("{}")
+  authorization_params  Json      @default("{}")
+  enabled               Boolean   @default(true)
+  email_optional        Boolean   @default(false)
+  issuer                String?
+  discovery_url         String?
+  skip_nonce_check      Boolean   @default(false)
+  cached_discovery      Json?
+  discovery_cached_at   DateTime? @db.Timestamptz(6)
+  authorization_url     String?
+  token_url             String?
+  userinfo_url          String?
+  jwks_uri              String?
+  created_at            DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([created_at])
+  @@index([enabled])
+  @@index([identifier])
+  @@index([provider_type])
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model oauth_client_states {
+  id            String   @id @db.Uuid
+  provider_type String
+  code_verifier String?
+  created_at    DateTime @db.Timestamptz(6)
+
+  @@index([created_at], map: "idx_oauth_client_states_created_at")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model webauthn_challenges {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String?  @db.Uuid
+  challenge_type String
+  session_data   Json
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  expires_at     DateTime @db.Timestamptz(6)
+  users          users?   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at])
+  @@index([user_id])
+  @@schema("auth")
+}
+
+model webauthn_credentials {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String    @db.Uuid
+  credential_id    Bytes     @unique
+  public_key       Bytes
+  attestation_type String    @default("")
+  aaguid           String?   @db.Uuid
+  sign_count       BigInt    @default(0)
+  transports       Json      @default("[]")
+  backup_eligible  Boolean   @default(false)
+  backed_up        Boolean   @default(false)
+  friendly_name    String    @default("")
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @db.Timestamptz(6)
+  last_used_at     DateTime? @db.Timestamptz(6)
+  users            users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id])
+  @@schema("auth")
 }
 
 view quote_with_lineitems_and_product {
@@ -694,8 +792,8 @@ view sample_with_stones_export {
   sample_id            Int?
   styleNumber          String?   @db.VarChar(255)
   name                 String?   @db.VarChar(255)
-  sample_collection    String?   @db.VarChar(255)
-  sample_category      String?   @db.VarChar(255)
+  sample_collection    BigInt?
+  sample_category      BigInt?
   notes                String?
   sample_status        String?   @db.VarChar(50)
   created_at           DateTime? @db.Timestamptz(6)
