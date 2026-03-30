@@ -101,8 +101,7 @@ export const getImages = async(entity,entityId)=>{
   .single()
 
   if(imageError){
-    //  throw new Error(imageError.message)
-    console.log(imageError)
+    console.log("no images", imageError);
   }
 
   
@@ -111,7 +110,9 @@ export const getImages = async(entity,entityId)=>{
     // No results from Supabase
     return returnEmptyImageObject();
   }
-  return imageData
+  return {...imageData,
+    images: imageData.images.map((url)=> `${process.env.DB_HOST_URL}${url}`) // Prepend the host URL to each image path
+  } 
 
 
 

@@ -142,6 +142,7 @@ const DesignInfoModal = ({ isOpen, onClose, design, updateDesign }) => {
 
     // Call the update function to update the idea in the parent component
     if (finalizeUploadRef.current?.finalizeUpload) {
+      console.log("finalizing upload with images:", uploadedImages);
       await finalizeUploadRef.current.finalizeUpload(
         "design",
         design.id,

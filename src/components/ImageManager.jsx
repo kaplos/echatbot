@@ -77,7 +77,7 @@ setSelected(new Set())
       <div className="flex flex-col">
           <h1 className="text-2xl font-bold text-gray-900">Image Manager</h1>
           <SearchBar
-          type={'images'}
+          type={'image_link'}
             items={images}
             onSearch={(filteredItems) => {
               setFileredImages(filteredItems);
@@ -94,7 +94,7 @@ setSelected(new Set())
           >
             Delete Selected
           </button> */}
-          <DeleteButton onDelete={handleDelete} type={'images'} selectedItems={selectedImages}/>
+          <DeleteButton onDelete={handleDelete} type={'image_link'} selectedItems={selectedImages}/>
 
         </div>
       )}

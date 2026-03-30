@@ -45,12 +45,7 @@ export default function Samples() {
       .select("*, starting_info(*)")
       .eq("id", sample.sample_id)
       .single();
-    // const { data:imageData,error:imageError} = await supabase
-    // .from('sample_images')
-    // .select('*')
-    // .single()
-    // .eq('sample_id',sample.sample_id)
-    // console.log(data,data.starting_info?.id)
+ 
     const { images, cad } = await getImages(
       "starting_info",
       data.starting_info?.id

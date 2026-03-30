@@ -9,7 +9,7 @@ import { useGenericStore } from "../../store/VendorStore";
 import { useSearchParams, useNavigate } from "react-router-dom"; // Import React Router hooks
 import Loading from "../Loading";
 
-const SampleList = ({ samples, setSamples, isLoading, setIsLoading, hasMore, setHasMore, onSampleClick }) => {
+export default function SampleList({ samples, setSamples, isLoading, setIsLoading, hasMore, setHasMore, onSampleClick }) {
   const { getEntity } = useGenericStore();
   const { options } = getEntity("settings");
   const [selectedSamples, setSelectedSamples] = useState(new Set());
@@ -220,4 +220,3 @@ useEffect(()=>{
   );
 };
 
-export default SampleList;

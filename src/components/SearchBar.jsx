@@ -171,8 +171,8 @@ export default function SearchBar({ items: collectionItems, onSearch,type, setIs
           await handleSearchBarFunction(searchTerm);
           return;
           // break;
-        case "images":
-          selects = "'id,imageId(imageUrl)'";
+        case "image_link":
+          selects = "id,imageId(imageUrl)";
           filters = `styleNumber.ilike.%${searchTerm}%`;
           break;
         case "sample_with_stones_export":
@@ -202,7 +202,7 @@ export default function SearchBar({ items: collectionItems, onSearch,type, setIs
       if (error) throw error;
   
       // Process the results based on the type
-      if (type === "images") {
+      if (type === "image_link") {
         const imageUrls = data
           .filter((item) => item.imageId && item.imageId.imageUrl)
           .map((item) => ({

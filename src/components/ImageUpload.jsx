@@ -1,8 +1,8 @@
-import { useEffect, useState,forwardRef,useImperativeHandle } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Upload } from "lucide-react";
 import { useSupabase } from "./SupaBaseProvider";
 import { v4 as uuid  } from "uuid";
-export default function ImageUpload({images: inital,onChange,    collection = 'image',    forDisplay,props,ref}) {
+export default function ImageUpload({ images: inital, onChange, collection = "image", forDisplay, props, ref }) {
 
   // console.log(inital, "images from ImageUpload");
   const { supabase } = useSupabase();
@@ -33,11 +33,84 @@ useEffect(() => {
     setImageToShow(null)
 }, [images]);
 
-useImperativeHandle(ref,  () => ({
-    finalizeUpload: async (entity, entityId, styleNumber) => {
-      return await linkImagesToEntity(entity, entityId, styleNumber);
-    }
-}));
+const linkImagesToEntity = useCallback(async (entity, entityId, styleNumber) => {
+  // await removeImage(entity)
+    
+  console.log(`linking ${collection}:`, images) 
+  const imageIds = images.filter( image => image.status ==='done' && image.source==='upload'); 
+  console.log(`linking ${collection}:`, imageIds) 
+  
+  if (imageIds.length === 0) return;
+  
+  
+  const { error } = await supabase.from("image_link").insert(
+    imageIds.map((image) => ({
+      imageId: image.id,
+      styleNumber,
+      entity,
+      entityId,
+      type: collection,
+    }))
+  )
+  
+  if (error) {
+    console.error("Failed to link images:", error);
+  } else {
+    console.log("Images linked to entity successfully");
+  }
+
+  // const uniqueSuffix = Date.now();
+
+  // const formatted = `${uniqueSuffix}`;
+  // console.log(formatted); // Example: "7_4_2025"
+  
+  // await Promise.all(
+  //   images.map(async (image) => {
+  //     const decoded = decodeURIComponent(image.imageUrl);
+  //     const oldPath = decoded.split('/echatbot/')[1]; // get the path inside bucket
+  //     const extension = oldPath.split('.').pop(); // get file extension
+  
+  //     const newPath = `public/${styleNumber}_${formatted}.${extension}`;
+  
+  //     // Move the image in Supabase Storage
+  //     const { error: moveError } = await supabase.storage
+  //       .from('echatbot')
+  //       .move(oldPath, `${newPath}`);
+  
+  //     if (moveError) {
+  //       console.error(`Error moving ${oldPath}:`, moveError);
+  //       return;
+  //     }
+  
+  //     // Update the image metadata in the 'images' table
+  //     const fullNewUrl = `${process.env.VITE_SUPABASE_URL}/storage/v1/object/public/echatbot/${newPath}`
+  //     const {data, error: updateError } = await supabase
+  //       .from('images')
+  //       .update({ imageUrl: fullNewUrl, name: newPath })
+  //       .eq('id', image.id)
+  //       .select()
+        
+  //     if (updateError) {
+  //       console.error(`Error updating image row for ${image.imageUrl}:`, updateError);
+  //     }
+  //     console.log(data[0])
+  //   })
+  // );
+}, [images, supabase, collection]);
+
+// Expose imperative API via ref-as-prop (React 19)
+useEffect(() => {
+  if (!ref) return;
+  try {
+    ref.current = { finalizeUpload: linkImagesToEntity };
+  } catch (e) {
+    /* ignore if ref isn't mutable */
+  }
+  return () => {
+    try { if (ref) ref.current = null; } catch (e) {}
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [ref, linkImagesToEntity]);
 
 const handleImageChange = async (e) => {
   const files = Array.from(e.target.files);
@@ -71,13 +144,13 @@ const handleImageUpload = async (files) => {
 
       const { data, error: uploadError } = await supabase.storage
         .from("echatbot")
-        .upload(fileName, file);
+        .upload(`public/${fileName}`, file);
 
       if (uploadError) {
         console.error("Upload error:", uploadError);
         const imageUrl = supabase.storage
           .from("echatbot")
-          .getPublicUrl(fileName).data.publicUrl;
+          .getPublicUrl(`public/${fileName}`).data.publicUrl;
 
         const { data, error } = await supabase
           .from('images')
@@ -97,10 +170,11 @@ const handleImageUpload = async (files) => {
         continue;
       }
 
-      const imageUrl = supabase.storage
+      let imageUrl = supabase.storage
         .from("echatbot")
-        .getPublicUrl(fileName).data.publicUrl;
-
+        .getPublicUrl(`public/${fileName}`).data.publicUrl;
+      imageUrl = imageUrl.split('echatbot/')[1] // get the path inside bucket
+      console.log(imageUrl, 'imageUrl after upload');
       // Save metadata to DB
       const { data: insertData, error: insertError } = await supabase
         .from("images")
@@ -116,7 +190,7 @@ const handleImageUpload = async (files) => {
       // uploadedImages.push(insertData);
       setImages((prev) =>
           prev.map((u) =>
-            u.id === id ? { ...u, status: 'done', url: insertData.imageUrl ,id:insertData.id} : u
+            u.id === id ? { ...u, status: 'done', url: `${process.env.DB_HOST_URL}${insertData.imageUrl}` ,id:insertData.id} : u
           )
         );
     }
@@ -130,79 +204,6 @@ const handleImageUpload = async (files) => {
 
 
 
-  const linkImagesToEntity = async (entity,entityId,styleNumber) => {
-    // await removeImage(entity)
-    
-    console.log(`linking ${collection}:`, images) 
-    const imageIds = images.filter( image => image.status ==='done' && image.source==='upload'); 
-    console.log(`linking ${collection}:`, imageIds) 
-    
-    if (imageIds.length === 0) return;
-    
-    
-
-    const { error } = await supabase.from("image_link").insert(
-      imageIds.map((image) => {
-        
-        // if(image)
-        console.log(image)
-        
-       return {
-          imageId: image.id,
-          styleNumber,
-          entity,
-          entityId,
-          type:collection
-        }
-      }
-    ))
-    
-    if (error) {
-      console.error("Failed to link images:", error);
-    } else {
-      console.log("Images linked to entity successfully");
-    }
-
-
-
-    // const uniqueSuffix = Date.now();
-
-    // const formatted = `${uniqueSuffix}`;
-    // console.log(formatted); // Example: "7_4_2025"
-    
-    // await Promise.all(
-    //   images.map(async (image) => {
-    //     const decoded = decodeURIComponent(image.imageUrl);
-    //     const oldPath = decoded.split('/echatbot/')[1]; // get the path inside bucket
-    //     const extension = oldPath.split('.').pop(); // get file extension
-    
-    //     const newPath = `public/${styleNumber}_${formatted}.${extension}`;
-    
-    //     // Move the image in Supabase Storage
-    //     const { error: moveError } = await supabase.storage
-    //       .from('echatbot')
-    //       .move(oldPath, `${newPath}`);
-    
-    //     if (moveError) {
-    //       console.error(`Error moving ${oldPath}:`, moveError);
-    //       return;
-    //     }
-    
-    //     // Update the image metadata in the 'images' table
-    //     const fullNewUrl = `${process.env.VITE_SUPABASE_URL}/storage/v1/object/public/echatbot/${newPath}`
-    //     const {data, error: updateError } = await supabase
-    //       .from('images')
-    //       .update({ imageUrl: fullNewUrl, name: newPath })
-    //       .eq('id', image.id)
-    //       .select()
-        
-    //     if (updateError) {
-    //       console.error(`Error updating image row for ${image.imageUrl}:`, updateError);
-    //     }
-    //     console.log(data[0])
-    //   })
-    // );
-  };
   const removeImage = async (entity) => {
     try {
       // Filter images with status === "delete"

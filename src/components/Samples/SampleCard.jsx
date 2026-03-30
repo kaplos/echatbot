@@ -4,13 +4,13 @@ import { getStatusColor } from '../../utils/designUtils';
 import { formatShortDate } from '../../utils/dateUtils';
 import { MessageSquare, Calendar, Tag,Pencil } from 'lucide-react';
 
-const SampleCard = ({ 
+export default function SampleCard({ 
     key,
     sample, 
     onClick, 
     selected = false,
     selectable = false,
-  }) => {
+  }) {
     // console.log(sample, 'sample from sample card');
     const handleClick = (e) => {
       e.preventDefault();
@@ -43,7 +43,7 @@ const SampleCard = ({
                {images && images.length > 0 && (
                 <div className="relative w-full  bg-gray-100 rounded-t-lg overflow-hidden">
                 <img
-                  src={images[0]}
+                  src={`${process.env.DB_HOST_URL}${images[0]}`}
                   alt={sample.name}
                   className="w-full h-full object-contain "
                 />
@@ -89,4 +89,3 @@ const SampleCard = ({
          );
        };
    
-       export default SampleCard;
