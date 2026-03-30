@@ -42,7 +42,7 @@ return (
             {images && images.length > 0 ? (
               <>
                 <img
-                  src={images[0]}
+                  src={`${process.env.DB_HOST_URL}${images[0]}`}
                   alt={design.name}
                   className="w-full h-full object-contain"
                 />

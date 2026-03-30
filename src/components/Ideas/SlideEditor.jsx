@@ -160,7 +160,7 @@ function DraggableElement(props) {
 
       {type === 'image' ? (
         <img
-          src={src}
+          src={`${process.env.DB_HOST_URL}${src}`}
           alt={content || 'Draggable Image'}
           style={{
             width: '250px',
@@ -542,7 +542,7 @@ function SlideEditor({ onSave, slides, setSlides,readOnly,onExport }) {
                 top={element.top}
                 type={element.type}
                 content={element.content}
-                src={element.src}
+                src={ element.src}
                 onDelete={deleteElement}
                 currentSlide={currentSlide}
                 currentSlideId={currentSlideId}

@@ -37,7 +37,7 @@ export default function NewQuote() {
   const [productInfo, setProductInfo] = useState([]);
   const [lineItems, setlineItems] = useState([]);
   const [lineItemsToDelete, setlineItemsToDelete] = useState([]);
-  const [savedBulkMargin, setSavedBulkMargin] = useState(null); // Store the DB value for display only
+  const [savedBulkMargin, setSavedBulkMargin] = useState(0); // Store the DB value for display only
 
   const isInitialLoadRef = useRef(true);
 
@@ -52,10 +52,28 @@ export default function NewQuote() {
     gold: parseFloat(prices.gold.price),
     silver: parseFloat(prices.silver.price),
     multiplier: 4,
-    bulkMargin: null,
+    bulkMargin: 0,
     quoteTotal: 0,
     // retailPrice: 0,
   });
+
+  // normalize numeric/default fields for a line item (uses formData.bulkMargin)
+  const normalizeLineItem = (item) => {
+    const safeNum = (v, fallback = 0) =>
+      Number(v === null || v === undefined || Number.isNaN(Number(v)) ? fallback : v);
+    return {
+      ...item,
+      margin: safeNum(item.margin, formData?.bulkMargin ?? 0),
+      totalCost: safeNum(item.totalCost, 0),
+      salesPrice: safeNum(item.salesPrice, 0),
+      retailPrice: safeNum(item.retailPrice, 0),
+      bulkMargin: safeNum(item.bulkMargin, 0),
+      weight: safeNum(item.weight, 0),
+      salesWeight: safeNum(item.salesWeight, 0),
+      internalNote: item.internalNote ?? "",
+      BuyerComment: item.BuyerComment ?? "",
+    };
+  };
 
   const { getEntityItemById, getEntity } = useGenericStore();
   const vendors = getEntity("vendors");
@@ -66,58 +84,65 @@ export default function NewQuote() {
 
   // Fetch quote and line items if quote param exists
  
-  useEffect(() => {
-    if (quote) {
-      console.log(quote, "quote from params");
-      const fetchQuote = async () => {
-        setIsLoading(true);
-
+useEffect(() => {
+  if (quote) {
+    console.log(quote, "quote from params");
+    const fetchQuote = async () => {
+      setIsLoading(true);
+      try {
         const { data, error } = await supabase
           .from("quote_with_lineitems_and_product")
-          .select('*')
+          .select("*")
           .eq("quoteNumber", quote)
           .single();
 
         console.log(data, "data from supabase");
 
         if (error) {
-          console.error("Error fetching samples:", error);
-          setIsLoading(false);
+          console.error("Error fetching quote:", error);
           return;
         }
 
         // Process line items and fetch images
         const processedLineItems = await Promise.all(
-          data.lineitems.map(async (item) => {
+          (data.lineitems || []).map(async (item) => {
             console.log(item, "line item before processing");
-            const {product, internalNote, margin, lineItemId, BuyerComment, bulkMargin} = item;
-            const {styleNumber, images, cad, sample_id, starting_description, weight, salesWeight} = product || {};
+            const {
+              product,
+              internalNote,
+              margin = 0,
+              lineItemId,
+              BuyerComment,
+              bulkMargin,
+            } = item;
+            const {
+              styleNumber,
+              images,
+              cad,
+              sample_id,
+              starting_description,
+              weight,
+              salesWeight,
+            } = product || {};
 
-            // Calculate cost, salesPrice, retailPrice like handleCustomSelect
-            const vendor = getEntityItemById("vendors", product.vendor);
+            const vendor = getEntityItemById("vendors", product?.vendor);
             const lossPercentage = vendor?.pricingsetting?.lossPercentage || 0;
-            const cost = parseFloat(
-              totalCost(
-                product,
-                lossPercentage
-              ).toFixed(2)
-            ) || 0;
+            const cost =
+              parseFloat(totalCost(product, lossPercentage).toFixed(2)) || 0;
 
-            // Use the line item's margin directly from the database
-            const itemMargin = margin ?? (formData.bulkMargin || 0);
-            
-            // Calculate salesPrice using the margin
-            const salesPrice = parseFloat(
-              (cost / (1 - itemMargin / 100)).toFixed(2)
-            ) || cost;
-            
+            const itemMargin = margin ?? formData.bulkMargin ?? 0;
+
+            const salesPrice =
+              parseFloat((cost / (1 - itemMargin / 100)).toFixed(2)) || cost;
+
             const retailPrice =
-              parseFloat((salesPrice * (formData.multiplier || 1)).toFixed(2)) || 0;
+              parseFloat((salesPrice * (formData.multiplier || 1)).toFixed(2)) ||
+              0;
 
             return {
               ...product,
               productId: sample_id,
-              description: starting_description || '',
+              description: starting_description || "",
               retailPrice,
               weight,
               salesWeight,
@@ -127,33 +152,35 @@ export default function NewQuote() {
               totalCost: cost,
               salesPrice,
               id: lineItemId,
-              BuyerComment: BuyerComment || '',
+              BuyerComment: BuyerComment || "",
             };
           })
         );
+
         console.log(processedLineItems, "processed line items");
         setlineItems(processedLineItems);
 
         const { lineitems, bulkMargin, ...dataWithoutLineItems } = data;
-        
-        // Store the bulk margin for display only (as placeholder)
-        setSavedBulkMargin(bulkMargin || null);
-        
-        // Don't load bulkMargin into formData - keep it null
+
+        setSavedBulkMargin(bulkMargin || 0);
+
         resetForm(dataWithoutLineItems);
-        setIsLoading(false);
-        
-        // Mark initial load as complete after everything is set
+
         setTimeout(() => {
           isInitialLoadRef.current = false;
         }, 0);
-      };
-      fetchQuote();
-    } else {
-      isInitialLoadRef.current = false;
-      console.log("not displaying a quote");
-    }
-  }, [quote]);
+      } catch (err) {
+        console.error("Unexpected error fetching quote:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchQuote();
+  } else {
+    isInitialLoadRef.current = false;
+    console.log("not displaying a quote");
+  }
+}, [quote]);
 
   // Filter only allowed fields for DB insert/update
   const filterLineItemFields = (item) =>
@@ -196,12 +223,11 @@ export default function NewQuote() {
       console.error(error);
     }
     showMessage("Quote Created", "success");
-    const { error: lineItemError } = await supabase.from("lineItems").insert(
-      lineItems.map((item) => ({
-        ...filterLineItemFields(item),
-        quoteNumber: data.quoteNumber,
-      }))
-    );
+    const payload = lineItems.map((item) => ({
+      ...filterLineItemFields(normalizeLineItem(item)),
+      quoteNumber: data.quoteNumber,
+    }));
+    const { error: lineItemError } = await supabase.from("lineItems").insert(payload);
     if (lineItemError) {
       console.error(lineItemError);
     }
@@ -253,12 +279,11 @@ export default function NewQuote() {
     let newLineItems = lineItems.filter((lineItem) => !lineItem.id);
     console.log(newLineItems, "new line items");
 
-    const { error } = await supabase.from("lineItems").insert(
-      newLineItems.map((item) => ({
-        ...filterLineItemFields(item),
-        quoteNumber: quote,
-      }))
-    );
+    const payload = newLineItems.map((item) => ({
+      ...filterLineItemFields(normalizeLineItem(item)),
+      quoteNumber: quote,
+    }));
+    const { error } = await supabase.from("lineItems").insert(payload);
 
     if (error) {
       console.error(error);
@@ -270,9 +295,7 @@ export default function NewQuote() {
     console.log(lineItems, "line items to update");
     let lineItemsToUpdate = lineItems
       .filter((lineItem) => lineItem.id)
-      .map((item) => {
-        return filterLineItemFields(item);
-      });
+      .map((item) => filterLineItemFields(normalizeLineItem(item)));
 
     const { error } = await supabase.from("lineItems").upsert(
       lineItemsToUpdate.map((item) => ({
@@ -712,7 +735,7 @@ export default function NewQuote() {
                             </td>
                             <td className="border border-gray-300 p-2 text-center">
                               <img
-                                src={product.images[0]}
+                                src={`${process.env.DB_HOST_URL}${product.images[0]}`}
                                 alt={product.styleNumber}
                               />
                             </td>
@@ -847,3 +870,21 @@ export default function NewQuote() {
     </div>
   );
 }
+
+// ensure numeric defaults for line item fields
+const normalizeLineItem = (item) => {
+  const safeNum = (v, fallback = 0) =>
+    Number(v === null || v === undefined || Number.isNaN(Number(v)) ? fallback : v);
+  return {
+    ...item,
+    margin: safeNum(item.margin, formData?.bulkMargin ?? 0),
+    totalCost: safeNum(item.totalCost, 0),
+    salesPrice: safeNum(item.salesPrice, 0),
+    retailPrice: safeNum(item.retailPrice, 0),
+    bulkMargin: safeNum(item.bulkMargin, 0),
+    weight: safeNum(item.weight, 0),
+    salesWeight: safeNum(item.salesWeight, 0),
+    internalNote: item.internalNote ?? "",
+    BuyerComment: item.BuyerComment ?? "",
+  };
+};
