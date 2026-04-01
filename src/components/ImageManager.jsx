@@ -4,7 +4,8 @@ import Loading from './Loading';
 import { useMessage } from './Messages/MessageContext';
 import SearchBar from './SearchBar';
 import DeleteButton from './MiscComponenets/DeleteButton';
-const ImageManager = () => {
+import FolderBulkUpload from './FolderBulkUpload';
+export default function ImageManager (){
   const { supabase } = useSupabase();
   const [folders, setFolders] = useState(['idea-images', 'public']); // Available folders
   const [selectedFolder, setSelectedFolder] = useState('idea-images'); // Default folder
@@ -15,6 +16,7 @@ const ImageManager = () => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const {showMessage} = useMessage()
+  const [isFolderUploadOpen, setIsFolderUploadOpen] = useState(false);
 
   // Fetch images from the selected folder
   const fetchImages = async (folder) => {
@@ -86,18 +88,17 @@ setSelected(new Set())
             setIsLoading={setIsLoading}
           />
         </div>
-          {filteredImages.length > 0 && (
-        <div className="mt-4">
-          {/* <button
-            onClick={deleteImages}
-            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+        <div className="flex space-x-3">
+          <button
+            className="bg-white text-gray-700 px-4 py-2 rounded-lg flex items-center hover:bg-gray-50 border border-gray-300"
+            onClick={() => setIsFolderUploadOpen(true)}
           >
-            Delete Selected
-          </button> */}
-          <DeleteButton onDelete={handleDelete} type={'image_link'} selectedItems={selectedImages}/>
-
+            Bulk Upload
+          </button>
+          {filteredImages.length > 0 && (
+            <DeleteButton onDelete={handleDelete} type={'image_link'} selectedItems={selectedImages} />
+          )}
         </div>
-      )}
       </div>
 
       {loading && <Loading/>}
@@ -148,9 +149,29 @@ setSelected(new Set())
         ))}
       </div>
 
-      
+      {isFolderUploadOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+          <div className="bg-black/40 absolute inset-0" onClick={() => setIsFolderUploadOpen(false)} />
+          <div className="relative z-10 w-[90%] max-w-3xl bg-white rounded shadow-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">Bulk Upload Images</h3>
+              <button className="text-sm text-gray-600" onClick={() => setIsFolderUploadOpen(false)}>Close</button>
+            </div>
+            <FolderBulkUpload
+              bucket="echatbot"
+              concurrency={5}
+              onComplete={(result) => {
+                console.log('Bulk upload complete', result);
+                setIsFolderUploadOpen(false);
+                // refresh current folder images
+                fetchImages(selectedFolder);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
+     
+     
   );
 };
-
-export default ImageManager;
