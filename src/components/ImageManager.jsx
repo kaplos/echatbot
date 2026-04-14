@@ -1,3 +1,5 @@
+
+'use client'
 import React, { useState, useEffect } from 'react';
 import { useSupabase } from '../components/SupaBaseProvider';
 import Loading from './Loading';

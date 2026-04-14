@@ -1,3 +1,4 @@
+'use client'
 import React, { useState, Fragment,useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X,TagIcon } from 'lucide-react';

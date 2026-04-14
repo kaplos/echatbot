@@ -1,20 +1,6 @@
 import React, { useState, useRef } from "react";
 import { useSupabase } from "./SupaBaseProvider";
 
-/**
- * FolderBulkUpload
- * - Select a folder (browser supports via `webkitdirectory`).
- * - Expects each immediate child folder name to be a styleNumber.
- * - Uploads each file to: public/{filename}
- * - Inserts a row into `images` and then `image_link` linking to the sample that matches the folder name.
- *
- * Props:
- *   entity      - string, DB entity to write to image_link.entity (default "sample")
- *   bucket      - storage bucket (default "echatbot")
- *   type        - image_link.type (default "image")
- *   concurrency - parallel uploads (default 5)
- *   onComplete  - fn({ successCount, failCount, details })
- */
 export default function FolderBulkUpload({
   entity = "starting_info",
   type = "image",
@@ -29,29 +15,58 @@ export default function FolderBulkUpload({
   const [showConfirm, setShowConfirm] = useState(false);
   const [totalFiles, setTotalFiles] = useState(0);
   const [completedFiles, setCompletedFiles] = useState(0);
+  const [duplicateFiles, setDuplicateFiles] = useState([]);
+  const [emptyFiles, setEmptyFiles] = useState([]);
+  const [checking, setChecking] = useState(false);
+  const [checkProgress, setCheckProgress] = useState({ scanned: 0, total: null });
+  const [uploadResult, setUploadResult] = useState(null);
   const inputRef = useRef(null);
 
-  // Try to find a sample id given the folder name.
   async function findSampleId(folderName) {
-    // Try common column names until one matches
-      const { data, error } = await supabase
-        .from("samples")
-        .select("id, starting_info_id")
-        .eq("styleNumber", folderName)
-        .limit(1)
-        .maybeSingle();
-      if (error) {
-        // continue on error for a column; log silently
-      }
-      if (data && data.starting_info_id) return data.starting_info_id;
-    return null;
+    const { data } = await supabase
+      .from("samples")
+      .select("id, starting_info_id")
+      .eq("styleNumber", folderName)
+      .limit(1)
+      .maybeSingle();
+    return data?.starting_info_id ?? null;
+  }
+
+  // Paginated storage list — keeps fetching until no more results
+  async function fetchAllStorageFiles() {
+    const PAGE = 1000;
+    let offset = 0;
+    const all = [];
+    while (true) {
+      const { data, error } = await supabase.storage
+        .from(bucket)
+        .list("public", { limit: PAGE, offset });
+      if (error || !data || data.length === 0) break;
+      all.push(...data);
+      setCheckProgress((p) => ({ ...p, scanned: all.length }));
+      if (data.length < PAGE) break;
+      offset += PAGE;
+    }
+    return new Set(all.map((f) => f.name));
+  }
+
+  async function checkDuplicates(files) {
+    setCheckProgress({ scanned: 0, total: null });
+    const existingNames = await fetchAllStorageFiles();
+    setCheckProgress((p) => ({ ...p, total: existingNames.size }));
+    const filenames = files.map((f) => f.name.replace(/\s+/g, "_"));
+    return filenames.filter((name) => existingNames.has(name));
   }
 
   const handleFiles = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    const raw = Array.from(e.target.files || []);
+    if (raw.length === 0) return;
 
-    const grouped = files.reduce((acc, f) => {
+    const empty = raw.filter((f) => f.size === 0);
+    const validFiles = raw.filter((f) => f.size > 0);
+    setEmptyFiles(empty.map((f) => f.name));
+
+    const grouped = validFiles.reduce((acc, f) => {
       const rel = f.webkitRelativePath || f.name;
       const parts = rel.split("/").filter(Boolean);
       let style = parts.length >= 2 ? parts[1] : parts[0];
@@ -61,37 +76,41 @@ export default function FolderBulkUpload({
       return acc;
     }, {});
 
-    // Save grouped files and show confirmation
+    setChecking(true);
+    const dupes = await checkDuplicates(validFiles);
+    setChecking(false);
+
+    setDuplicateFiles(dupes);
     setPendingGrouped(grouped);
     setShowConfirm(true);
   };
 
-  // Start upload after user confirms
-  const startUpload = async () => {
+  const startUpload = async (replaceExisting = false) => {
     if (!pendingGrouped) return;
-    
     setShowConfirm(false);
     setUploading(true);
+    setUploadResult(null);
+
     const grouped = pendingGrouped;
-    const stats = { successCount: 0, failCount: 0, details: [] };
-    const progInit = {};
+    const stats = { successCount: 0, failCount: 0, skippedCount: 0, replacedCount: 0, details: [] };
     const total = Object.values(grouped).reduce((acc, arr) => acc + arr.length, 0);
     setTotalFiles(total);
     setCompletedFiles(0);
+
+    const progInit = {};
     Object.keys(grouped).forEach((s) => {
-      progInit[s] = { total: grouped[s].length, done: 0, errors: [] };
+      progInit[s] = { total: grouped[s].length, done: 0, errors: [], skipped: 0 };
     });
     setProgress(progInit);
 
-    // Pre-resolve sample ids for folders
     const sampleIdMap = {};
     await Promise.all(
       Object.keys(grouped).map(async (style) => {
-        const id = await findSampleId(style);
-        sampleIdMap[style] = id; // may be null
+        sampleIdMap[style] = await findSampleId(style);
       })
     );
 
+    const dupeSet = new Set(duplicateFiles);
     const allTasks = Object.entries(grouped).flatMap(([style, fls]) =>
       fls.map((file) => ({ style, file }))
     );
@@ -104,52 +123,64 @@ export default function FolderBulkUpload({
           const i = idx++;
           if (i >= allTasks.length) break;
           const { style, file } = allTasks[i];
+          const filename = file.name.replace(/\s+/g, "_");
+          const dest = `public/${filename}`;
+          const isDupe = dupeSet.has(filename);
+
           try {
-            const filename = file.name.replace(/\s+/g, "_");
-            const dest = `public/${filename}`;
-            const { error: uploadErr } = await supabase.storage.from(bucket).upload(dest, file, { upsert: false });
-            if (uploadErr && uploadErr.status !== 409) throw uploadErr;
+            if (isDupe && !replaceExisting) {
+              stats.skippedCount++;
+              stats.details.push({ style, file: filename, ok: true, skipped: true });
+              setProgress((p) => {
+                const cur = { ...(p[style] || { total: 0, done: 0, errors: [], skipped: 0 }) };
+                cur.skipped = (cur.skipped || 0) + 1;
+                cur.done = (cur.done || 0) + 1;
+                return { ...p, [style]: cur };
+              });
+            } else {
+              const { error: uploadErr } = await supabase.storage
+                .from(bucket)
+                .upload(dest, file, { upsert: replaceExisting });
+              if (uploadErr && uploadErr.status !== 409) throw uploadErr;
 
-            const imagePath = `public/${filename}`;
+              const { data: imgData, error: insertErr } = await supabase
+                .from("images")
+                .insert([{ imageUrl: dest, originalUrl: dest }])
+                .select("id, imageUrl")
+                .single();
+              if (insertErr) throw insertErr;
 
-            const { data: imgData, error: insertErr } = await supabase
-              .from("images")
-              .insert([{ imageUrl: imagePath, originalUrl: imagePath }])
-              .select("id, imageUrl")
-              .single();
+              const entityId = sampleIdMap[style] ?? style;
+              const { error: linkErr } = await supabase.from("image_link").insert([{
+                imageId: imgData.id,
+                styleNumber: style,
+                entity,
+                entityId,
+                type,
+              }]);
+              if (linkErr) throw linkErr;
 
-            if (insertErr) throw insertErr;
+              if (isDupe) stats.replacedCount++;
+              else stats.successCount++;
+              stats.details.push({ style, file: filename, ok: true, replaced: isDupe });
 
-            // Use matched sample id if found, otherwise fallback to folder name
-            const entityId = sampleIdMap[style] ?? style;
-
-            const { error: linkErr } = await supabase.from("image_link").insert([{
-              imageId: imgData.id,
-              styleNumber: style,
-              entity,
-              entityId,
-              type,
-            }]);
-
-            if (linkErr) throw linkErr;
-
-            stats.successCount++;
-            stats.details.push({ style, file: filename, ok: true });
+              setProgress((p) => {
+                const cur = { ...(p[style] || { total: 0, done: 0, errors: [], skipped: 0 }) };
+                cur.done = (cur.done || 0) + 1;
+                return { ...p, [style]: cur };
+              });
+            }
           } catch (err) {
             stats.failCount++;
-            stats.details.push({ style, file: file.name, ok: false, error: (err?.message || err) });
+            stats.details.push({ style, file: file.name, ok: false, error: err?.message || err });
             setProgress((p) => {
-              const cur = { ...(p[style] || { total: 0, done: 0, errors: [] }) };
+              const cur = { ...(p[style] || { total: 0, done: 0, errors: [], skipped: 0 }) };
               cur.errors = [...(cur.errors || []), file.name];
+              cur.done = (cur.done || 0) + 1;
               return { ...p, [style]: cur };
             });
           } finally {
-            setProgress((p) => {
-              const cur = { ...(p[allTasks[i]?.style] || { total: 0, done: 0, errors: [] }) };
-              cur.done = (cur.done || 0) + 1;
-              return { ...p, [allTasks[i]?.style]: cur };
-            });
-            setCompletedFiles(prev => prev + 1);
+            setCompletedFiles((prev) => prev + 1);
           }
         }
       }
@@ -158,6 +189,9 @@ export default function FolderBulkUpload({
     await Promise.all(workers);
     setUploading(false);
     setPendingGrouped(null);
+    setDuplicateFiles([]);
+    setEmptyFiles([]);
+    setUploadResult(stats);
     onComplete?.(stats);
   };
 
@@ -165,17 +199,29 @@ export default function FolderBulkUpload({
     setPendingGrouped(null);
     setShowConfirm(false);
     setProgress({});
+    setDuplicateFiles([]);
+    setEmptyFiles([]);
     setTotalFiles(0);
     setCompletedFiles(0);
+    setUploadResult(null);
     if (inputRef.current) inputRef.current.value = null;
   };
 
-  const progressPercent = totalFiles > 0 ? Math.round((completedFiles / totalFiles) * 100) : 0;
+  const progressPercent =
+    totalFiles > 0 ? Math.round((completedFiles / totalFiles) * 100) : 0;
+
+  const totalFileCount = pendingGrouped
+    ? Object.values(pendingGrouped).reduce((acc, arr) => acc + arr.length, 0)
+    : 0;
+  const newFileCount = totalFileCount - duplicateFiles.length;
 
   return (
     <div className="space-y-4">
+      {/* File input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Select folder to upload</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Select folder to upload
+        </label>
         <input
           ref={inputRef}
           type="file"
@@ -187,38 +233,115 @@ export default function FolderBulkUpload({
         />
       </div>
 
-      {pendingGrouped && showConfirm && (
-        <div className="p-6 border-2 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-300 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      {/* Checking spinner with paginated scan progress */}
+      {checking && (
+        <div className="p-5 border rounded-xl bg-white border-gray-200 shadow-sm space-y-3">
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 animate-spin text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
             </svg>
-            <h4 className="font-bold text-xl text-gray-800">Confirm Upload</h4>
-          </div>
-          <div className="bg-white rounded-lg p-4 mb-4 shadow-sm">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 bg-blue-100 rounded-lg">
-                <div className="text-3xl font-bold text-blue-700">{Object.keys(pendingGrouped).length}</div>
-                <div className="text-sm text-gray-600 mt-1">Folders</div>
-              </div>
-              <div className="text-center p-3 bg-indigo-100 rounded-lg">
-                <div className="text-3xl font-bold text-indigo-700">{Object.values(pendingGrouped).reduce((acc, arr) => acc + arr.length, 0)}</div>
-                <div className="text-sm text-gray-600 mt-1">Files</div>
-              </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Scanning storage for duplicates…</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {checkProgress.scanned.toLocaleString()} files scanned
+                {checkProgress.total ? ` of ~${checkProgress.total.toLocaleString()}` : ""}
+              </p>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+            <div className="h-full bg-blue-400 animate-pulse rounded-full" style={{ width: "100%" }} />
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation panel */}
+      {showConfirm && !checking && (
+        <div className="border-2 rounded-xl border-blue-200 bg-white shadow-sm overflow-hidden">
+          {/* Header */}
+          <div className="bg-blue-50 px-6 py-4 border-b border-blue-100">
+            <h4 className="font-bold text-lg text-gray-800">Ready to upload</h4>
+            <p className="text-sm text-gray-500 mt-0.5">Review before continuing</p>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* Summary stats */}
+            <div className="grid grid-cols-4 gap-3">
+              <div className="text-center p-3 bg-blue-50 rounded-xl border border-blue-100">
+                <div className="text-2xl font-bold text-blue-700">{totalFileCount}</div>
+                <div className="text-xs text-gray-500 mt-1">Total selected</div>
+              </div>
+              <div className="text-center p-3 bg-green-50 rounded-xl border border-green-100">
+                <div className="text-2xl font-bold text-green-700">{newFileCount}</div>
+                <div className="text-xs text-gray-500 mt-1">New files</div>
+              </div>
+              <div className="text-center p-3 bg-amber-50 rounded-xl border border-amber-100">
+                <div className="text-2xl font-bold text-amber-700">{duplicateFiles.length}</div>
+                <div className="text-xs text-gray-500 mt-1">Already exist</div>
+              </div>
+              <div className="text-center p-3 bg-red-50 rounded-xl border border-red-100">
+                <div className="text-2xl font-bold text-red-600">{emptyFiles.length}</div>
+                <div className="text-xs text-gray-500 mt-1">Empty / invalid</div>
+              </div>
+            </div>
+
+            {/* Empty files detail */}
+            {emptyFiles.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <p className="text-sm font-semibold text-red-700 mb-1">
+                  ⚠️ {emptyFiles.length} empty file{emptyFiles.length !== 1 ? "s" : ""} will be skipped
+                </p>
+                <div className="text-xs text-red-400 max-h-16 overflow-auto leading-relaxed">
+                  {emptyFiles.join(", ")}
+                </div>
+              </div>
+            )}
+
+            {/* Duplicate files detail */}
+            {duplicateFiles.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm font-semibold text-amber-800 mb-1">
+                  {duplicateFiles.length} file{duplicateFiles.length !== 1 ? "s" : ""} already exist in storage
+                </p>
+                <div className="text-xs text-amber-600 max-h-16 overflow-auto leading-relaxed mb-3">
+                  {duplicateFiles.join(", ")}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-semibold transition-all"
+                    onClick={() => startUpload(true)}
+                  >
+                    Replace + upload all
+                  </button>
+                  <button
+                    className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-all"
+                    onClick={() => startUpload(false)}
+                  >
+                    Skip existing, new only
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* No dupes — simple confirm */}
+            {duplicateFiles.length === 0 && totalFileCount > 0 && (
+              <button
+                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+                onClick={() => startUpload(false)}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                </svg>
+                Upload {totalFileCount} file{totalFileCount !== 1 ? "s" : ""}
+              </button>
+            )}
+
+            {totalFileCount === 0 && (
+              <p className="text-sm text-gray-500 text-center py-2">No valid files to upload.</p>
+            )}
+
             <button
-              className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-              onClick={startUpload}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Start Upload
-            </button>
-            <button
-              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold transition-all"
+              className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm font-medium transition-all"
               onClick={handleCancel}
             >
               Cancel
@@ -227,48 +350,129 @@ export default function FolderBulkUpload({
         </div>
       )}
 
+      {/* Upload progress */}
       {uploading && (
-        <div className="p-6 border-2 rounded-lg bg-white border-gray-300 shadow-lg">
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-bold text-lg text-gray-800">Uploading...</h4>
-              <span className="text-2xl font-bold text-blue-600">{progressPercent}%</span>
+        <div className="border-2 rounded-xl border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h4 className="font-bold text-lg text-gray-800">Uploading</h4>
+              <p className="text-xs text-gray-500 mt-0.5">{completedFiles} of {totalFiles} files</p>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner">
-              <div 
-                className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-300 ease-out rounded-full flex items-center justify-end pr-2"
+            <span className="text-3xl font-bold text-blue-600">{progressPercent}%</span>
+          </div>
+
+          <div className="px-6 pt-4 pb-2">
+            <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300 rounded-full"
                 style={{ width: `${progressPercent}%` }}
-              >
-                {progressPercent > 10 && (
-                  <span className="text-xs font-semibold text-white">{completedFiles}/{totalFiles}</span>
-                )}
-              </div>
-            </div>
-            <div className="text-sm text-gray-600 mt-2">
-              {completedFiles} of {totalFiles} files uploaded
+              />
             </div>
           </div>
-          <div className="space-y-2 max-h-64 overflow-auto">
+
+          <div className="p-4 space-y-2 max-h-72 overflow-auto">
             {Object.entries(progress).map(([style, s]) => {
-              const folderPercent = s.total > 0 ? Math.round((s.done / s.total) * 100) : 0;
+              const pct = s.total > 0 ? Math.round((s.done / s.total) * 100) : 0;
+              const done = s.done >= s.total;
               return (
-                <div key={style} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-gray-700">{style}</span>
-                    <span className="text-sm text-gray-600">{s.done}/{s.total}</span>
+                <div
+                  key={style}
+                  className={`rounded-lg p-3 border transition-colors ${
+                    done ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2">
+                      {done ? (
+                        <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 animate-spin text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                        </svg>
+                      )}
+                      <span className="text-sm font-semibold text-gray-700">{style}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {s.skipped > 0 && (
+                        <span className="text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                          {s.skipped} skipped
+                        </span>
+                      )}
+                      {s.errors?.length > 0 && (
+                        <span className="text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
+                          {s.errors.length} failed
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-500">{s.done}/{s.total}</span>
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-500 transition-all duration-300"
-                      style={{ width: `${folderPercent}%` }}
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 rounded-full ${
+                        done ? "bg-green-500" : "bg-blue-500"
+                      }`}
+                      style={{ width: `${pct}%` }}
                     />
                   </div>
-                  {s.errors?.length > 0 && (
-                    <div className="text-xs text-red-600 mt-1">⚠️ {s.errors.length} error{s.errors.length !== 1 ? 's' : ''}</div>
-                  )}
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Completion summary */}
+      {uploadResult && !uploading && (
+        <div className="border-2 rounded-xl border-green-200 bg-white shadow-sm overflow-hidden">
+          <div className="bg-green-50 px-6 py-4 border-b border-green-100 flex items-center gap-3">
+            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+              <h4 className="font-bold text-lg text-gray-800">Upload complete</h4>
+              <p className="text-xs text-gray-500">All tasks finished</p>
+            </div>
+          </div>
+          <div className="p-6 grid grid-cols-4 gap-3">
+            <div className="text-center p-3 bg-green-50 rounded-xl border border-green-100">
+              <div className="text-2xl font-bold text-green-700">{uploadResult.successCount}</div>
+              <div className="text-xs text-gray-500 mt-1">Uploaded</div>
+            </div>
+            <div className="text-center p-3 bg-blue-50 rounded-xl border border-blue-100">
+              <div className="text-2xl font-bold text-blue-700">{uploadResult.replacedCount}</div>
+              <div className="text-xs text-gray-500 mt-1">Replaced</div>
+            </div>
+            <div className="text-center p-3 bg-amber-50 rounded-xl border border-amber-100">
+              <div className="text-2xl font-bold text-amber-700">{uploadResult.skippedCount}</div>
+              <div className="text-xs text-gray-500 mt-1">Skipped</div>
+            </div>
+            <div className="text-center p-3 bg-red-50 rounded-xl border border-red-100">
+              <div className="text-2xl font-bold text-red-600">{uploadResult.failCount}</div>
+              <div className="text-xs text-gray-500 mt-1">Failed</div>
+            </div>
+          </div>
+          {uploadResult.failCount > 0 && (
+            <div className="px-6 pb-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-600 max-h-24 overflow-auto">
+                <p className="font-semibold text-red-700 mb-1">Failed files:</p>
+                {uploadResult.details
+                  .filter((d) => !d.ok)
+                  .map((d, i) => (
+                    <div key={i}>{d.file} — {d.error}</div>
+                  ))}
+              </div>
+            </div>
+          )}
+          <div className="px-6 pb-5">
+            <button
+              className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm font-medium transition-all"
+              onClick={handleCancel}
+            >
+              Done
+            </button>
           </div>
         </div>
       )}

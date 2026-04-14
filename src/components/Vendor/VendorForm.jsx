@@ -2,9 +2,12 @@ import React, { useState,useEffect } from 'react';
 import { Dialog } from '@headlessui/react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import { useSupabase } from '../../components/SupaBaseProvider';
+import { useGenericStore } from '../../store/VendorStore';
 
 const AddVendorForm = ({ isOpen, onClose, onSave}) => {
     const {supabase} = useSupabase();
+    const {getEntity} = useGenericStore();
+    const vendors = getEntity('vendors');
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -57,18 +60,19 @@ const AddVendorForm = ({ isOpen, onClose, onSave}) => {
         .insert([formData])
         .select()
 
-        const existingVendors = JSON.parse(localStorage.getItem('vendors')) || [];
+        if(error){
+            console.error('Error inserting vendor:', error);
+            return;
+        }
 
         // Append the new vendor(s) to the existing array
-        const updatedVendors = [...existingVendors, ...data];
+        const updatedVendors = [...vendors, ...data];
       
         // Save the updated array back to localStorage
-        localStorage.setItem('vendors', JSON.stringify(updatedVendors));        if(error) {
-          console.log(error);
-      }
+        updateEntity('vendors', updatedVendors);
+
        console.log(data, 'data from insert vendors ');
         onSave(data)
-        // onClose();
         setFormData({
           name: '',
           email: '',
@@ -84,7 +88,6 @@ const AddVendorForm = ({ isOpen, onClose, onSave}) => {
           notes: '',
         })
         window.location.reload()
-
     }
     return (
         <Dialog open={isOpen} onClose={onClose} className="relative z-50">

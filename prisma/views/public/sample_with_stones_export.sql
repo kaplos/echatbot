@@ -1,3 +1,41 @@
+WITH aggregated_stones AS (
+  SELECT
+    stones.starting_info_id,
+    COALESCE(
+      jsonb_agg(
+        jsonb_build_object(
+          'id',
+          stones.id,
+          'type',
+          stones.type,
+          'customType',
+          stones."customType",
+          'color',
+          stones.color,
+          'shape',
+          stones.shape,
+          'size',
+          stones.size,
+          'quantity',
+          stones.quantity,
+          'cost',
+          stones.cost,
+          'notes',
+          stones.notes
+        )
+        ORDER BY
+          stones.id
+      ) FILTER (
+        WHERE
+          (stones.id IS NOT NULL)
+      ),
+      '[]' :: jsonb
+    ) AS stones
+  FROM
+    stones
+  GROUP BY
+    stones.starting_info_id
+)
 SELECT
   samples.id AS sample_id,
   samples."styleNumber",
@@ -35,36 +73,26 @@ SELECT
   starting_info."necklaceCost",
   starting_info.collection AS starting_collection,
   starting_info.category AS starting_category,
-  stones.id AS stone_id,
-  stones.type AS stone_type,
-  stones."customType",
-  stones.color AS stone_color,
-  stones.shape AS stone_shape,
-  stones.size AS stone_size,
-  stones.quantity AS stone_quantity,
-  stones.cost AS stone_cost,
-  stones.notes AS stone_notes,
-  COALESCE(entity_images.images, ARRAY [] :: text []) AS images,
-  COALESCE(entity_images.cad, ARRAY [] :: text []) AS cad
+  COALESCE(agg.stones, '[]' :: jsonb) AS stones,
+  COALESCE(ei.images, ARRAY [] :: text []) AS images,
+  COALESCE(ei.cad, ARRAY [] :: text []) AS cad
 FROM
   (
     (
       (
         samples
-        JOIN starting_info ON ((samples.starting_info_id = starting_info.id))
+        JOIN starting_info ON ((starting_info.id = samples.starting_info_id))
       )
-      LEFT JOIN stones ON (
-        (
-          stones.starting_info_id = samples.starting_info_id
-        )
+      LEFT JOIN aggregated_stones agg ON (
+        (agg.starting_info_id = samples.starting_info_id)
       )
     )
-    LEFT JOIN entity_images ON (
+    LEFT JOIN entity_images ei ON (
       (
         (
-          entity_images."entityId" = (samples.starting_info_id) :: numeric
+          (ei."entityId") :: numeric = (samples.starting_info_id) :: numeric
         )
-        AND (entity_images.entity = 'starting_info' :: text)
+        AND (ei.entity = 'starting_info' :: text)
       )
     )
   );

@@ -22,43 +22,24 @@ WITH image_groups AS (
     il.type
 )
 SELECT
-  ig."entityId",
-  ig.entity,
+  image_groups."entityId",
+  image_groups.entity,
   COALESCE(
-    (
-      SELECT
-        image_groups.urls
-      FROM
-        image_groups
+    max(image_groups.urls) FILTER (
       WHERE
-        (
-          (image_groups.type = 'image' :: text)
-          AND (image_groups."entityId" = ig."entityId")
-          AND (image_groups.entity = ig.entity)
-        )
+        (image_groups.type = 'image' :: text)
     ),
     ARRAY [] :: text []
   ) AS images,
   COALESCE(
-    (
-      SELECT
-        image_groups.urls
-      FROM
-        image_groups
+    max(image_groups.urls) FILTER (
       WHERE
-        (
-          (image_groups.type = 'cad' :: text)
-          AND (image_groups."entityId" = ig."entityId")
-          AND (image_groups.entity = ig.entity)
-        )
+        (image_groups.type = 'cad' :: text)
     ),
     ARRAY [] :: text []
   ) AS cad
 FROM
-  (
-    SELECT
-      DISTINCT image_groups."entityId",
-      image_groups.entity
-    FROM
-      image_groups
-  ) ig;
+  image_groups
+GROUP BY
+  image_groups."entityId",
+  image_groups.entity;

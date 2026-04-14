@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions", "views", "partialIndexes"]
+  previewFeatures = ["partialIndexes", "postgresqlExtensions", "views"]
 }
 
 datasource db {
@@ -413,11 +413,13 @@ model image_link {
   created_at  DateTime @default(now()) @db.Timestamptz(6)
   imageId     BigInt?
   entity      String
-  entityId    Decimal  @db.Decimal
+  entityId    Int
   styleNumber String
   type        String?
   images      images?  @relation(fields: [imageId], references: [id], onDelete: NoAction)
 
+  @@index([entityId, entity], map: "entity_images_entityid_entity_idx")
+  @@index([entityId, entity], map: "idx_image_link_entityid_entity")
   @@schema("public")
 }
 
@@ -449,6 +451,8 @@ model lineItems {
   samples      samples?  @relation(fields: [productId], references: [id])
   quotes       quotes    @relation(fields: [quoteNumber], references: [quoteNumber], onDelete: Cascade)
 
+  @@index([productId], map: "idx_lineitems_productid")
+  @@index([quoteNumber], map: "idx_lineitems_quotenumber")
   @@schema("public")
 }
 
@@ -511,6 +515,8 @@ model samples {
 
   @@index([name(ops: raw("gin_trgm_ops"))], map: "samples_name_trgm_idx", type: Gin)
   @@index([styleNumber(ops: raw("gin_trgm_ops"))], map: "samples_stylenumber_trgm_idx", type: Gin)
+  @@index([starting_info_id], map: "idx_samples_starting_info_id")
+  @@index([starting_info_id])
   @@schema("public")
 }
 
@@ -584,6 +590,8 @@ model stones {
   updated_at       DateTime?     @default(now()) @db.Timestamptz(6)
   starting_info    starting_info @relation(fields: [starting_info_id], references: [id], onDelete: Cascade)
 
+  @@index([starting_info_id], map: "idx_stones_starting_info_id")
+  @@index([starting_info_id])
   @@schema("public")
 }
 
@@ -780,7 +788,7 @@ view quote_with_lineitems_and_product {
 }
 
 view entity_images {
-  entityId Decimal? @db.Decimal
+  entityId Int?
   entity   String?
   images   String[]
   cad      String[]
@@ -825,15 +833,7 @@ view sample_with_stones_export {
   necklaceCost         Decimal?  @db.Decimal
   starting_collection  BigInt?
   starting_category    BigInt?
-  stone_id             Int?
-  stone_type           String?
-  customType           String?
-  stone_color          String?
-  stone_shape          String?
-  stone_size           String?
-  stone_quantity       Int?
-  stone_cost           Decimal?  @db.Decimal(10, 2)
-  stone_notes          String?
+  stones               Json?
   images               String[]
   cad                  String[]
 

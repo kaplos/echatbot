@@ -70,6 +70,7 @@ function CustomSelectWithSelections({ onSelect, version, isOpen, close, selected
 
     // if(version!=="samples"){
         query = query.select('*')
+        .limit(100)
     // }else{
         // query=query.select(`*,
         //    startingInfo: starting_info_id(*)`);

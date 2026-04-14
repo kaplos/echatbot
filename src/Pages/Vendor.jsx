@@ -10,36 +10,29 @@ import { useGenericStore } from '../store/VendorStore';
 export default function Vendors() {
     const {getEntity,updateEntity} = useGenericStore()
     const vendors = getEntity('vendors');
+    console.log(vendors,'vendors from store',) 
     const {supabase} = useSupabase();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isEditFormOpen, setIsEditFormOpen] = useState(false);
-    const [selectedDesign, setSelectedDesign] = useState(null);
     const [isLoading,setIsLoading] = useState(false)
     const [selectedVendor, setSelectedVendor] = useState(null);
-    // const [vendors, setVendors] = useState([]);
 
-    // useEffect(() => {
-    //     const fetchVendors = async () => {
-    //         setIsLoading(true)
-    //         const { data, error } = await supabase
-    //         .from('vendors')
-    //         .select('*')
-    //         if (error) {
-    //             console.error('Error fetching vendors:', error);
-    //             return;
-    //         }
-    //         setVendors(data);
-    //         setIsLoading(false)
-    //     };
-    //     fetchVendors();
-
-    // }, []);
+    const handleUpdateVendor = async (vendorData) => {
+      vendors.forEach((vendor) => {
+        if(vendor.id === vendorData.id){
+          Object.assign(vendor, vendorData);
+        } 
+      })
+      updateEntity('vendors',vendors)
+      
+      
+    }
     
     const handleClick = async (vendor) => {
       const { data, error } = await supabase
-    .from('vendors')
-    .select('*')
-    .eq('id', vendor.id);
+        .from('vendors')
+        .select('*')
+        .eq('id', vendor.id);
 
     if (error) {
       console.error('Error fetching vendor:', error);
@@ -90,6 +83,7 @@ export default function Vendors() {
             onSave={(vendor) => {
               console.log(vendor)
               setIsFormOpen(false);
+              setSelectedVendor(null);
             }}
           />
           {selectedVendor &&
@@ -100,7 +94,7 @@ export default function Vendors() {
                   setIsEditFormOpen(false);
                   setSelectedVendor(null);
                 }}
-                updateVendor={(data)=> updateEntity('vendors', data)}
+                updateVendor={handleUpdateVendor}
             />
           }
         </div>
