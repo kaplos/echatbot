@@ -1,7 +1,7 @@
 import ConfirmationModal from "../ConfirmationModal";
 import { useState } from "react";
 import { useSupabase } from "../SupaBaseProvider";
-export default function DeleteButton({ onDelete,type ,selectedItems}) {
+export default function DeleteButton({ onDelete,type ,selectedItems,selectedFolder}) {
   const [isOpen,setIsOpen]=useState(false)
   const {supabase} = useSupabase();
 
@@ -29,6 +29,7 @@ export default function DeleteButton({ onDelete,type ,selectedItems}) {
     if (error||imageTableDelete) {
       console.error(error||imageTableDelete)
     }
+    onDelete(!error&&!imageTableDelete)
   };
   return (
     <>

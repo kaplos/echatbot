@@ -81,7 +81,7 @@ setSelected(new Set())
       <div className="flex flex-col">
           <h1 className="text-2xl font-bold text-gray-900">Image Manager</h1>
           <SearchBar
-          type={'image_link'}
+            type={'image_link'}
             items={images}
             onSearch={(filteredItems) => {
               setFileredImages(filteredItems);
@@ -98,7 +98,7 @@ setSelected(new Set())
             Bulk Upload
           </button>
           {filteredImages.length > 0 && (
-            <DeleteButton onDelete={handleDelete} type={'image_link'} selectedItems={selectedImages} />
+            <DeleteButton onDelete={handleDelete} type={'images'} selectedItems={selectedImages}  selectedFolder={selectedFolder}/>
           )}
         </div>
       </div>
